@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/smart-menu-recommendation-flow.ts';
+import '@/ai/flows/ai-sales-insights-flow.ts';
+import '@/ai/flows/ai-inventory-forecasting-flow.ts';
