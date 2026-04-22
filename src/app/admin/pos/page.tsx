@@ -15,7 +15,8 @@ import {
   Minus,
   UtensilsCrossed,
   CreditCard,
-  Banknote
+  Banknote,
+  ShoppingCart
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
