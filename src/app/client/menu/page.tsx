@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,10 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { UtensilsCrossed, ShoppingCart, Search, Filter, Sparkles, Clock, Star } from 'lucide-react';
+import { 
+  UtensilsCrossed, 
+  ShoppingCart, 
+  Search, 
+  Sparkles, 
+  Clock, 
+  Star, 
+  ChevronRight,
+  Activity
+} from 'lucide-react';
 import Image from 'next/image';
 import { smartMenuRecommendation, SmartMenuRecommendationOutput } from '@/ai/flows/smart-menu-recommendation-flow';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -86,6 +102,22 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Turnos Section */}
+        <div className="mb-8 p-4 bg-foreground text-white rounded-2xl flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+              <Clock className="text-primary" />
+            </div>
+            <div>
+              <p className="text-xs opacity-70">Tiempo estimado de espera</p>
+              <p className="text-lg font-bold">~ 12 minutos</p>
+            </div>
+          </div>
+          <Button variant="outline" className="text-white border-white/20 hover:bg-white/10 rounded-xl" asChild>
+            <a href="/queue">Ver Cola Real</a>
+          </Button>
+        </div>
+
         {/* Search & Filter */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
@@ -137,7 +169,7 @@ export default function ClientMenu() {
         {/* Menu Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredItems.map((item) => (
-            <Card key={item.id} className="group border-none shadow-sm rounded-2xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
+            <Card key={item.id} className="group border-none shadow-sm rounded-2xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 bg-white">
               <div className="aspect-[4/3] relative overflow-hidden">
                 <Image 
                   src={item.imageUrl} 
@@ -147,26 +179,50 @@ export default function ClientMenu() {
                   data-ai-hint={item.name}
                 />
                 <Badge className="absolute top-3 right-3 bg-white/90 text-primary hover:bg-white">
-                  ${item.price.toFixed(2)}
+                  S/ {item.price.toFixed(2)}
                 </Badge>
               </div>
               <CardHeader className="p-4">
                 <div className="flex justify-between items-start mb-1">
                   <span className="text-xs font-medium text-primary uppercase tracking-wider">{item.category}</span>
-                  <div className="flex items-center text-[10px] text-yellow-500">
-                    <Star size={10} fill="currentColor" />
-                    <span className="ml-0.5 text-muted-foreground">4.8</span>
-                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-muted-foreground">
+                        <Activity size={10} /> Nutrición
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Información Nutricional: {item.name}</DialogTitle>
+                        <DialogDescription>Valores aproximados por porción.</DialogDescription>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="p-3 bg-muted rounded-xl text-center">
+                          <p className="text-xs text-muted-foreground">Calorías</p>
+                          <p className="text-xl font-bold">{item.nutrition.calories} kcal</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-xl text-center">
+                          <p className="text-xs text-muted-foreground">Proteínas</p>
+                          <p className="text-xl font-bold">{item.nutrition.protein}g</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-xl text-center">
+                          <p className="text-xs text-muted-foreground">Grasas</p>
+                          <p className="text-xl font-bold">{item.nutrition.fat}g</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-xl text-center">
+                          <p className="text-xs text-muted-foreground">Carbohidratos</p>
+                          <p className="text-xl font-bold">{item.nutrition.carbs}g</p>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <CardTitle className="text-lg font-bold leading-tight">{item.name}</CardTitle>
                 <CardDescription className="line-clamp-2 text-sm">{item.description}</CardDescription>
               </CardHeader>
               <CardFooter className="p-4 pt-0 flex gap-2">
                 <Button className="flex-1 h-10 rounded-xl" onClick={() => addToCart(item)}>
-                  Añadir al Pedido
-                </Button>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl">
-                  <Clock size={18} />
+                  Pedir Ahora
                 </Button>
               </CardFooter>
             </Card>
@@ -181,7 +237,7 @@ export default function ClientMenu() {
             <span className="flex items-center gap-3">
               <ShoppingCart /> {cart.length} productos
             </span>
-            <span>Ver Pedido</span>
+            <span>Ver Pedido <ChevronRight size={18} /></span>
           </Button>
         </div>
       )}
