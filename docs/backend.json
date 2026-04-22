@@ -1,0 +1,600 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the UniEats application, including customers, cafeteria staff, and administrators. Authentication details (passwords) are handled by an external system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The institutional email address of the user, used for identification.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the system (e.g., 'customer', 'cashier', 'kitchen_staff', 'admin')."
+        },
+        "universityId": {
+          "type": "string",
+          "description": "The unique identifier assigned by the University UNI to the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "role",
+        "universityId",
+        "createdAt"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for organizing menu items (e.g., 'Main Dishes', 'Beverages', 'Desserts').",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category (e.g., 'Bebidas Calientes', 'Ensaladas')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the category."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to an image representing the category, if available.",
+          "format": "uri"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the category is currently active and visible in the menu."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "isActive"
+      ]
+    },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Represents a single food or beverage item available on the cafeteria menu.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MenuItem entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the menu item."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the menu item."
+        },
+        "price": {
+          "type": "number",
+          "description": "The current selling price of the menu item."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to the image of the menu item.",
+          "format": "uri"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to the Category this menu item belongs to. (Relationship: Category 1:N MenuItem)"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the menu item is currently active and visible in the menu."
+        },
+        "preparationTimeMinutes": {
+          "type": "number",
+          "description": "The estimated time in minutes required to prepare the item."
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Indicates if the item is currently available for order (e.g., in stock)."
+        },
+        "stockQuantity": {
+          "type": "number",
+          "description": "The current quantity of the item in stock for inventory management. (Optional, if not all items are quantity tracked)"
+        },
+        "calories": {
+          "type": "number",
+          "description": "Nutritional information: total calories per serving."
+        },
+        "proteinGrams": {
+          "type": "number",
+          "description": "Nutritional information: grams of protein per serving."
+        },
+        "fatGrams": {
+          "type": "number",
+          "description": "Nutritional information: grams of fat per serving."
+        },
+        "carbohydrateGrams": {
+          "type": "number",
+          "description": "Nutritional information: grams of carbohydrates per serving."
+        },
+        "allergens": {
+          "type": "array",
+          "description": "A list of common allergens present in the menu item (e.g., 'gluten', 'nuts', 'dairy').",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price",
+        "imageUrl",
+        "categoryId",
+        "isActive",
+        "preparationTimeMinutes",
+        "isAvailable",
+        "calories",
+        "proteinGrams",
+        "fatGrams",
+        "carbohydrateGrams",
+        "allergens"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents a customer's order for menu items, including details like pickup time, status, and total amount.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who placed the order. (Relationship: User 1:N Order)"
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "Timestamp when the order was placed.",
+          "format": "date-time"
+        },
+        "pickupTime": {
+          "type": "string",
+          "description": "The requested or estimated time for order pickup.",
+          "format": "date-time"
+        },
+        "actualPickupTime": {
+          "type": "string",
+          "description": "The actual time the order was picked up by the customer.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the order (e.g., 'pending', 'preparing', 'ready_for_pickup', 'completed', 'cancelled')."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total monetary amount of the order, including all items and any applicable taxes/fees."
+        },
+        "pickupNumber": {
+          "type": "string",
+          "description": "A unique number assigned to the order for virtual queue management and pickup identification."
+        },
+        "orderType": {
+          "type": "string",
+          "description": "The type of order (e.g., 'online_preorder', 'pos_in_person')."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "The status of the payment for the order (e.g., 'paid', 'pending', 'refunded')."
+        },
+        "cashierUserId": {
+          "type": "string",
+          "description": "Reference to the User (staff) who processed this order at the POS, if applicable. (Relationship: User 1:N Order)"
+        },
+        "cashRegisterSessionId": {
+          "type": "string",
+          "description": "Reference to the CashRegisterSession during which this order was processed, if applicable. (Relationship: CashRegisterSession 1:N Order)"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "orderDate",
+        "pickupTime",
+        "status",
+        "totalAmount",
+        "pickupNumber",
+        "orderType",
+        "paymentStatus"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Represents a single menu item included within an order, detailing quantity, price at time of order, and any customizations.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OrderItem entity."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the Order this item belongs to. (Relationship: Order 1:N OrderItem)"
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "Reference to the MenuItem ordered. (Relationship: MenuItem 1:N OrderItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the menu item ordered."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "The price of a single unit of the menu item at the time of the order."
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "The total cost for this specific order item (quantity * unitPrice)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any specific notes or simple customizations for this item (e.g., 'no onions', 'extra cheese')."
+        },
+        "customizations": {
+          "type": "array",
+          "description": "A structured list of complex customizations applied to the menu item, if applicable (e.g., array of {option: 'size', value: 'large'}).",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "menuItemId",
+        "quantity",
+        "unitPrice",
+        "subtotal"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Captures customer feedback, including ratings and comments, for menu items or overall service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who submitted the review. (Relationship: User 1:N Review)"
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "Reference to the MenuItem being reviewed, if applicable. (Relationship: MenuItem 1:N Review)"
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the specific Order associated with the review, if applicable. (Relationship: Order 1:N Review)"
+        },
+        "rating": {
+          "type": "number",
+          "description": "The numerical rating given (e.g., 1 to 5 stars)."
+        },
+        "comment": {
+          "type": "string",
+          "description": "The textual comment or feedback provided by the user."
+        },
+        "reviewDate": {
+          "type": "string",
+          "description": "Timestamp when the review was submitted.",
+          "format": "date-time"
+        },
+        "sentiment": {
+          "type": "string",
+          "description": "The analyzed sentiment of the comment (e.g., 'positive', 'neutral', 'negative'), if an NLP service is used."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "rating",
+        "comment",
+        "reviewDate"
+      ]
+    },
+    "CashRegisterSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CashRegisterSession",
+      "type": "object",
+      "description": "Records the financial activity for a specific cashier's shift at a Point of Sale (POS) terminal, including cash movements and sales totals.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CashRegisterSession entity."
+        },
+        "cashierUserId": {
+          "type": "string",
+          "description": "Reference to the User (staff) who operated the cash register during this session. (Relationship: User 1:N CashRegisterSession)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Timestamp when the cash register session was opened.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "Timestamp when the cash register session was closed.",
+          "format": "date-time"
+        },
+        "openingCashAmount": {
+          "type": "number",
+          "description": "The amount of cash in the drawer at the beginning of the session."
+        },
+        "closingCashAmount": {
+          "type": "number",
+          "description": "The amount of cash in the drawer at the end of the session, after reconciliation."
+        },
+        "totalSalesAmount": {
+          "type": "number",
+          "description": "The total sales amount recorded during this session (calculated or reconciled)."
+        },
+        "totalRefundsAmount": {
+          "type": "number",
+          "description": "The total amount of refunds processed during this session."
+        },
+        "discrepancyAmount": {
+          "type": "number",
+          "description": "The difference between expected and actual cash at the end of the session."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the cash register session (e.g., 'open', 'closed', 'reconciled')."
+        }
+      },
+      "required": [
+        "id",
+        "cashierUserId",
+        "startTime",
+        "openingCashAmount",
+        "status"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores individual user profiles (customers, staff, admins). Only the authenticated user (`request.auth.uid`) can read or update their own profile. Includes denormalized 'role' for application logic, but security rules use dedicated role collections for DBAC.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, matching `request.auth.uid`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{adminId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Grants administrative privileges. The mere existence of a document at this path signifies that `adminId` is an administrator. Used for efficient Database-Backed Access Control (DBAC) in security rules.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The unique identifier of a user with administrative privileges."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_cashier/{cashierId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Grants cashier privileges. The mere existence of a document at this path signifies that `cashierId` is a cashier. Used for efficient Database-Backed Access Control (DBAC) in security rules.",
+          "params": [
+            {
+              "name": "cashierId",
+              "description": "The unique identifier of a user with cashier privileges."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_kitchenStaff/{kitchenStaffId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Grants kitchen staff privileges. The mere existence of a document at this path signifies that `kitchenStaffId` is kitchen staff. Used for efficient Database-Backed Access Control (DBAC) in security rules.",
+          "params": [
+            {
+              "name": "kitchenStaffId",
+              "description": "The unique identifier of a user with kitchen staff privileges."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Defines categories for organizing menu items. Publicly readable for active categories. Only users with 'admin' or 'kitchen_staff' roles can create, update, or delete categories.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique identifier of the menu item category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/menuItems/{menuItemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": {
+            "$ref": "#/backend/entities/MenuItem"
+          },
+          "description": "Stores individual food and beverage items, including nutritional information, pricing, and availability. Publicly readable for active items. Only users with 'admin' or 'kitchen_staff' roles can manage (create, update, delete) menu items.",
+          "params": [
+            {
+              "name": "menuItemId",
+              "description": "The unique identifier of the menu item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores customer orders. Includes denormalized `userId` (customer ID) for authorization independence. Customers can only read/update their own orders. Staff roles (cashier, kitchen_staff, admin) have broader access to read and update status based on their role permissions. Supports QAPs via `where('userId', '==', request.auth.uid)`.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}/items/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores individual items within an order. Each document *must* include the denormalized `userId` (copied from the parent Order) to ensure Authorization Independence and avoid `get()` calls to the parent order in security rules. Access is tied to the parent order's permissions.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the parent order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "The unique identifier of the specific item within the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Captures customer feedback and ratings. Includes `userId` (reviewer ID) for authorization independence. Users can only create, update, or delete their own reviews. All users can read submitted reviews.",
+          "params": [
+            {
+              "name": "reviewId",
+              "description": "The unique identifier of the review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/cashRegisterSessions/{sessionId}",
+        "definition": {
+          "entityName": "CashRegisterSession",
+          "schema": {
+            "$ref": "#/backend/entities/CashRegisterSession"
+          },
+          "description": "Records the financial activity for cashier shifts. Includes denormalized `cashierUserId` for authorization independence. Only the owning cashier or an 'admin' can manage a session.",
+          "params": [
+            {
+              "name": "sessionId",
+              "description": "The unique identifier of the cash register session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/nutritionLog/{logEntryId}",
+        "definition": {
+          "entityName": "NutritionLogEntry",
+          "schema": {
+            "$ref": "#/backend/entities/NutritionLogEntry"
+          },
+          "description": "Stores personal nutritional consumption records for each user. This is private data, accessible only by the owning `userId`. Each log entry denormalizes the nutritional data from the corresponding MenuItem for fast lookups. The `NutritionLogEntry` entity schema is assumed to be defined as part of the application backend entities for this path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns this nutrition log."
+            },
+            {
+              "name": "logEntryId",
+              "description": "The unique identifier for a specific entry in the user's nutrition log."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for UniEats prioritizes Authorization Independence, Structural Segregation, and DBAC (Database-Backed Access Control) to ensure a secure, scalable, and debuggable system. \n\n**Authorization Independence (CRITICAL):**\n1.  **Denormalization of `userId` in `OrderItem`:** To avoid expensive and complex `get()` calls to the parent `Order` document within security rules for `OrderItem`s, each `OrderItem` document will explicitly include the `userId` of the customer who placed the order. This allows rules for `/orders/{orderId}/items/{orderItemId}` to directly check `request.auth.uid == resource.data.userId` without relying on `get(/databases/$(database)/documents/orders/$(orderId))`. This ensures atomic operations and simplifies rule logic considerably.\n2.  **Role-based Access Control (DBAC):** Instead of checking a `role` field on the `User` document, which would require a `get()` call, user roles (`admin`, `cashier`, `kitchen_staff`) are implemented using dedicated collections (e.g., `/roles_admin/{uid}`). The *existence* of a document at these paths signifies a user's role, enabling efficient and atomic rule checks using `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))`.\n\n**Structural Segregation for Homogeneous Security Posture:**\n1.  **Publicly Accessible Data:** Collections like `/categories` and `/menuItems` are designed to be largely public (read access for `isActive: true` items), simplifying their security rules. Administrative access for these is granted via role-based checks.\n2.  **User-Owned Private Data:** The `/users/{userId}` path ensures that user profiles are accessible only by their respective owners (`request.auth.uid == userId`). Similarly, `/users/{userId}/nutritionLog/{logEntryId}` segregates highly private consumption data, making it solely accessible to the authenticated user.\n3.  **Collaborative/Shared Data (`orders`, `cashRegisterSessions`):** These collections contain data that needs to be accessed by different roles (customer, cashier, kitchen staff). Authorization logic within the rules will use the denormalized `userId` (for customer access) or the existence of role documents (for staff access) to grant permissions.\n\n**QAPs (Rules are not Filters):**\nThis design naturally supports QAPs by ensuring that any `list` operation allowed by the rules can be efficiently fulfilled by the database engine without further server-side filtering. \n1.  **Customer Order History:** Customers query `/orders` using `firestore.collection('orders').where('userId', '==', request.auth.uid)`. The security rules will explicitly allow `list` operations when the query includes this `userId` filter matching the authenticated user. This adheres to QAPs because the rule allows a query that *itself* enforces the necessary authorization predicate.\n2.  **Staff Order Dashboard:** Staff with appropriate roles (e.g., `kitchen_staff`, `admin`) are granted `list` access to the entire `/orders` collection. They can then perform their own client-side or server-side filtering (e.g., by status, date) without violating QAPs, as the rule permits the full `list` operation for their role.\n3.  **Public Menu & Categories:** `list` operations on `/categories` and `/menuItems` are generally allowed for all authenticated/unauthenticated users (filtered by `isActive: true`), meeting QAPs for public data.\n4.  **Personal Nutrition Log:** `list` operations on `/users/{userId}/nutritionLog` are allowed only if `request.auth.uid == userId`, ensuring QAPs for private user-scoped subcollections."
+  }
+}

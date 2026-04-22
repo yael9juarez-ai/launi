@@ -1,0 +1,200 @@
+/**
+ * UniEats Security Rules
+ *
+ * Core Philosophy:
+ * This ruleset implements a robust, role-based access control (RBAC) model combined with 
+ * strict user ownership. It prioritizes "Authorization Independence" to ensure that security 
+ * decisions are fast and don't require nested document lookups.
+ *
+ * Data Structure:
+ * - /users/{userId}: Private user profiles and nested nutrition logs.
+ * - /roles_{role}/{uid}: Marker collections for high-performance role verification (DBAC).
+ * - /categories & /menuItems: Publicly readable product catalogs.
+ * - /orders: Shared access between the ordering customer and cafeteria staff.
+ * - /reviews: Public feedback with owner-only editing.
+ *
+ * Key Security Decisions:
+ * 1. DBAC (Database-Backed Access Control): We use specific "role collections" 
+ *    (e.g., /roles_admin) where the existence of a UID signifies a role. This allows 
+ *    `exists()` checks which are more efficient than `get()` on a user document.
+ * 2. Denormalization for Authorization: Critical fields like `userId` are denormalized 
+ *    onto OrderItems and Reviews to allow immediate ownership verification without 
+ *    traversing the document hierarchy.
+ * 3. Prototyping Flexibility: While authorization is strictly enforced based on identity, 
+ *    the specific shape of the data (schema) is not restricted, allowing the frontend 
+ *    team to iterate quickly.
+ * 4. Structural Segregation: Private user data is strictly nested under /users/{userId}, 
+ *    while transactional data (orders) and catalogs are top-level for better querying.
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the user's UID matches the provided ID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the document exists and the current user is the owner. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** @description DBAC: Checks if the user is an administrator. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /** @description DBAC: Checks if the user is a cashier. */
+    function isCashier() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_cashier/$(request.auth.uid));
+    }
+
+    /** @description DBAC: Checks if the user is kitchen staff. */
+    function isKitchenStaff() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_kitchenStaff/$(request.auth.uid));
+    }
+
+    /** @description General check for any authorized staff member. */
+    function isStaff() {
+      return isAdmin() || isCashier() || isKitchenStaff();
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the User profile. Users manage their own data.
+     * @path /users/{userId}
+     * @allow get: if isOwner(userId); (read)
+     * @deny create: if request.auth.uid != userId; (prevent impersonation)
+     * @principle Ownership and Self-Creation.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isAdmin();
+
+      /**
+       * @description Private nutrition tracking for university students.
+       * @path /users/{userId}/nutritionLog/{logEntryId}
+       * @allow list: if isOwner(userId); (user viewing their history)
+       * @deny get: if request.auth.uid != userId; (private data)
+       * @principle Structural Segregation under the user tree.
+       */
+      match /nutritionLog/{logEntryId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update, delete: if isExistingOwner(userId);
+      }
+    }
+
+    /**
+     * @description DBAC Role markers. Only admins can manage roles.
+     * @path /roles_{role}/{uid}
+     */
+    match /roles_admin/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /roles_cashier/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /roles_kitchenStaff/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Product categories for the menu.
+     * @path /categories/{categoryId}
+     * @allow get, list: if true; (public catalog)
+     * @deny update: if !isKitchenStaff() && !isAdmin(); (unauthorized edit)
+     * @principle Public Read with Role-Based Writes.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() || isKitchenStaff();
+    }
+
+    /**
+     * @description Menu items including nutritional data.
+     * @path /menuItems/{menuItemId}
+     * @allow get: if true; (public item details)
+     * @deny create: if !isKitchenStaff(); (staff only management)
+     * @principle Public Read with Role-Based Writes.
+     */
+    match /menuItems/{menuItemId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() || isKitchenStaff();
+    }
+
+    /**
+     * @description Transactional orders. Shared access for customers and staff.
+     * @path /orders/{orderId}
+     * @allow create: if request.resource.data.userId == request.auth.uid; (verified identity)
+     * @deny list: if !isStaff() && request.query.userId != request.auth.uid; (prevent leaking other orders)
+     * @principle Shared Access with Verified Identity.
+     */
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.userId) || isStaff());
+      allow list: if isStaff() || (isSignedIn() && request.query.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (isOwner(resource.data.userId) || isStaff()) && resource != null;
+      allow delete: if isAdmin();
+
+      /**
+       * @description Individual items in an order.
+       * @path /orders/{orderId}/items/{orderItemId}
+       * @allow get: if isOwner(resource.data.userId) || isStaff(); (denormalized userId check)
+       * @deny create: if request.resource.data.userId != request.auth.uid; (impersonation)
+       * @principle Denormalization for Authorization (Avoids get() on parent).
+       */
+      match /items/{orderItemId} {
+        allow get: if isSignedIn() && (isOwner(resource.data.userId) || isStaff());
+        allow list: if isStaff() || (isSignedIn() && request.query.userId == request.auth.uid);
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update: if isSignedIn() && (isOwner(resource.data.userId) || isStaff()) && resource != null;
+        allow delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description Customer reviews for menu items.
+     * @path /reviews/{reviewId}
+     * @allow get, list: if true; (public reviews)
+     * @deny update: if resource.data.userId != request.auth.uid; (cannot edit others' reviews)
+     * @principle Public Read with Owner-Only Writes.
+     */
+    match /reviews/{reviewId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isExistingOwner(resource.data.userId);
+    }
+
+    /**
+     * @description POS shift management for cashiers.
+     * @path /cashRegisterSessions/{sessionId}
+     * @allow update: if isOwner(resource.data.cashierUserId); (cashier closing shift)
+     * @deny create: if !isCashier(); (customers cannot open registers)
+     * @principle Ownership and Role-based constraints.
+     */
+    match /cashRegisterSessions/{sessionId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.cashierUserId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isCashier() && request.resource.data.cashierUserId == request.auth.uid;
+      allow update: if (isExistingOwner(resource.data.cashierUserId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+  }
+}
