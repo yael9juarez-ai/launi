@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -18,7 +17,9 @@ import {
   Bell,
   BellRing,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -29,6 +30,7 @@ import { aiSalesInsights, AISalesInsightsOutput } from '@/ai/flows/ai-sales-insi
 import { aiInventoryForecasting, InventoryForecastOutput } from '@/ai/flows/ai-inventory-forecasting-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 const chartData = [
   { name: 'Lun', sales: 400 },
@@ -44,6 +46,7 @@ export default function AdminDashboard() {
   const [inventoryForecast, setInventoryForecast] = useState<InventoryForecastOutput | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchAI = async () => {
@@ -95,23 +98,33 @@ export default function AdminDashboard() {
           <Button variant="ghost" className="w-full justify-start gap-3 text-primary bg-primary/5 font-bold rounded-xl">
             <BarChart3 size={20} /> Dashboard
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" asChild>
-            <a href="/admin/pos"><DollarSign size={20} /> Punto de Venta</a>
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/pos')}>
+            <DollarSign size={20} /> Punto de Venta
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted">
-            <Clock size={20} /> Pedidos
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/queue')}>
+            <Clock size={20} /> Pantalla de Turnos
           </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted">
             <Package size={20} /> Inventario
           </Button>
         </nav>
+        <div className="p-4 border-t">
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-destructive hover:bg-destructive/10" onClick={() => router.push('/login')}>
+            <LogOut size={20} /> Cerrar Sesión
+          </Button>
+        </div>
       </aside>
 
       <main className="flex-1 overflow-auto p-4 md:p-8">
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel de Control</h1>
-            <p className="text-muted-foreground font-medium">Análisis en tiempo real impulsado por IA.</p>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" className="rounded-full lg:hidden" onClick={() => router.push('/login')}>
+              <ArrowLeft size={20} />
+            </Button>
+            <div>
+              <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel de Control</h1>
+              <p className="text-muted-foreground font-medium">Análisis en tiempo real impulsado por IA.</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -205,7 +218,6 @@ export default function AdminDashboard() {
             <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
               <ScrollArea className="flex-1 p-6">
                 <div className="space-y-4">
-                  {/* Alert Ticket 1 */}
                   {!inventoryForecast ? (
                     <div className="space-y-4">
                       <Skeleton className="h-24 w-full bg-white/10 rounded-3xl" />
@@ -231,7 +243,6 @@ export default function AdminDashboard() {
                     ))
                   )}
 
-                  {/* Insight Ticket */}
                   {salesInsights && (
                     <div className="bg-primary/10 border border-primary/20 p-5 rounded-[2rem] relative mt-6">
                       <div className="flex items-center gap-2 mb-2">
