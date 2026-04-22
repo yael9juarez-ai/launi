@@ -9,6 +9,12 @@ export interface MenuItem {
   category: string;
   imageUrl: string;
   stock: number;
+  nutrition: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
 }
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -20,6 +26,7 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Snacks",
     imageUrl: "https://picsum.photos/seed/pizza/400/300",
     stock: 20,
+    nutrition: { calories: 285, protein: 12, fat: 10, carbs: 36 }
   },
   {
     id: "2",
@@ -29,6 +36,7 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Platos Principales",
     imageUrl: "https://picsum.photos/seed/salad/400/300",
     stock: 15,
+    nutrition: { calories: 190, protein: 8, fat: 14, carbs: 10 }
   },
   {
     id: "3",
@@ -38,6 +46,7 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/coffee/400/300",
     stock: 100,
+    nutrition: { calories: 2, protein: 0.2, fat: 0, carbs: 0 }
   },
   {
     id: "4",
@@ -47,6 +56,7 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Platos Principales",
     imageUrl: "https://picsum.photos/seed/burger/400/300",
     stock: 12,
+    nutrition: { calories: 550, protein: 25, fat: 30, carbs: 45 }
   },
   {
     id: "5",
@@ -56,6 +66,7 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Platos Principales",
     imageUrl: "https://picsum.photos/seed/pasta/400/300",
     stock: 8,
+    nutrition: { calories: 420, protein: 10, fat: 18, carbs: 55 }
   },
   {
     id: "6",
@@ -65,6 +76,7 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Postres",
     imageUrl: "https://picsum.photos/seed/muffin/400/300",
     stock: 25,
+    nutrition: { calories: 310, protein: 4, fat: 12, carbs: 48 }
   }
 ];
 

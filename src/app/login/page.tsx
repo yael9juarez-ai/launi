@@ -7,32 +7,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { UtensilsCrossed, Mail, Lock, Loader2 } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<'client' | 'admin'>('client');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    // Simulate auth
+    // Simulación de autenticación con credenciales específicas
     setTimeout(() => {
       setLoading(false);
-      if (role === 'admin') {
+      
+      if (email === 'admin' && password === 'admin') {
         router.push('/admin/dashboard');
-      } else {
+        toast({
+          title: "Acceso Administrativo",
+          description: "Bienvenido al panel de control central de UniEats.",
+        });
+      } else if (email.endsWith('@uni.edu.pe')) {
         router.push('/client/menu');
+        toast({
+          title: "Sesión iniciada",
+          description: "Bienvenido, estudiante UNI.",
+        });
+      } else {
+        setError("Credenciales inválidas. Usa 'admin' / 'admin' para el panel o un correo @uni.edu.pe");
       }
-      toast({
-        title: "Sesión iniciada",
-        description: `Bienvenido al sistema UniEats como ${role === 'admin' ? 'Administrador' : 'Estudiante'}.`,
-      });
-    }, 1500);
+    }, 1200);
   };
 
   return (
@@ -51,33 +62,33 @@ export default function LoginPage() {
 
         <Card className="border-none shadow-2xl rounded-2xl overflow-hidden">
           <CardHeader className="space-y-1 pb-8 text-center bg-white border-b">
-            <CardTitle className="text-2xl font-bold">Acceso Institucional</CardTitle>
+            <CardTitle className="text-2xl font-bold">Acceso al Sistema</CardTitle>
             <CardDescription>
-              Usa tus credenciales @uni.edu.pe para continuar
+              Ingresa tus credenciales para continuar
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-8 px-8">
-            <div className="flex p-1 bg-muted rounded-lg mb-8">
-              <button 
-                onClick={() => setRole('client')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${role === 'client' ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Estudiante / Docente
-              </button>
-              <button 
-                onClick={() => setRole('admin')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${role === 'admin' ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Administrador
-              </button>
-            </div>
+            {error && (
+              <Alert variant="destructive" className="mb-6 rounded-xl">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email">Correo Institucional</Label>
+                <Label htmlFor="email">Usuario o Correo</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" placeholder="usuario@uni.edu.pe" type="email" className="pl-10 h-11" required />
+                  <Input 
+                    id="email" 
+                    placeholder="admin o usuario@uni.edu.pe" 
+                    className="pl-10 h-11" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required 
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -87,7 +98,14 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" className="pl-10 h-11" required />
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    className="pl-10 h-11" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required 
+                  />
                 </div>
               </div>
               <Button type="submit" className="w-full h-11 text-lg font-semibold rounded-xl" disabled={loading}>
@@ -95,9 +113,9 @@ export default function LoginPage() {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4 pb-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              ¿Problemas con tu cuenta? Contacta a <span className="text-primary font-medium">Soporte OTIC</span>
+          <CardFooter className="flex flex-col gap-4 pb-8 text-center text-xs text-muted-foreground">
+            <p>
+              Prueba con <span className="font-bold text-foreground">admin / admin</span> para el dashboard.
             </p>
           </CardFooter>
         </Card>
