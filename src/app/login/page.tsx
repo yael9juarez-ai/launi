@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UtensilsCrossed, Mail, Lock, Loader2, AlertCircle, UserCircle, CheckCircle } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -21,7 +22,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState('community');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export default function LoginPage() {
     setTimeout(() => {
       setLoading(false);
       
+      // Acceso Admin universal
       if (email === 'admin' && password === 'admin') {
         router.push('/admin/dashboard');
         toast({
@@ -46,7 +48,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <p className="font-bold">Acceso Administrativo Concedido</p>
-                <p className="text-xs text-muted-foreground">Redirigiendo al panel de control...</p>
+                <p className="text-xs text-muted-foreground">Gestionando sucursal UNI...</p>
               </div>
             </div>
           ),
@@ -54,19 +56,18 @@ export default function LoginPage() {
         return;
       }
 
-      if (email.endsWith('@uni.edu.pe')) {
-        if (role === 'professor' || role === 'student') {
-          router.push('/client/menu');
-          toast({
-            className: "uni-toast-success",
-            title: `🏠 ¡Hola de nuevo!`,
-            description: `Bienvenido al sistema UniEats como ${role === 'student' ? 'estudiante' : 'profesor'}.`,
-          });
-        } else {
-          setError("El correo institucional solo permite roles de Estudiante o Profesor.");
-        }
+      // Acceso Comunidad UNI
+      if (role === 'community') {
+        router.push('/client/menu');
+        toast({
+          className: "uni-toast-success",
+          title: `🏠 ¡Hola, Comunidad UNI!`,
+          description: "Acceso concedido al menú de la cafetería.",
+        });
+      } else if (role === 'admin' && (email !== 'admin' || password !== 'admin')) {
+        setError("Credenciales de administrador incorrectas.");
       } else {
-        setError("Credenciales inválidas. Usa 'admin' / 'admin' o un correo @uni.edu.pe");
+        router.push('/admin/dashboard');
       }
     }, 1200);
   };
@@ -87,9 +88,9 @@ export default function LoginPage() {
 
         <Card className="border-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] rounded-[2rem] overflow-hidden bg-white">
           <CardHeader className="space-y-2 pb-8 text-center border-b">
-            <CardTitle className="text-3xl font-black tracking-tight">Acceso al Sistema</CardTitle>
+            <CardTitle className="text-3xl font-black tracking-tight">Acceso UniEats</CardTitle>
             <CardDescription className="text-base font-medium">
-              Gestión inteligente de la cafetería UNI
+              Cafetería Universidad UNI - México
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-10 px-10">
@@ -103,27 +104,26 @@ export default function LoginPage() {
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="role" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Tipo de Usuario</Label>
+                <Label htmlFor="role" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Soy Parte de:</Label>
                 <Select value={role} onValueChange={setRole}>
                   <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all">
-                    <SelectValue placeholder="Selecciona tu rol" />
+                    <SelectValue placeholder="Selecciona tu tipo de usuario" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
-                    <SelectItem value="student">Estudiante UNI</SelectItem>
-                    <SelectItem value="professor">Profesor / Docente</SelectItem>
-                    <SelectItem value="staff">Personal Administrativo</SelectItem>
+                    <SelectItem value="community">Comunidad UNI (Estudiantes/Profesores)</SelectItem>
+                    <SelectItem value="staff">Personal Administrativo / Staff</SelectItem>
                     <SelectItem value="admin">Administrador del Sistema</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Usuario o Correo</Label>
+                <Label htmlFor="email" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Usuario</Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="email" 
-                    placeholder="admin o usuario@uni.edu.pe" 
+                    placeholder="admin o usuario institucional" 
                     className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -133,10 +133,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Contraseña</Label>
-                  <a href="#" className="text-xs text-primary font-bold hover:underline">¿Olvidaste tu clave?</a>
-                </div>
+                <Label htmlFor="password" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
@@ -157,7 +154,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4 py-8 bg-muted/20 text-center text-xs text-muted-foreground">
             <p className="font-medium">
-              Credenciales de prueba: <span className="font-black text-foreground">admin / admin</span>
+              Demo Admin: <span className="font-black text-foreground">admin / admin</span>
             </p>
           </CardFooter>
         </Card>

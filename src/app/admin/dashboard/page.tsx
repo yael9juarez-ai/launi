@@ -1,10 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   UtensilsCrossed, 
   Users, 
@@ -13,11 +13,8 @@ import {
   AlertCircle, 
   BarChart3, 
   Clock, 
-  Sparkles,
   Bell,
   BellRing,
-  CheckCircle2,
-  ChevronRight,
   LogOut,
   ArrowLeft
 } from 'lucide-react';
@@ -25,64 +22,22 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area 
 } from 'recharts';
-import { SALES_RECORDS, INVENTORY } from '@/lib/data';
-import { aiSalesInsights, AISalesInsightsOutput } from '@/ai/flows/ai-sales-insights-flow';
-import { aiInventoryForecasting, InventoryForecastOutput } from '@/ai/flows/ai-inventory-forecasting-flow';
-import { Skeleton } from '@/components/ui/skeleton';
+import { SALES_RECORDS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
 const chartData = [
-  { name: 'Lun', sales: 400 },
-  { name: 'Mar', sales: 300 },
-  { name: 'Mie', sales: 600 },
-  { name: 'Jue', sales: 800 },
-  { name: 'Vie', sales: 500 },
-  { name: 'Sab', sales: 200 },
+  { name: 'Lun', sales: 4000 },
+  { name: 'Mar', sales: 3200 },
+  { name: 'Mie', sales: 6500 },
+  { name: 'Jue', sales: 8900 },
+  { name: 'Vie', sales: 5400 },
+  { name: 'Sab', sales: 2100 },
 ];
 
 export default function AdminDashboard() {
-  const [salesInsights, setSalesInsights] = useState<AISalesInsightsOutput | null>(null);
-  const [inventoryForecast, setInventoryForecast] = useState<InventoryForecastOutput | null>(null);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [activeAlerts, setActiveAlerts] = useState(0);
+  const [activeAlerts, setActiveAlerts] = useState(2);
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchAI = async () => {
-      setLoadingAI(true);
-      try {
-        const insights = await aiSalesInsights({
-          salesRecords: SALES_RECORDS,
-          dateRange: "Últimos 7 días"
-        });
-        setSalesInsights(insights);
-
-        const forecast = await aiInventoryForecasting({
-          salesHistory: SALES_RECORDS.map(s => ({
-            itemId: s.items[0].itemId,
-            itemName: s.items[0].itemName,
-            quantitySold: s.items[0].quantity,
-            date: s.timestamp
-          })),
-          upcomingEvents: [
-            { eventName: "Semana de Exámenes", date: new Date().toISOString(), type: "exam week", expectedAttendance: 5000, impactOnCafeteria: "high" }
-          ],
-          menuChanges: [],
-          currentInventory: INVENTORY,
-          ingredientRecipes: [],
-          forecastingPeriodDays: 7
-        });
-        setInventoryForecast(forecast);
-        if (forecast) setActiveAlerts(forecast.reorderSuggestions.length);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoadingAI(false);
-      }
-    };
-    fetchAI();
-  }, []);
 
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
@@ -123,7 +78,7 @@ export default function AdminDashboard() {
             </Button>
             <div>
               <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel de Control</h1>
-              <p className="text-muted-foreground font-medium">Análisis en tiempo real impulsado por IA.</p>
+              <p className="text-muted-foreground font-medium">Gestión financiera en tiempo real.</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -151,12 +106,12 @@ export default function AdminDashboard() {
         {/* Top KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: "Ventas Hoy", value: "S/ 1,240.00", icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
+            { label: "Ventas Hoy", value: "$ 14,240.00", icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
             { label: "Pedidos Activos", value: "24", icon: <Clock />, trend: "8 preparados", color: "text-blue-500" },
             { label: "Usuarios Nuevos", value: "142", icon: <Users />, trend: "+5% esta sem", color: "text-purple-500" },
             { label: "Stock Bajo", value: "3 items", icon: <AlertCircle />, trend: "Revisar ahora", color: "text-primary" },
           ].map((kpi, i) => (
-            <Card key={i} className="border-none shadow-sm rounded-3xl overflow-hidden bg-white hover:shadow-md transition-shadow">
+            <Card key={i} className="border-none shadow-sm rounded-3xl overflow-hidden bg-white hover:shadow-md transition-all">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{kpi.label}</CardTitle>
                 <div className={cn("h-8 w-8 rounded-xl bg-muted/50 flex items-center justify-center", kpi.color)}>
@@ -173,15 +128,15 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 gap-8 mb-8">
           {/* Main Chart */}
-          <Card className="lg:col-span-2 border-none shadow-sm rounded-[2.5rem] bg-white p-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-black">Flujo de Ingresos</CardTitle>
-              <CardDescription className="font-medium">Ventas semanales proyectadas.</CardDescription>
+          <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-2">
+            <CardHeader className="p-8 pb-2">
+              <CardTitle className="text-2xl font-black">Flujo de Ingresos (MXN)</CardTitle>
+              <CardDescription className="font-medium">Ventas semanales proyectadas en pesos mexicanos.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-[350px]">
+            <CardContent className="p-8 pt-0">
+              <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
@@ -195,71 +150,11 @@ export default function AdminDashboard() {
                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#999', fontSize: 12}} />
                     <Tooltip 
                       contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value) => [`$ ${value}`, "Ventas"]}
                     />
                     <Area type="monotone" dataKey="sales" stroke="#E30613" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* New Interactive Notification Center */}
-          <Card className="border-none shadow-xl rounded-[2.5rem] bg-foreground text-white overflow-hidden flex flex-col">
-            <CardHeader className="bg-white/5 border-b border-white/10 p-6 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-xl font-black">
-                  <Sparkles className="text-primary" size={24} />
-                  IA Center
-                </CardTitle>
-                <CardDescription className="text-white/60 font-medium">Alertas de Restaurante</CardDescription>
-              </div>
-              <Badge variant="outline" className="text-primary border-primary animate-pulse">LIVE</Badge>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-              <ScrollArea className="flex-1 p-6">
-                <div className="space-y-4">
-                  {!inventoryForecast ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-24 w-full bg-white/10 rounded-3xl" />
-                      <Skeleton className="h-24 w-full bg-white/10 rounded-3xl" />
-                    </div>
-                  ) : (
-                    inventoryForecast.reorderSuggestions.map((s, i) => (
-                      <div key={i} className="bg-white/5 border border-white/10 p-5 rounded-[2rem] relative group hover:bg-white/10 transition-colors">
-                        <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-full" />
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-primary">Reabastecimiento</span>
-                          <span className="text-[10px] text-white/40">AHORA</span>
-                        </div>
-                        <h4 className="font-bold text-lg mb-1">{s.ingredientName}</h4>
-                        <p className="text-xs text-white/60 leading-relaxed mb-3">{s.reasoning}</p>
-                        <div className="flex justify-between items-center">
-                          <Badge className="bg-primary/20 text-primary border-none text-[10px]">Sug: {s.suggestedReorderQuantity} {s.unit}</Badge>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 rounded-full hover:bg-white/20">
-                            <ChevronRight size={14} />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-
-                  {salesInsights && (
-                    <div className="bg-primary/10 border border-primary/20 p-5 rounded-[2rem] relative mt-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Insight de Ventas</span>
-                      </div>
-                      <p className="text-sm font-medium leading-relaxed italic text-white/90">
-                        "{salesInsights.summary.slice(0, 150)}..."
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-              <div className="p-6 bg-white/5 border-t border-white/10">
-                <Button className="w-full rounded-2xl h-12 bg-white text-foreground hover:bg-white/90 font-bold">
-                  Ver Todas las Alertas
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -274,9 +169,9 @@ export default function AdminDashboard() {
           <CardContent className="p-8 pt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { id: "#001", user: "Juan Pérez", item: "Pizza Slice", total: "S/ 3.50", status: "Listo", time: "5m" },
-                { id: "#002", user: "Ana Gómez", item: "Combo Burguesa", total: "S/ 5.00", status: "Preparando", time: "12m" },
-                { id: "#003", user: "Marco Polo", item: "Café + Muffin", total: "S/ 2.70", status: "Pendiente", time: "18m" },
+                { id: "#001", user: "Juan Pérez", item: "Pizza Slice", total: "$ 45.00", status: "Listo", time: "5m" },
+                { id: "#002", user: "Ana Gómez", item: "Combo Burguesa", total: "$ 110.00", status: "Preparando", time: "12m" },
+                { id: "#003", user: "Marco Polo", item: "Café + Muffin", total: "$ 67.00", status: "Pendiente", time: "18m" },
               ].map((order, i) => (
                 <div key={i} className="flex items-center justify-between p-5 border-2 border-muted/50 rounded-3xl hover:border-primary/30 transition-all group">
                   <div className="flex gap-4 items-center">

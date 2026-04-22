@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -13,12 +14,10 @@ import {
   Printer, 
   Plus, 
   Minus,
-  UtensilsCrossed,
-  CreditCard,
-  Banknote,
   ShoppingCart,
   ArrowLeft,
-  CheckCircle
+  Banknote,
+  CreditCard
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -62,7 +61,7 @@ export default function POSPage() {
       description: (
         <div className="flex flex-col gap-1">
           <p className="font-bold text-emerald-700">¡Pedido registrado correctamente!</p>
-          <p className="text-sm">Total cobrado: S/ {total.toFixed(2)}</p>
+          <p className="text-sm">Total cobrado: $ {total.toFixed(2)} MXN</p>
         </div>
       ),
     });
@@ -106,11 +105,10 @@ export default function POSPage() {
               >
                 <div className="aspect-video bg-muted relative overflow-hidden">
                   <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300" />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
                 </div>
                 <CardContent className="p-3">
                   <p className="font-black text-sm line-clamp-1">{item.name}</p>
-                  <p className="text-primary font-black">S/ {item.price.toFixed(2)}</p>
+                  <p className="text-primary font-black">$ {item.price.toFixed(2)}</p>
                 </CardContent>
               </Card>
             ))}
@@ -118,7 +116,7 @@ export default function POSPage() {
         </ScrollArea>
       </div>
 
-      {/* Cart / Checkout Panel */}
+      {/* Cart Panel */}
       <div className="w-96 bg-white border-l flex flex-col shadow-2xl">
         <CardHeader className="border-b p-6">
           <CardTitle className="flex items-center gap-2 text-xl font-black">
@@ -139,7 +137,7 @@ export default function POSPage() {
                 <div key={item.id} className="flex justify-between items-center group">
                   <div className="flex-1">
                     <p className="font-black text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground font-bold">S/ {item.price.toFixed(2)} c/u</p>
+                    <p className="text-xs text-muted-foreground font-bold">$ {item.price.toFixed(2)} c/u</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center bg-muted rounded-xl p-1 px-2 border">
@@ -164,15 +162,15 @@ export default function POSPage() {
         <div className="p-8 bg-muted/30 border-t space-y-4">
           <div className="flex justify-between text-base font-bold">
             <span className="text-muted-foreground">Subtotal</span>
-            <span>S/ {(total * 0.82).toFixed(2)}</span>
+            <span>$ {(total * 0.84).toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-xs font-bold text-muted-foreground">
-            <span>IGV (18%)</span>
-            <span>S/ {(total * 0.18).toFixed(2)}</span>
+            <span>IVA (16%)</span>
+            <span>$ {(total * 0.16).toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-3xl font-black border-t-2 border-primary/20 pt-4">
             <span>Total</span>
-            <span className="text-primary">S/ {total.toFixed(2)}</span>
+            <span className="text-primary">$ {total.toFixed(2)}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 pt-4">
@@ -186,10 +184,6 @@ export default function POSPage() {
 
           <Button className="w-full h-16 rounded-[1.5rem] text-xl font-black shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={handleCheckout} disabled={cart.length === 0}>
             Completar Venta
-          </Button>
-          
-          <Button variant="ghost" className="w-full gap-2 text-muted-foreground font-bold hover:bg-white">
-            <Printer size={16} /> Imprimir Pre-cuenta
           </Button>
         </div>
       </div>
