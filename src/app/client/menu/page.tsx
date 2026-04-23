@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MENU_ITEMS, CATEGORIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,11 @@ import {
   ChevronRight,
   Activity,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  Banknote,
+  Star,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -27,12 +31,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<any[]>([]);
+  const [showPayment, setShowPayment] = useState(false);
+  const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [rating, setRating] = useState(0);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -57,19 +67,34 @@ export default function ClientMenu() {
     toast({
       className: "uni-toast-info",
       title: "🍴 ¡Buen Provecho!",
-      description: (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-             <UtensilsCrossed size={20} className="text-primary" />
-          </div>
-          <div>
-            <p className="font-bold text-sm">{item.name} agregado.</p>
-            <p className="text-xs text-muted-foreground">Revisa tu pedido abajo.</p>
-          </div>
-        </div>
-      ),
+      description: `${item.name} agregado al carrito.`,
     });
   };
+
+  const handlePayment = () => {
+    setShowPayment(false);
+    setCart([]);
+    setOrderStatus('preparing');
+    
+    toast({
+      className: "uni-toast-success",
+      title: "✅ Pago Registrado",
+      description: "Tu pedido está en preparación. Te avisaremos cuando esté listo.",
+    });
+
+    // Simulamos que la orden está lista en 10 segundos para la demo
+    setTimeout(() => {
+      setOrderStatus('ready');
+      toast({
+        className: "uni-toast-success",
+        title: "🔔 ¡TU ORDEN ESTÁ LISTA!",
+        description: "Pasa por el mostrador para recoger tu comida.",
+        duration: 10000,
+      });
+    }, 8000);
+  };
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   return (
     <div className="min-h-screen bg-[#F7F5F5] pb-24">
@@ -87,6 +112,15 @@ export default function ClientMenu() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {orderStatus === 'ready' && (
+              <Button 
+                variant="destructive" 
+                className="animate-bounce rounded-full font-black px-6"
+                onClick={() => setShowFeedback(true)}
+              >
+                ¡ORDEN LISTA! 🚀
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="relative h-10 w-10">
               <ShoppingCart size={24} />
               {cart.length > 0 && (
@@ -100,14 +134,22 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Banner Informativo */}
         <div className="mb-8 p-6 bg-foreground text-white rounded-[2rem] flex flex-col md:flex-row items-center justify-between shadow-2xl gap-4">
           <div className="flex items-center gap-6">
-            <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center">
-              <Clock className="text-primary w-8 h-8" />
+            <div className={cn(
+              "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
+              orderStatus === 'ready' ? "bg-emerald-500 animate-pulse" : "bg-primary/20"
+            )}>
+              {orderStatus === 'ready' ? <CheckCircle2 className="w-8 h-8" /> : <Clock className="text-primary w-8 h-8" />}
             </div>
             <div>
-              <p className="text-sm font-medium opacity-70 uppercase tracking-widest">Espera Estimada</p>
-              <p className="text-3xl font-black">~ 12 Minutos</p>
+              <p className="text-sm font-medium opacity-70 uppercase tracking-widest">
+                {orderStatus === 'idle' ? 'Espera Estimada' : orderStatus === 'preparing' ? 'Estado del Pedido' : '¡Listo!'}
+              </p>
+              <p className="text-3xl font-black">
+                {orderStatus === 'idle' ? '~ 12 Minutos' : orderStatus === 'preparing' ? 'En Cocina...' : '¡Recógelo ahora!'}
+              </p>
             </div>
           </div>
           <Button variant="outline" className="text-white border-white/20 hover:bg-white/10 rounded-2xl h-12 px-8 font-bold" onClick={() => router.push('/queue')}>
@@ -115,11 +157,12 @@ export default function ClientMenu() {
           </Button>
         </div>
 
+        {/* Buscador y Categorías */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="¿Qué te apetece hoy? Tacos, Hamburguesa, Sushi..." 
+              placeholder="¿Qué te apetece hoy? Tacos, Hamburguesa..." 
               className="pl-12 h-12 bg-white border-none shadow-sm rounded-2xl text-base"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -139,6 +182,7 @@ export default function ClientMenu() {
           </div>
         </div>
 
+        {/* Grid de Productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filteredItems.map((item) => (
             <Card key={item.id} className={cn(
@@ -213,19 +257,100 @@ export default function ClientMenu() {
         </div>
       </main>
 
+      {/* Barra de Pago Flotante */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
-          <Button className="w-full h-16 rounded-[2rem] shadow-[0_20px_50px_rgba(227,6,19,0.3)] text-lg font-black flex justify-between items-center px-8 transition-all hover:scale-[1.03]">
+          <Button 
+            className="w-full h-16 rounded-[2rem] shadow-[0_20px_50px_rgba(227,6,19,0.3)] text-lg font-black flex justify-between items-center px-8 transition-all hover:scale-[1.03]"
+            onClick={() => setShowPayment(true)}
+          >
             <span className="flex items-center gap-4">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <ShoppingCart size={24} />
               </div>
               {cart.length} productos
             </span>
-            <span className="flex items-center gap-2">Pagar <ChevronRight size={20} /></span>
+            <span className="flex items-center gap-2">Pagar ${total.toFixed(2)} <ChevronRight size={20} /></span>
           </Button>
         </div>
       )}
+
+      {/* Diálogo de Pago por Transferencia */}
+      <Dialog open={showPayment} onOpenChange={setShowPayment}>
+        <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
+          <div className="bg-primary p-8 text-white">
+            <DialogTitle className="text-3xl font-black">Pagar Pedido</DialogTitle>
+            <DialogDescription className="text-white/80 font-medium">Realiza tu transferencia para confirmar.</DialogDescription>
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="bg-muted/50 p-6 rounded-3xl border-2 border-dashed border-primary/20 text-center">
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Clave Interbancaria (CLABE)</p>
+              <p className="text-2xl font-black tracking-widest text-primary">0123 4567 8901 2345 67</p>
+              <Badge variant="outline" className="mt-4 border-primary/20 text-primary font-bold">Banco: UNI-BANK</Badge>
+            </div>
+            <div className="flex justify-between items-center text-xl font-black">
+              <span>Total a Transferir</span>
+              <span className="text-primary">${total.toFixed(2)}</span>
+            </div>
+            <Button className="w-full h-16 rounded-2xl text-xl font-black shadow-xl" onClick={handlePayment}>
+              Ya realicé el pago
+            </Button>
+            <p className="text-[10px] text-center text-muted-foreground font-bold italic">
+              * El cajero validará tu transferencia al momento de la entrega.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Calificación y Feedback */}
+      <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
+        <DialogContent className="rounded-[2.5rem] p-10 max-w-md">
+          <div className="text-center space-y-4">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 mb-4">
+              <Star size={40} fill="currentColor" />
+            </div>
+            <DialogTitle className="text-3xl font-black">¿Qué tal te pareció el servicio?</DialogTitle>
+            <DialogDescription className="text-lg font-medium">Tu opinión nos ayuda a mejorar la experiencia en UniEats.</DialogDescription>
+            
+            <div className="flex justify-center gap-2 py-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button 
+                  key={star} 
+                  onClick={() => setRating(star)}
+                  className="transition-transform hover:scale-125 focus:outline-none"
+                >
+                  <Star 
+                    size={42} 
+                    className={cn(
+                      "transition-colors",
+                      star <= rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
+                    )} 
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea 
+              placeholder="Escribe un comentario opcional..." 
+              className="w-full p-4 rounded-2xl bg-muted border-none min-h-[100px] text-sm font-medium focus:ring-2 focus:ring-primary/20"
+            />
+
+            <Button 
+              className="w-full h-14 rounded-2xl font-black text-lg"
+              onClick={() => {
+                setShowFeedback(false);
+                setOrderStatus('idle');
+                toast({
+                  title: "🙏 ¡Gracias!",
+                  description: "Tu comentario ha sido enviado correctamente.",
+                });
+              }}
+            >
+              Enviar Calificación
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
