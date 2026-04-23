@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { ToastAction } from "@/components/ui/toast";
 
 export default function POSPage() {
   const [cart, setCart] = useState<any[]>([]);
@@ -55,16 +56,33 @@ export default function POSPage() {
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
+    
+    const finalTotal = total.toFixed(2);
+    
     toast({
       className: "uni-toast-success",
       title: "✅ Venta Exitosa",
       description: (
         <div className="flex flex-col gap-1">
           <p className="font-bold text-emerald-700">¡Pedido registrado correctamente!</p>
-          <p className="text-sm">Total cobrado: $ {total.toFixed(2)} MXN</p>
+          <p className="text-sm">Total cobrado: $ {finalTotal} MXN</p>
         </div>
       ),
+      action: (
+        <ToastAction 
+          altText="Imprimir" 
+          onClick={() => toast({ 
+            title: "🖨️ Imprimiendo...", 
+            description: `Generando ticket por $ ${finalTotal} MXN`,
+            className: "uni-toast-info"
+          })}
+          className="bg-emerald-600 text-white hover:bg-emerald-700 border-none rounded-xl font-bold"
+        >
+          Imprimir Ticket
+        </ToastAction>
+      ),
     });
+    
     setCart([]);
   };
 
