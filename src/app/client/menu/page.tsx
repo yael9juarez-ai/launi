@@ -19,7 +19,9 @@ import {
   Banknote,
   Star,
   CheckCircle2,
-  X
+  X,
+  CreditCard,
+  Wallet
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +42,7 @@ export default function ClientMenu() {
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<any[]>([]);
   const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
   const [showFeedback, setShowFeedback] = useState(false);
   const [rating, setRating] = useState(0);
@@ -71,18 +74,21 @@ export default function ClientMenu() {
     });
   };
 
-  const handlePayment = () => {
+  const handlePayment = (method: 'transfer' | 'cash') => {
     setShowPayment(false);
+    setPaymentMethod(null);
     setCart([]);
     setOrderStatus('preparing');
     
     toast({
       className: "uni-toast-success",
-      title: "✅ Pago Registrado",
-      description: "Tu pedido está en preparación. Te avisaremos cuando esté listo.",
+      title: method === 'transfer' ? "✅ Pago Registrado" : "✅ Pedido Confirmado",
+      description: method === 'transfer' 
+        ? "Tu transferencia será validada al recoger tu pedido." 
+        : "Por favor, realiza tu pago en efectivo en la caja al recoger tu pedido.",
     });
 
-    // Simulamos que la orden está lista en 10 segundos para la demo
+    // Simulamos que la orden está lista en 8 segundos para la demo
     setTimeout(() => {
       setOrderStatus('ready');
       toast({
@@ -262,7 +268,10 @@ export default function ClientMenu() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
           <Button 
             className="w-full h-16 rounded-[2rem] shadow-[0_20px_50px_rgba(227,6,19,0.3)] text-lg font-black flex justify-between items-center px-8 transition-all hover:scale-[1.03]"
-            onClick={() => setShowPayment(true)}
+            onClick={() => {
+              setPaymentMethod(null);
+              setShowPayment(true);
+            }}
           >
             <span className="flex items-center gap-4">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -275,28 +284,81 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* Diálogo de Pago por Transferencia */}
+      {/* Diálogo de Pago Mejorado */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
           <div className="bg-primary p-8 text-white">
-            <DialogTitle className="text-3xl font-black">Pagar Pedido</DialogTitle>
-            <DialogDescription className="text-white/80 font-medium">Realiza tu transferencia para confirmar.</DialogDescription>
+            <DialogTitle className="text-3xl font-black">Método de Pago</DialogTitle>
+            <DialogDescription className="text-white/80 font-medium">Selecciona cómo deseas pagar tu pedido.</DialogDescription>
           </div>
+          
           <div className="p-8 space-y-6">
-            <div className="bg-muted/50 p-6 rounded-3xl border-2 border-dashed border-primary/20 text-center">
-              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Clave Interbancaria (CLABE)</p>
-              <p className="text-2xl font-black tracking-widest text-primary">0123 4567 8901 2345 67</p>
-              <Badge variant="outline" className="mt-4 border-primary/20 text-primary font-bold">Banco: UNI-BANK</Badge>
-            </div>
-            <div className="flex justify-between items-center text-xl font-black">
-              <span>Total a Transferir</span>
-              <span className="text-primary">${total.toFixed(2)}</span>
-            </div>
-            <Button className="w-full h-16 rounded-2xl text-xl font-black shadow-xl" onClick={handlePayment}>
-              Ya realicé el pago
-            </Button>
+            {!paymentMethod ? (
+              <div className="grid grid-cols-1 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-20 rounded-2xl flex items-center justify-start gap-4 px-6 border-2 hover:border-primary hover:bg-primary/5 group transition-all"
+                  onClick={() => setPaymentMethod('transfer')}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <CreditCard size={24} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black">Transferencia</p>
+                    <p className="text-xs text-muted-foreground">Pago electrónico inmediato</p>
+                  </div>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="h-20 rounded-2xl flex items-center justify-start gap-4 px-6 border-2 hover:border-primary hover:bg-primary/5 group transition-all"
+                  onClick={() => setPaymentMethod('cash')}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <Wallet size={24} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black">Efectivo en Caja</p>
+                    <p className="text-xs text-muted-foreground">Paga al recoger tu comida</p>
+                  </div>
+                </Button>
+              </div>
+            ) : paymentMethod === 'transfer' ? (
+              <div className="space-y-6">
+                <div className="bg-muted/50 p-6 rounded-3xl border-2 border-dashed border-primary/20 text-center">
+                  <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Clave Interbancaria (CLABE)</p>
+                  <p className="text-2xl font-black tracking-widest text-primary">0123 4567 8901 2345 67</p>
+                  <Badge variant="outline" className="mt-4 border-primary/20 text-primary font-bold">Banco: UNI-BANK</Badge>
+                </div>
+                <div className="flex justify-between items-center text-xl font-black">
+                  <span>Total a Transferir</span>
+                  <span className="text-primary">${total.toFixed(2)}</span>
+                </div>
+                <div className="flex gap-2">
+                   <Button variant="ghost" className="h-14 flex-1 rounded-2xl font-bold" onClick={() => setPaymentMethod(null)}>Atrás</Button>
+                   <Button className="h-14 flex-[2] rounded-2xl font-black shadow-lg" onClick={() => handlePayment('transfer')}>Ya realicé el pago</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="p-8 bg-emerald-50 rounded-3xl border-2 border-emerald-100 text-center space-y-3">
+                  <Banknote className="mx-auto text-emerald-600 h-12 w-12" />
+                  <p className="font-bold text-emerald-800">Has elegido pagar en efectivo.</p>
+                  <p className="text-sm text-emerald-700">Por favor, ten listo tu dinero para pagar al recoger tu pedido en la caja.</p>
+                </div>
+                <div className="flex justify-between items-center text-xl font-black">
+                  <span>Total a Pagar</span>
+                  <span className="text-primary">${total.toFixed(2)}</span>
+                </div>
+                <div className="flex gap-2">
+                   <Button variant="ghost" className="h-14 flex-1 rounded-2xl font-bold" onClick={() => setPaymentMethod(null)}>Atrás</Button>
+                   <Button className="h-14 flex-[2] rounded-2xl font-black shadow-lg" onClick={() => handlePayment('cash')}>Confirmar Pedido</Button>
+                </div>
+              </div>
+            )}
+            
             <p className="text-[10px] text-center text-muted-foreground font-bold italic">
-              * El cajero validará tu transferencia al momento de la entrega.
+              * Todos los pedidos son monitoreados por el personal de staff.
             </p>
           </div>
         </DialogContent>
