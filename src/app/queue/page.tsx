@@ -23,7 +23,9 @@ import { useToast } from '@/hooks/use-toast';
 export default function QueueKioskPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  
+  // Hydration-safe time state
+  const [time, setTime] = useState<string>("");
   
   // Queue States
   const preparing = ["#102", "#104", "#105", "#107"];
@@ -40,6 +42,9 @@ export default function QueueKioskPage() {
   const [pinError, setPinError] = useState(false);
 
   useEffect(() => {
+    // Set initial time only on mount to avoid hydration mismatch
+    setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    
     const timer = setInterval(() => {
       setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 1000);
@@ -122,7 +127,9 @@ export default function QueueKioskPage() {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-5xl font-black text-primary tabular-nums">{time}</p>
+          <p className="text-5xl font-black text-primary tabular-nums h-[60px] flex items-center justify-end">
+            {time || "--:--"}
+          </p>
           <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mt-1">Cerca de Tí, Siempre Fresco</p>
         </div>
       </header>
