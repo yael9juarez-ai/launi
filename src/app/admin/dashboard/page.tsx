@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,10 @@ import {
   Bell,
   BellRing,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  FileText,
+  TrendingUp,
+  Receipt
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -25,6 +28,23 @@ import {
 import { SALES_RECORDS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
@@ -36,8 +56,34 @@ const chartData = [
 ];
 
 export default function AdminDashboard() {
-  const [activeAlerts, setActiveAlerts] = useState(2);
+  const [activeAlerts] = useState(2);
   const router = useRouter();
+
+  // Cálculo de reporte diario basado en SALES_RECORDS
+  const reportStats = useMemo(() => {
+    const totalSales = SALES_RECORDS.reduce((acc, curr) => acc + curr.totalAmount, 0);
+    const totalTransactions = SALES_RECORDS.length;
+    const averageTicket = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+    
+    const itemsAggregation: Record<string, { name: string, qty: number, total: number }> = {};
+    
+    SALES_RECORDS.forEach(record => {
+      record.items.forEach(item => {
+        if (!itemsAggregation[item.itemId]) {
+          itemsAggregation[item.itemId] = { name: item.itemName, qty: 0, total: 0 };
+        }
+        itemsAggregation[item.itemId].qty += item.quantity;
+        itemsAggregation[item.itemId].total += item.quantity * item.price;
+      });
+    });
+
+    return {
+      totalSales,
+      totalTransactions,
+      averageTicket,
+      items: Object.values(itemsAggregation).sort((a, b) => b.total - a.total)
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
@@ -99,14 +145,72 @@ export default function AdminDashboard() {
                 )}
               </Button>
             </div>
-            <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20">Generar Reporte</Button>
+
+            {/* Diálogo de Reporte */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20 gap-2">
+                  <FileText size={20} /> Generar Reporte
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+                <DialogHeader className="bg-primary p-8 text-white">
+                  <DialogTitle className="text-3xl font-black flex items-center gap-3">
+                    <TrendingUp size={32} /> REPORTE DE CIERRE DIARIO
+                  </DialogTitle>
+                  <DialogDescription className="text-white/80 font-medium text-lg">
+                    Resumen consolidado de ventas al día de hoy.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Ingresos Totales</p>
+                      <p className="text-3xl font-black text-primary">$ {reportStats.totalSales.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Transacciones</p>
+                      <p className="text-3xl font-black">{reportStats.totalTransactions}</p>
+                    </div>
+                    <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Ticket Promedio</p>
+                      <p className="text-3xl font-black">$ {reportStats.averageTicket.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-black mb-4 flex items-center gap-2">
+                    <Receipt className="text-primary" /> DESGLOSE DE PRODUCTOS VENDIDOS
+                  </h3>
+                  <ScrollArea className="h-[300px] border-2 rounded-2xl p-2">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b-2">
+                          <TableHead className="font-black text-xs uppercase tracking-widest">Producto</TableHead>
+                          <TableHead className="font-black text-xs uppercase tracking-widest text-center">Cantidad</TableHead>
+                          <TableHead className="font-black text-xs uppercase tracking-widest text-right">Total (MXN)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {reportStats.items.map((item, idx) => (
+                          <TableRow key={idx} className="hover:bg-muted/20">
+                            <TableCell className="font-bold">{item.name}</TableCell>
+                            <TableCell className="text-center font-black text-primary">{item.qty}</TableCell>
+                            <TableCell className="text-right font-black">$ {item.total.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </header>
 
         {/* Top KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: "Ventas Hoy", value: "$ 14,240.00", icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
+            { label: "Ventas Hoy", value: `$ ${reportStats.totalSales.toFixed(2)}`, icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
             { label: "Pedidos Activos", value: "24", icon: <Clock />, trend: "8 preparados", color: "text-blue-500" },
             { label: "Usuarios Nuevos", value: "142", icon: <Users />, trend: "+5% esta sem", color: "text-purple-500" },
             { label: "Stock Bajo", value: "3 items", icon: <AlertCircle />, trend: "Revisar ahora", color: "text-primary" },
