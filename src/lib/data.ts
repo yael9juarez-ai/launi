@@ -1,5 +1,5 @@
 
-export const CATEGORIES = ["Platos Principales", "Snacks", "Bebidas", "Postres"];
+export const CATEGORIES = ["Comida", "Bebidas"];
 
 export interface MenuItem {
   id: string;
@@ -18,92 +18,115 @@ export interface MenuItem {
 }
 
 export const MENU_ITEMS: MenuItem[] = [
+  // COMIDA
   {
-    id: "1",
-    name: "Pizza Pepperoni",
-    description: "Masa artesanal con salsa de tomate y queso mozzarella premium.",
-    price: 45.00,
-    category: "Snacks",
-    imageUrl: "https://picsum.photos/seed/pizza/400/300",
+    id: "m1",
+    name: "Maruchan Preparada",
+    description: "Sopa instantánea con salsa, limón y especias.",
+    price: 25.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/maruchan/400/300",
+    stock: 50,
+    nutrition: { calories: 300, protein: 5, fat: 12, carbs: 45 }
+  },
+  {
+    id: "m2",
+    name: "Hamburguesa Clásica",
+    description: "Carne de res premium con queso, lechuga y tomate.",
+    price: 85.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/burger-mex/400/300",
     stock: 20,
-    nutrition: { calories: 285, protein: 12, fat: 10, carbs: 36 }
+    nutrition: { calories: 550, protein: 25, fat: 30, carbs: 40 }
   },
   {
-    id: "2",
-    name: "Ensalada César",
-    description: "Lechuga fresca, crotones, queso parmesano y aderezo de la casa.",
-    price: 75.00,
-    category: "Platos Principales",
-    imageUrl: "https://picsum.photos/seed/salad/400/300",
-    stock: 15,
-    nutrition: { calories: 190, protein: 8, fat: 14, carbs: 10 }
-  },
-  {
-    id: "3",
-    name: "Café Americano",
-    description: "Grano seleccionado de altura, tostado artesanal.",
+    id: "m3",
+    name: "Papas a la Francesa",
+    description: "Papas crujientes con sal y aderezo catsup.",
     price: 35.00,
-    category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/coffee/400/300",
-    stock: 100,
-    nutrition: { calories: 2, protein: 0.2, fat: 0, carbs: 0 }
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/french-fries/400/300",
+    stock: 40,
+    nutrition: { calories: 320, protein: 3, fat: 15, carbs: 42 }
   },
   {
-    id: "4",
-    name: "Hamburguesa Especial",
-    description: "Carne de res premium, queso, tocino y papas a la francesa.",
-    price: 110.00,
-    category: "Platos Principales",
-    imageUrl: "https://picsum.photos/seed/burger/400/300",
-    stock: 12,
-    nutrition: { calories: 550, protein: 25, fat: 30, carbs: 45 }
+    id: "m4",
+    name: "Sincronizadas",
+    description: "Tortillas de harina con jamón y queso derretido.",
+    price: 65.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/quesadilla/400/300",
+    stock: 30,
+    nutrition: { calories: 450, protein: 18, fat: 22, carbs: 35 }
   },
   {
-    id: "5",
-    name: "Pasta Pesto",
-    description: "Pasta al dente con salsa de albahaca fresca y nueces.",
-    price: 95.00,
-    category: "Platos Principales",
-    imageUrl: "https://picsum.photos/seed/pasta/400/300",
-    stock: 8,
-    nutrition: { calories: 420, protein: 10, fat: 18, carbs: 55 }
-  },
-  {
-    id: "6",
-    name: "Muffin de Arándanos",
-    description: "Esponjoso pan dulce con arándanos frescos orgánicos.",
-    price: 32.00,
-    category: "Postres",
-    imageUrl: "https://picsum.photos/seed/muffin/400/300",
+    id: "m5",
+    name: "Orden de Tacos (3)",
+    description: "Tacos de guisado variado con guarnición de verdura.",
+    price: 75.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/mexican-tacos/400/300",
     stock: 25,
-    nutrition: { calories: 310, protein: 4, fat: 12, carbs: 48 }
+    nutrition: { calories: 480, protein: 20, fat: 18, carbs: 45 }
+  },
+  {
+    id: "m6",
+    name: "Rollos de Sushi",
+    description: "Rollos california con surimi, pepino y aguacate.",
+    price: 95.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/sushi-rolls/400/300",
+    stock: 15,
+    nutrition: { calories: 350, protein: 10, fat: 8, carbs: 60 }
+  },
+  // BEBIDAS
+  {
+    id: "b1",
+    name: "Aguas de Sabor",
+    description: "Agua fresca natural del día (Jamaica o Horchata).",
+    price: 20.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/fresh-water/400/300",
+    stock: 60,
+    nutrition: { calories: 80, protein: 0, fat: 0, carbs: 20 }
+  },
+  {
+    id: "b2",
+    name: "Coca Cola",
+    description: "Refresco de cola clásico original 600ml.",
+    price: 25.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/cola-bottle/400/300",
+    stock: 100,
+    nutrition: { calories: 210, protein: 0, fat: 0, carbs: 54 }
+  },
+  {
+    id: "b3",
+    name: "Agua Natural",
+    description: "Botella de agua purificada 500ml.",
+    price: 15.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/water-bottle/400/300",
+    stock: 120,
+    nutrition: { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  },
+  {
+    id: "b4",
+    name: "Leche de Chocolate",
+    description: "Bebida láctea sabor chocolate enriquecida.",
+    price: 22.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/chocolate-milk/400/300",
+    stock: 45,
+    nutrition: { calories: 180, protein: 8, fat: 5, carbs: 25 }
   }
 ];
 
 export const SALES_RECORDS = [
   {
     transactionId: "T1",
-    timestamp: "2024-05-10T08:30:00Z",
-    items: [{ itemId: "3", itemName: "Café Americano", quantity: 2, price: 35.00 }],
-    totalAmount: 70.00,
-  },
-  {
-    transactionId: "T2",
-    timestamp: "2024-05-10T12:45:00Z",
-    items: [{ itemId: "4", itemName: "Hamburguesa Especial", quantity: 1, price: 110.00 }],
-    totalAmount: 110.00,
-  },
-  {
-    transactionId: "T3",
-    timestamp: "2024-05-10T13:00:00Z",
-    items: [{ itemId: "2", itemName: "Ensalada César", quantity: 1, price: 75.00 }],
-    totalAmount: 75.00,
+    timestamp: new Date().toISOString(),
+    items: [{ itemId: "b2", itemName: "Coca Cola", quantity: 2, price: 25.00 }],
+    totalAmount: 50.00,
   }
-];
-
-export const INVENTORY = [
-  { ingredientId: "i1", ingredientName: "Harina", currentStock: 50, unit: "kg", minStockLevel: 10 },
-  { ingredientId: "i2", ingredientName: "Tomate", currentStock: 5, unit: "kg", minStockLevel: 8 },
-  { ingredientId: "i3", ingredientName: "Café en grano", currentStock: 15, unit: "kg", minStockLevel: 5 },
-  { ingredientId: "i4", ingredientName: "Queso Mozzarella", currentStock: 12, unit: "kg", minStockLevel: 5 },
 ];

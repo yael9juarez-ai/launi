@@ -14,7 +14,8 @@ import {
   Clock, 
   ChevronRight,
   Activity,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +43,16 @@ export default function ClientMenu() {
   });
 
   const addToCart = (item: any) => {
+    if (item.stock <= 0) {
+      toast({
+        variant: "destructive",
+        className: "uni-toast-error",
+        title: "🚫 Agotado",
+        description: `Lo sentimos, ${item.name} no está disponible por el momento.`,
+      });
+      return;
+    }
+
     setCart([...cart, item]);
     toast({
       className: "uni-toast-info",
@@ -89,7 +100,6 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Turnos Section */}
         <div className="mb-8 p-6 bg-foreground text-white rounded-[2rem] flex flex-col md:flex-row items-center justify-between shadow-2xl gap-4">
           <div className="flex items-center gap-6">
             <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center">
@@ -105,12 +115,11 @@ export default function ClientMenu() {
           </Button>
         </div>
 
-        {/* Search & Filter */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="¿Qué te apetece hoy? Pizza, hamburguesa..." 
+              placeholder="¿Qué te apetece hoy? Tacos, Hamburguesa, Sushi..." 
               className="pl-12 h-12 bg-white border-none shadow-sm rounded-2xl text-base"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -130,10 +139,12 @@ export default function ClientMenu() {
           </div>
         </div>
 
-        {/* Menu Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filteredItems.map((item) => (
-            <Card key={item.id} className="group border-none shadow-lg rounded-[2rem] overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-2 bg-white">
+            <Card key={item.id} className={cn(
+              "group border-none shadow-lg rounded-[2rem] overflow-hidden transition-all bg-white",
+              item.stock > 0 ? "hover:shadow-2xl hover:-translate-y-2" : "opacity-75 grayscale-[0.5]"
+            )}>
               <div className="aspect-[4/3] relative overflow-hidden">
                 <Image 
                   src={item.imageUrl} 
@@ -141,6 +152,13 @@ export default function ClientMenu() {
                   fill 
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
+                {item.stock <= 0 && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <Badge variant="destructive" className="text-lg px-6 py-2 rounded-full font-black uppercase tracking-widest shadow-2xl">
+                      Agotado
+                    </Badge>
+                  </div>
+                )}
                 <Badge className="absolute top-4 right-4 bg-white/95 text-primary hover:bg-white h-9 px-4 rounded-full text-base font-black shadow-lg">
                   $ {item.price.toFixed(2)}
                 </Badge>
@@ -176,10 +194,18 @@ export default function ClientMenu() {
                 </div>
                 <CardTitle className="text-xl font-black leading-tight group-hover:text-primary transition-colors">{item.name}</CardTitle>
                 <CardDescription className="line-clamp-2 text-sm font-medium leading-relaxed">{item.description}</CardDescription>
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+                  <AlertCircle size={10} className={item.stock < 10 ? "text-primary animate-pulse" : ""} />
+                  {item.stock} unidades disponibles
+                </div>
               </CardHeader>
               <CardFooter className="p-6 pt-0">
-                <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={() => addToCart(item)}>
-                  Pedir Ahora
+                <Button 
+                  className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                  onClick={() => addToCart(item)}
+                  disabled={item.stock <= 0}
+                >
+                  {item.stock > 0 ? "Pedir Ahora" : "No Disponible"}
                 </Button>
               </CardFooter>
             </Card>
@@ -187,7 +213,6 @@ export default function ClientMenu() {
         </div>
       </main>
 
-      {/* Mobile Cart Overlay */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
           <Button className="w-full h-16 rounded-[2rem] shadow-[0_20px_50px_rgba(227,6,19,0.3)] text-lg font-black flex justify-between items-center px-8 transition-all hover:scale-[1.03]">

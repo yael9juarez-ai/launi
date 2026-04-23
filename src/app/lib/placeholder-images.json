@@ -2,46 +2,64 @@
 {
   "placeholderImages": [
     {
-      "id": "hero-cafeteria",
-      "description": "Modern university cafeteria interior",
-      "imageUrl": "https://picsum.photos/seed/unieats-hero/1200/600",
-      "imageHint": "university cafeteria"
+      "id": "maruchan",
+      "description": "Maruchan preparada con salsa y limón",
+      "imageUrl": "https://picsum.photos/seed/maruchan/400/300",
+      "imageHint": "instant noodles"
     },
     {
-      "id": "pizza-slice",
-      "description": "Delicious pepperoni pizza slice",
-      "imageUrl": "https://picsum.photos/seed/pizza/400/300",
-      "imageHint": "pizza"
+      "id": "hamburguesa",
+      "description": "Hamburguesa clásica con queso",
+      "imageUrl": "https://picsum.photos/seed/burger-mex/400/300",
+      "imageHint": "hamburger cheese"
     },
     {
-      "id": "fresh-salad",
-      "description": "Fresh garden salad with vinaigrette",
-      "imageUrl": "https://picsum.photos/seed/salad/400/300",
-      "imageHint": "salad"
+      "id": "papas",
+      "description": "Papas a la francesa crujientes",
+      "imageUrl": "https://picsum.photos/seed/french-fries/400/300",
+      "imageHint": "french fries"
     },
     {
-      "id": "coffee-cup",
-      "description": "Freshly brewed hot coffee",
-      "imageUrl": "https://picsum.photos/seed/coffee/400/300",
-      "imageHint": "coffee"
+      "id": "aguas",
+      "description": "Aguas frescas de sabor",
+      "imageUrl": "https://picsum.photos/seed/fresh-water/400/300",
+      "imageHint": "fruit water"
     },
     {
-      "id": "burger-combo",
-      "description": "Gourmet burger with fries",
-      "imageUrl": "https://picsum.photos/seed/burger/400/300",
-      "imageHint": "burger"
+      "id": "coca",
+      "description": "Botella de Coca Cola",
+      "imageUrl": "https://picsum.photos/seed/cola-bottle/400/300",
+      "imageHint": "soda bottle"
     },
     {
-      "id": "pasta-dish",
-      "description": "Pesto pasta with cherry tomatoes",
-      "imageUrl": "https://picsum.photos/seed/pasta/400/300",
-      "imageHint": "pasta"
+      "id": "agua-natural",
+      "description": "Botella de agua natural",
+      "imageUrl": "https://picsum.photos/seed/water-bottle/400/300",
+      "imageHint": "water bottle"
     },
     {
-      "id": "muffin",
-      "description": "Blueberry muffin",
-      "imageUrl": "https://picsum.photos/seed/muffin/400/300",
-      "imageHint": "muffin"
+      "id": "sincronizadas",
+      "description": "Sincronizadas de jamón y queso",
+      "imageUrl": "https://picsum.photos/seed/quesadilla/400/300",
+      "imageHint": "quesadilla ham"
+    },
+    {
+      "id": "tacos",
+      "description": "Tacos de guisado mexicanos",
+      "imageUrl": "https://picsum.photos/seed/mexican-tacos/400/300",
+      "imageHint": "mexican tacos"
+    },
+    {
+      "id": "sushi",
+      "description": "Rollos de sushi variados",
+      "imageUrl": "https://picsum.photos/seed/sushi-rolls/400/300",
+      "imageHint": "sushi rolls"
+    },
+    {
+      "id": "leche-choco",
+      "description": "Leche de chocolate en envase",
+      "imageUrl": "https://picsum.photos/seed/chocolate-milk/400/300",
+      "imageHint": "chocolate milk"
     }
   ]
 }

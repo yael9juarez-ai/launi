@@ -59,7 +59,6 @@ export default function AdminDashboard() {
   const [activeAlerts] = useState(2);
   const router = useRouter();
 
-  // Cálculo de reporte diario basado en SALES_RECORDS
   const reportStats = useMemo(() => {
     const totalSales = SALES_RECORDS.reduce((acc, curr) => acc + curr.totalAmount, 0);
     const totalTransactions = SALES_RECORDS.length;
@@ -87,7 +86,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
-      {/* Sidebar */}
       <aside className="w-64 bg-white border-r hidden lg:flex flex-col">
         <div className="p-6 border-b flex items-center gap-3">
           <div className="w-9 h-9 uni-gradient rounded-xl flex items-center justify-center text-white shadow-md">
@@ -102,11 +100,11 @@ export default function AdminDashboard() {
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/pos')}>
             <DollarSign size={20} /> Punto de Venta
           </Button>
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/inventory')}>
+            <Package size={20} /> Inventario
+          </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/queue')}>
             <Clock size={20} /> Pantalla de Turnos
-          </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted">
-            <Package size={20} /> Inventario
           </Button>
         </nav>
         <div className="p-4 border-t">
@@ -146,7 +144,6 @@ export default function AdminDashboard() {
               </Button>
             </div>
 
-            {/* Diálogo de Reporte */}
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20 gap-2">
@@ -207,7 +204,6 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* Top KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             { label: "Ventas Hoy", value: `$ ${reportStats.totalSales.toFixed(2)}`, icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
@@ -233,7 +229,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 mb-8">
-          {/* Main Chart */}
           <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-2">
             <CardHeader className="p-8 pb-2">
               <CardTitle className="text-2xl font-black">Flujo de Ingresos (MXN)</CardTitle>
@@ -264,7 +259,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Recent Orders Section */}
         <Card className="border-none shadow-sm rounded-[2.5rem] bg-white">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="text-2xl font-black">Actividad Reciente</CardTitle>
@@ -273,9 +267,9 @@ export default function AdminDashboard() {
           <CardContent className="p-8 pt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { id: "#001", user: "Juan Pérez", item: "Pizza Slice", total: "$ 45.00", status: "Listo", time: "5m" },
-                { id: "#002", user: "Ana Gómez", item: "Combo Burguesa", total: "$ 110.00", status: "Preparando", time: "12m" },
-                { id: "#003", user: "Marco Polo", item: "Café + Muffin", total: "$ 67.00", status: "Pendiente", time: "18m" },
+                { id: "#001", user: "Juan Pérez", item: "Tacos", total: "$ 75.00", status: "Listo", time: "5m" },
+                { id: "#002", user: "Ana Gómez", item: "Hamburguesa", total: "$ 85.00", status: "Preparando", time: "12m" },
+                { id: "#003", user: "Marco Polo", item: "Coca Cola", total: "$ 25.00", status: "Pendiente", time: "18m" },
               ].map((order, i) => (
                 <div key={i} className="flex items-center justify-between p-5 border-2 border-muted/50 rounded-3xl hover:border-primary/30 transition-all group">
                   <div className="flex gap-4 items-center">
