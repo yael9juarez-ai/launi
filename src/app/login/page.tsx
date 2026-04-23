@@ -56,7 +56,28 @@ export default function LoginPage() {
         return;
       }
 
-      // Acceso Comunidad UNI
+      // Acceso Alumno universal
+      if (email === 'alumno' && password === 'alumno') {
+        router.push('/client/menu');
+        toast({
+          className: "uni-toast-success",
+          title: "🎒 ¡Hola, Alumno!",
+          description: (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <CheckCircle className="text-blue-600" size={24} />
+              </div>
+              <div>
+                <p className="font-bold">Sesión Iniciada</p>
+                <p className="text-xs text-muted-foreground">Accediendo al menú del día...</p>
+              </div>
+            </div>
+          ),
+        });
+        return;
+      }
+
+      // Acceso Comunidad UNI (Otros)
       if (role === 'community') {
         router.push('/client/menu');
         toast({
@@ -123,7 +144,7 @@ export default function LoginPage() {
                   <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="email" 
-                    placeholder="admin o usuario institucional" 
+                    placeholder="admin, alumno o usuario institucional" 
                     className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -153,9 +174,14 @@ export default function LoginPage() {
             </form>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 py-8 bg-muted/20 text-center text-xs text-muted-foreground">
-            <p className="font-medium">
-              Demo Admin: <span className="font-black text-foreground">admin / admin</span>
-            </p>
+            <div className="space-y-1">
+              <p className="font-medium">
+                Demo Admin: <span className="font-black text-foreground">admin / admin</span>
+              </p>
+              <p className="font-medium">
+                Demo Alumno: <span className="font-black text-foreground">alumno / alumno</span>
+              </p>
+            </div>
           </CardFooter>
         </Card>
       </div>
