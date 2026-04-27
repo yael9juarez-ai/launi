@@ -31,6 +31,7 @@ export interface MenuItem {
 }
 
 // INVENTARIO DE INSUMOS (ALMACÉN CENTRAL)
+// Las cantidades están en la unidad base (gr, ml, pzas)
 export const INGREDIENTS: Ingredient[] = [
   { id: "i1", name: "Pan de Hamburguesa", stock: 100, unit: "pzas", minStock: 20 },
   { id: "i2", name: "Carne de Res Molida", stock: 20000, unit: "gr", minStock: 5000 },
@@ -40,15 +41,17 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i6", name: "Tortilla de Maíz", stock: 500, unit: "pzas", minStock: 100 },
   { id: "i7", name: "Sopa Maruchan (Vaso)", stock: 80, unit: "pzas", minStock: 15 },
   { id: "i8", name: "Refresco 600ml (Botella)", stock: 120, unit: "pzas", minStock: 24 },
-  { id: "i9", name: "Agua Purificada", stock: 200000, unit: "ml", minStock: 20000 },
+  { id: "i9", name: "Agua Purificada", stock: 500000, unit: "ml", minStock: 50000 },
   { id: "i13", name: "Gomitas Varias", stock: 25000, unit: "gr", minStock: 3000 },
   { id: "i14", name: "Concentrado Jamaica", stock: 10000, unit: "ml", minStock: 1000 },
+  { id: "i15", name: "Concentrado Horchata", stock: 10000, unit: "ml", minStock: 1000 },
+  { id: "i16", name: "Concentrado Limón", stock: 10000, unit: "ml", minStock: 1000 },
   { id: "i18", name: "Aceite Vegetal", stock: 10000, unit: "ml", minStock: 2000 },
   { id: "i19", name: "Lechuga Fresca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i20", name: "Tomate Rojo", stock: 8000, unit: "gr", minStock: 1000 },
   { id: "i21", name: "Cebolla Blanca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i23", name: "Sal Refinada", stock: 5000, unit: "gr", minStock: 500 },
-  { id: "i24", name: "Harina Preparada", stock: 15000, unit: "gr", minStock: 2000 },
+  { id: "i24", name: "Harina Preparada (Hot Cakes)", stock: 15000, unit: "gr", minStock: 2000 },
   { id: "i25", name: "Leche Entera", stock: 20000, unit: "ml", minStock: 3000 },
   { id: "i26", name: "Huevo Fresco", stock: 120, unit: "pzas", minStock: 24 },
   { id: "i27", name: "Mantequilla", stock: 4000, unit: "gr", minStock: 500 },
@@ -90,7 +93,7 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: "m7",
     name: "Hot Cakes Caseros (Orden 3)",
-    description: "Hot cakes preparados al momento con harina, leche y huevo. Servidos con mantequilla y miel.",
+    description: "Hechos al momento con harina, leche y huevo. Con mantequilla y miel.",
     price: 65.00,
     category: "Comida",
     imageUrl: "https://picsum.photos/seed/hotcakes/400/300",
@@ -105,8 +108,8 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "m9",
-    name: "Pan de Dulce",
-    description: "Pieza de pan de dulce fresco, recompra de La Esperanza.",
+    name: "Pan de Dulce (La Esperanza)",
+    description: "Pieza de pan dulce fresco de panadería local.",
     price: 30.00,
     category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/sweetbread/400/300",
@@ -131,44 +134,9 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 490, protein: 20, fat: 24, carbs: 38 }
   },
   {
-    id: "m5",
-    name: "Tacos de la Casa (3)",
-    description: "Tres deliciosos tacos con carne de res y cebollitas.",
-    price: 85.00,
-    category: "Comida",
-    imageUrl: "https://picsum.photos/seed/mexican-tacos/400/300",
-    recipe: [
-      { ingredientId: "i6", quantity: 3 },
-      { ingredientId: "i2", quantity: 150 },
-      { ingredientId: "i21", quantity: 30 },
-      { ingredientId: "i18", quantity: 12 }
-    ],
-    nutrition: { calories: 520, protein: 24, fat: 20, carbs: 48 }
-  },
-  {
-    id: "d1",
-    name: "Bolsa de Gomitas (150g)",
-    description: "Mix de gomitas frutales y aciditas.",
-    price: 30.00,
-    category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/gummies/400/300",
-    recipe: [{ ingredientId: "i13", quantity: 150 }],
-    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
-  },
-  {
-    id: "b2",
-    name: "Coca Cola Bien Fría",
-    description: "Botella de 600ml de refresco de cola.",
-    price: 28.00,
-    category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/cola-bottle/400/300",
-    recipe: [{ ingredientId: "i8", quantity: 1 }],
-    nutrition: { calories: 210, protein: 0, fat: 0, carbs: 54 }
-  },
-  {
     id: "b5",
-    name: "Agua de Jamaica (L)",
-    description: "Litro de agua fresca natural de jamaica.",
+    name: "Agua de Jamaica (1L)",
+    description: "Agua fresca natural de jamaica.",
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/jamaica/400/300",
@@ -177,6 +145,52 @@ export const MENU_ITEMS: MenuItem[] = [
       { ingredientId: "i14", quantity: 80 }
     ],
     nutrition: { calories: 180, protein: 0, fat: 0, carbs: 45 }
+  },
+  {
+    id: "b6",
+    name: "Agua de Horchata (1L)",
+    description: "Agua fresca cremosa de horchata.",
+    price: 35.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/horchata/400/300",
+    recipe: [
+      { ingredientId: "i9", quantity: 1000 },
+      { ingredientId: "i15", quantity: 80 }
+    ],
+    nutrition: { calories: 250, protein: 2, fat: 4, carbs: 55 }
+  },
+  {
+    id: "b7",
+    name: "Agua de Limón (1L)",
+    description: "Agua fresca de limón recién preparada.",
+    price: 35.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/lemonade/400/300",
+    recipe: [
+      { ingredientId: "i9", quantity: 1000 },
+      { ingredientId: "i16", quantity: 80 }
+    ],
+    nutrition: { calories: 160, protein: 0, fat: 0, carbs: 40 }
+  },
+  {
+    id: "d1",
+    name: "Bolsa de Gomitas (150g)",
+    description: "Mix de gomitas frutales variadas.",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "https://picsum.photos/seed/gummies/400/300",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
+  },
+  {
+    id: "b2",
+    name: "Coca Cola (600ml)",
+    description: "Botella fría de refresco.",
+    price: 28.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/cola-bottle/400/300",
+    recipe: [{ ingredientId: "i8", quantity: 1 }],
+    nutrition: { calories: 210, protein: 0, fat: 0, carbs: 54 }
   }
 ];
 
