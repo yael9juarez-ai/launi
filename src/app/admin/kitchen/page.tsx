@@ -6,15 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  UtensilsCrossed, 
+  ChefHat,
   Clock, 
   CheckCircle2, 
   Flame, 
   LogOut, 
-  ChefHat,
-  Bell,
-  ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  Timer
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -30,9 +28,9 @@ interface Order {
 }
 
 const INITIAL_ORDERS: Order[] = [
-  { id: "#102", items: [{ name: "Tacos de Guisado", qty: 3 }, { name: "Coca Cola", qty: 1 }], status: 'pending', time: '2m', user: 'Juan R.' },
-  { id: "#104", items: [{ name: "Hamburguesa Clásica", qty: 1 }, { name: "Papas", qty: 1 }], status: 'preparing', time: '5m', user: 'Maria L.' },
-  { id: "#105", items: [{ name: "Sincronizadas", qty: 2 }], status: 'preparing', time: '8m', user: 'Pedro S.' },
+  { id: "#108", items: [{ name: "Hamburguesa Clásica", qty: 2 }, { name: "Coca Cola", qty: 2 }], status: 'pending', time: '1m', user: 'Carlos M.' },
+  { id: "#107", items: [{ name: "Orden de Tacos (3)", qty: 1 }], status: 'preparing', time: '4m', user: 'Ana L.' },
+  { id: "#105", items: [{ name: "Maruchan Preparada", qty: 1 }], status: 'preparing', time: '12m', user: 'Roberto G.' },
 ];
 
 export default function KitchenPage() {
@@ -46,128 +44,127 @@ export default function KitchenPage() {
     if (newStatus === 'ready') {
       toast({
         className: "uni-toast-success",
-        title: `✅ Pedido ${id} completado`,
-        description: "El cliente ha sido notificado y aparece en pantalla de turnos.",
+        title: `✅ PEDIDO ${id} LISTO`,
+        description: "El monitor de turnos ha sido actualizado.",
       });
     }
   };
 
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-  const preparingOrders = orders.filter(o => o.status === 'preparing');
-
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col">
-      <header className="bg-white border-b-2 p-6 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 uni-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <ChefHat size={28} />
+      <header className="bg-white border-b-4 px-10 h-24 flex items-center justify-between shadow-xl z-10">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 mcd-gradient rounded-3xl flex items-center justify-center text-white shadow-lg">
+            <ChefHat size={36} />
           </div>
           <div>
-            <h1 className="text-3xl font-black tracking-tighter">Panel de Cocina</h1>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">UniEats • Gestión de Pedidos</p>
+            <h1 className="text-4xl font-black tracking-tighter">Cocina UniEats</h1>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Gestión de Insumos & Comandas</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="rounded-xl gap-2 font-bold" onClick={() => router.push('/admin/dashboard')}>
-            <ArrowLeft size={18} /> Panel Admin
+          <Button variant="outline" className="rounded-2xl h-14 px-8 gap-3 font-black text-lg border-2" onClick={() => router.push('/admin/dashboard')}>
+            <ArrowLeft size={24} /> PANEL ADMIN
           </Button>
-          <Button variant="ghost" className="rounded-xl text-destructive hover:bg-destructive/10 font-bold" onClick={() => router.push('/login')}>
-            <LogOut size={18} /> Salir
+          <Button variant="ghost" className="rounded-2xl h-14 w-14 text-destructive hover:bg-destructive/10" onClick={() => router.push('/login')}>
+            <LogOut size={24} />
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-hidden">
-        {/* Columna: Pendientes */}
-        <section className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black flex items-center gap-3">
-              <Bell className="text-primary animate-bounce" /> NUEVAS ÓRDENES 
-              <Badge className="ml-2 bg-primary text-white rounded-full">{pendingOrders.length}</Badge>
+      <main className="flex-1 p-10 grid grid-cols-1 lg:grid-cols-2 gap-12 overflow-hidden bg-muted/20">
+        {/* Columna: Nuevos Pedidos */}
+        <section className="flex flex-col gap-8">
+          <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm">
+            <h2 className="text-3xl font-black flex items-center gap-4">
+              <Clock className="text-primary animate-pulse" /> NUEVAS ÓRDENES 
             </h2>
+            <Badge className="h-12 px-6 rounded-full bg-primary text-white text-2xl font-black">
+              {orders.filter(o => o.status === 'pending').length}
+            </Badge>
           </div>
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4">
-              {pendingOrders.length === 0 ? (
-                <div className="h-40 border-2 border-dashed rounded-3xl flex items-center justify-center text-muted-foreground font-medium">
-                  Sin pedidos nuevos...
-                </div>
-              ) : (
-                pendingOrders.map(order => (
-                  <Card key={order.id} className="border-none shadow-md rounded-[2rem] bg-white hover:shadow-xl transition-all border-l-8 border-l-primary">
-                    <CardHeader className="flex flex-row items-center justify-between p-6 pb-2">
+          
+          <ScrollArea className="flex-1">
+            <div className="space-y-6 pr-4">
+              {orders.filter(o => o.status === 'pending').map(order => (
+                <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden border-l-[1rem] border-l-primary mcd-card-hover">
+                  <div className="p-8">
+                    <div className="flex justify-between items-start mb-6">
                       <div>
-                        <CardTitle className="text-2xl font-black">{order.id}</CardTitle>
-                        <CardDescription className="font-bold text-primary">{order.user}</CardDescription>
+                        <p className="text-4xl font-black text-primary">{order.id}</p>
+                        <p className="text-xl font-bold text-muted-foreground">{order.user}</p>
                       </div>
-                      <Badge variant="outline" className="rounded-full font-black px-4">{order.time}</Badge>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="space-y-2 mb-6">
-                        {order.items.map((item, i) => (
-                          <div key={i} className="flex justify-between items-center bg-muted/30 p-3 rounded-xl border">
-                            <span className="font-bold text-lg">{item.name}</span>
-                            <Badge className="h-8 w-8 rounded-full flex items-center justify-center font-black">x{item.qty}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                      <Button 
-                        className="w-full h-14 rounded-2xl text-lg font-black gap-2 shadow-lg shadow-primary/20"
-                        onClick={() => updateStatus(order.id, 'preparing')}
-                      >
-                        <Flame size={20} /> Empezar a Cocinar
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+                      <Badge variant="outline" className="h-10 px-4 rounded-full border-2 font-black gap-2">
+                        <Timer size={16} /> {order.time}
+                      </Badge>
+                    </div>
+                    <div className="space-y-3 mb-8">
+                      {order.items.map((item, i) => (
+                        <div key={i} className="flex justify-between items-center bg-muted/50 p-4 rounded-2xl border-2">
+                          <span className="text-2xl font-black">{item.name}</span>
+                          <span className="text-2xl font-black bg-primary text-white h-12 w-12 flex items-center justify-center rounded-full">
+                            {item.qty}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button 
+                      className="w-full h-20 rounded-3xl text-2xl font-black mcd-gradient shadow-xl shadow-primary/20 gap-3"
+                      onClick={() => updateStatus(order.id, 'preparing')}
+                    >
+                      <Flame size={28} /> EMPEZAR PREPARACIÓN
+                    </Button>
+                  </div>
+                </Card>
+              ))}
             </div>
           </ScrollArea>
         </section>
 
-        {/* Columna: Preparando */}
-        <section className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black flex items-center gap-3">
-              <Flame className="text-orange-500" /> EN PREPARACIÓN 
-              <Badge className="ml-2 bg-orange-500 text-white rounded-full">{preparingOrders.length}</Badge>
+        {/* Columna: En Preparación */}
+        <section className="flex flex-col gap-8">
+          <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm">
+            <h2 className="text-3xl font-black flex items-center gap-4">
+              <Flame className="text-secondary" /> EN FOGONES 
             </h2>
+            <Badge className="h-12 px-6 rounded-full bg-secondary text-black text-2xl font-black">
+              {orders.filter(o => o.status === 'preparing').length}
+            </Badge>
           </div>
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4">
-              {preparingOrders.length === 0 ? (
-                <div className="h-40 border-2 border-dashed rounded-3xl flex items-center justify-center text-muted-foreground font-medium">
-                  Nada en los fogones...
-                </div>
-              ) : (
-                preparingOrders.map(order => (
-                  <Card key={order.id} className="border-none shadow-md rounded-[2rem] bg-white hover:shadow-xl transition-all border-l-8 border-l-orange-500">
-                    <CardHeader className="flex flex-row items-center justify-between p-6 pb-2">
+
+          <ScrollArea className="flex-1">
+            <div className="space-y-6 pr-4">
+              {orders.filter(o => o.status === 'preparing').map(order => (
+                <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden border-l-[1rem] border-l-secondary mcd-card-hover">
+                  <div className="p-8">
+                    <div className="flex justify-between items-start mb-6">
                       <div>
-                        <CardTitle className="text-2xl font-black">{order.id}</CardTitle>
-                        <CardDescription className="font-bold text-orange-600">{order.user}</CardDescription>
+                        <p className="text-4xl font-black text-secondary">{order.id}</p>
+                        <p className="text-xl font-bold text-muted-foreground">{order.user}</p>
                       </div>
-                      <Badge variant="outline" className="rounded-full font-black px-4 bg-orange-50">{order.time}</Badge>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="space-y-2 mb-6">
-                        {order.items.map((item, i) => (
-                          <div key={i} className="flex justify-between items-center bg-orange-50/50 p-3 rounded-xl border border-orange-100">
-                            <span className="font-bold text-lg">{item.name}</span>
-                            <Badge className="h-8 w-8 rounded-full flex items-center justify-center font-black bg-orange-500">x{item.qty}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                      <Button 
-                        className="w-full h-14 rounded-2xl text-lg font-black gap-2 shadow-lg shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600"
-                        onClick={() => updateStatus(order.id, 'ready')}
-                      >
-                        <CheckCircle2 size={20} /> Marcar como Listo
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+                      <Badge variant="outline" className="h-10 px-4 rounded-full border-2 border-secondary/30 bg-secondary/10 font-black gap-2">
+                        <Timer size={16} /> {order.time}
+                      </Badge>
+                    </div>
+                    <div className="space-y-3 mb-8">
+                      {order.items.map((item, i) => (
+                        <div key={i} className="flex justify-between items-center bg-secondary/5 p-4 rounded-2xl border-2 border-secondary/20">
+                          <span className="text-2xl font-black">{item.name}</span>
+                          <span className="text-2xl font-black bg-secondary text-black h-12 w-12 flex items-center justify-center rounded-full">
+                            {item.qty}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button 
+                      className="w-full h-20 rounded-3xl text-2xl font-black bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 gap-3 text-white border-none"
+                      onClick={() => updateStatus(order.id, 'ready')}
+                    >
+                      <CheckCircle2 size={28} /> MARCAR COMO LISTO
+                    </Button>
+                  </div>
+                </Card>
+              ))}
             </div>
           </ScrollArea>
         </section>
