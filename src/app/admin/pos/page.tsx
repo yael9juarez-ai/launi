@@ -36,6 +36,7 @@ export default function POSPage() {
     const saved = localStorage.getItem('uni_inventory');
     if (saved) {
       const parsed = JSON.parse(saved);
+      // Forzamos actualización si detectamos que faltan nuevos ingredientes técnicos
       if (!parsed.find((i: any) => i.id === 'i33')) {
         setInventory(INGREDIENTS);
         localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
@@ -244,7 +245,7 @@ export default function POSPage() {
       <div className="w-full lg:w-96 bg-white border-l flex flex-col shadow-2xl h-[40vh] lg:h-full">
         <CardHeader className="border-b p-4 md:p-6 bg-muted/20">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl font-black">
-            <ShoppingCart size={20} md:size={24} className="text-primary" />
+            <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             Cesta de Cobro
           </CardTitle>
         </CardHeader>
@@ -252,7 +253,7 @@ export default function POSPage() {
         <ScrollArea className="flex-1 p-4 md:p-6">
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-30 pt-10 md:pt-20">
-              <ShoppingCart size={48} md:size={64} className="mb-4" />
+              <ShoppingCart size={48} className="mb-4" />
               <p className="font-black text-base md:text-lg">Esperando productos...</p>
             </div>
           ) : (
@@ -269,11 +270,11 @@ export default function POSPage() {
                     <p className="text-primary font-black text-xs md:text-sm">$ {(item.price * item.quantity).toFixed(2)}</p>
                     <div className="flex items-center bg-white rounded-lg p-1 border shadow-sm">
                       <Button variant="ghost" size="icon" className="h-5 w-5 md:h-6 md:w-6" onClick={() => updateQuantity(item.id, -1)}>
-                        <Minus size={10} md:size={12} />
+                        <Minus className="w-2.5 h-2.5 md:w-3 md:h-3" />
                       </Button>
                       <span className="w-5 md:w-6 text-center text-[10px] md:text-xs font-black">{item.quantity}</span>
                       <Button variant="ghost" size="icon" className="h-5 w-5 md:h-6 md:w-6" onClick={() => updateQuantity(item.id, 1)}>
-                        <Plus size={10} md:size={12} />
+                        <Plus className="w-2.5 h-2.5 md:w-3 md:h-3" />
                       </Button>
                     </div>
                   </div>
