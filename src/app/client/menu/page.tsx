@@ -54,14 +54,14 @@ export default function ClientMenu() {
   const router = useRouter();
 
   useEffect(() => {
-    // Forzar actualización si faltan ingredientes clave en el localStorage
+    // Inicialización de inventario con los nuevos ingredientes (vainilla, azúcar, etc)
     const savedInv = localStorage.getItem('uni_inventory');
     const parsedInv = savedInv ? JSON.parse(savedInv) : [];
     
-    // Verificamos si i31 (azúcar) existe para saber si es el inventario viejo
-    const isOldInventory = parsedInv.length > 0 && !parsedInv.find((i: any) => i.id === 'i31');
+    // Verificamos si i33 (vainilla) existe para asegurar que es el inventario actualizado
+    const needsUpdate = !parsedInv.find((i: any) => i.id === 'i33');
 
-    if (!savedInv || isOldInventory) {
+    if (!savedInv || needsUpdate) {
       setInventory(INGREDIENTS);
       localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
     } else {
@@ -75,7 +75,7 @@ export default function ClientMenu() {
   const checkStockAvailability = (item: MenuItem, currentCart: any[] = cart) => {
     if (inventory.length === 0) return false;
     
-    // Contar cuántos de este item ya hay en el carrito para la validación acumulada
+    // Contar cuántos de este item ya hay en el carrito para validación acumulada
     const itemCountInCart = currentCart.filter(i => i.id === item.id).length;
     
     return item.recipe.every(r => {

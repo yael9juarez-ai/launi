@@ -31,8 +31,6 @@ export interface MenuItem {
 }
 
 // INVENTARIO DE INSUMOS (ALMACÉN CENTRAL)
-// Las cantidades están en la unidad base (gr, ml, pzas)
-// Conversiones aproximadas: 1 taza harina = 125g, 1 taza azúcar = 200g, 1 taza leche = 240ml
 export const INGREDIENTS: Ingredient[] = [
   { id: "i1", name: "Pan de Hamburguesa", stock: 100, unit: "pzas", minStock: 20 },
   { id: "i2", name: "Carne de Res Molida", stock: 20000, unit: "gr", minStock: 5000 },
@@ -43,7 +41,7 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i7", name: "Sopa Maruchan (Vaso)", stock: 80, unit: "pzas", minStock: 15 },
   { id: "i8", name: "Refresco 600ml (Botella)", stock: 120, unit: "pzas", minStock: 24 },
   { id: "i9", name: "Agua Purificada", stock: 500000, unit: "ml", minStock: 50000 },
-  { id: "i13", name: "Gomitas Varias", stock: 25000, unit: "gr", minStock: 3000 },
+  { id: "i13", name: "Gomitas Varias (Stock)", stock: 50000, unit: "gr", minStock: 5000 },
   { id: "i14", name: "Concentrado Jamaica", stock: 10000, unit: "ml", minStock: 1000 },
   { id: "i15", name: "Concentrado Horchata", stock: 10000, unit: "ml", minStock: 1000 },
   { id: "i16", name: "Concentrado Limón", stock: 10000, unit: "ml", minStock: 1000 },
@@ -52,17 +50,17 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i20", name: "Tomate Rojo", stock: 8000, unit: "gr", minStock: 1000 },
   { id: "i21", name: "Cebolla Blanca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i23", name: "Sal Refinada", stock: 5000, unit: "gr", minStock: 500 },
-  // Ingredientes para Hot Cakes
-  { id: "i24", name: "Harina de Trigo", stock: 15000, unit: "gr", minStock: 2000 },
-  { id: "i25", name: "Leche Entera", stock: 20000, unit: "ml", minStock: 3000 },
-  { id: "i26", name: "Huevo Fresco", stock: 200, unit: "pzas", minStock: 24 },
-  { id: "i27", name: "Mantequilla Sin Sal", stock: 4000, unit: "gr", minStock: 500 },
-  { id: "i31", name: "Azúcar Blanca", stock: 10000, unit: "gr", minStock: 1000 },
-  { id: "i32", name: "Polvo para Hornear", stock: 1000, unit: "gr", minStock: 100 },
-  { id: "i33", name: "Extracto de Vainilla", stock: 1000, unit: "ml", minStock: 50 },
+  // Ingredientes para Hot Cakes Caseros
+  { id: "i24", name: "Harina de Trigo", stock: 25000, unit: "gr", minStock: 2000 },
+  { id: "i25", name: "Leche Entera", stock: 30000, unit: "ml", minStock: 3000 },
+  { id: "i26", name: "Huevo Fresco", stock: 300, unit: "pzas", minStock: 24 },
+  { id: "i27", name: "Mantequilla Sin Sal", stock: 8000, unit: "gr", minStock: 500 },
+  { id: "i31", name: "Azúcar Blanca", stock: 15000, unit: "gr", minStock: 1000 },
+  { id: "i32", name: "Polvo para Hornear", stock: 2000, unit: "gr", minStock: 100 },
+  { id: "i33", name: "Extracto de Vainilla", stock: 2000, unit: "ml", minStock: 50 },
   { id: "i29", name: "Miel de Abeja", stock: 5000, unit: "ml", minStock: 500 },
   // Pan de Recompra
-  { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 100, unit: "pzas", minStock: 10 },
+  { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 150, unit: "pzas", minStock: 10 },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -99,26 +97,25 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: "m7",
     name: "Hot Cakes Caseros (Orden 3)",
-    description: "Hechos al momento con harina, azúcar, leche, huevo y vainilla.",
+    description: "Receta secreta: 2 tazas de harina, 1 de azúcar, mantequilla, 3 huevos y vainilla.",
     price: 65.00,
     category: "Comida",
     imageUrl: "https://picsum.photos/seed/hotcakes/400/300",
     recipe: [
-      { ingredientId: "i24", quantity: 250 }, // 2 tazas aprox
-      { ingredientId: "i31", quantity: 200 }, // 1 taza aprox
-      { ingredientId: "i27", quantity: 115 }, // 1/2 taza mantequilla
-      { ingredientId: "i26", quantity: 3 },   // 3 huevos
-      { ingredientId: "i25", quantity: 240 }, // 1 taza leche
-      { ingredientId: "i32", quantity: 15 },  // 1 cda polvo hornear
-      { ingredientId: "i33", quantity: 5 },   // 1 cdta vainilla
-      { ingredientId: "i29", quantity: 30 }   // Topping miel
+      { ingredientId: "i24", quantity: 250 }, // Harina
+      { ingredientId: "i31", quantity: 200 }, // Azúcar
+      { ingredientId: "i27", quantity: 115 }, // Mantequilla
+      { ingredientId: "i26", quantity: 3 },   // Huevos
+      { ingredientId: "i25", quantity: 240 }, // Leche
+      { ingredientId: "i32", quantity: 15 },  // Polvo hornear
+      { ingredientId: "i33", quantity: 5 }    // Vainilla
     ],
     nutrition: { calories: 550, protein: 15, fat: 22, carbs: 75 }
   },
   {
     id: "m9",
     name: "Pan de Dulce (La Esperanza)",
-    description: "Pieza de pan dulce fresco de panadería local.",
+    description: "Pieza de pan dulce fresco traído hoy mismo.",
     price: 30.00,
     category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/sweetbread/400/300",
@@ -127,20 +124,46 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
   },
+  // VARIEDAD DE GOMITAS
   {
-    id: "m4",
-    name: "Sincronizadas GIGANTE",
-    description: "Doble tortilla de harina con jamón y queso fundido.",
-    price: 75.00,
-    category: "Comida",
-    imageUrl: "https://picsum.photos/seed/quesadilla/400/300",
-    recipe: [
-      { ingredientId: "i5", quantity: 2 },
-      { ingredientId: "i4", quantity: 2 },
-      { ingredientId: "i3", quantity: 2 },
-      { ingredientId: "i18", quantity: 8 }
-    ],
-    nutrition: { calories: 490, protein: 20, fat: 24, carbs: 38 }
+    id: "g1",
+    name: "Gomitas Pinguino (150g)",
+    description: "Divertidas gomitas en forma de pingüino.",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "https://picsum.photos/seed/g-pinguino/400/300",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
+  },
+  {
+    id: "g2",
+    name: "Gomitas Dientes (150g)",
+    description: "Las clásicas gomitas de dentadura.",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "https://picsum.photos/seed/g-dientes/400/300",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
+  },
+  {
+    id: "g3",
+    name: "Gomitas Mango Fuego (150g)",
+    description: "Gomitas de mango con el toque picosito del campus.",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "https://picsum.photos/seed/g-mango/400/300",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 490, protein: 2, fat: 0, carbs: 120 }
+  },
+  {
+    id: "g4",
+    name: "Gomitas de Frutas (150g)",
+    description: "Mix variado de sabores frutales.",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "https://picsum.photos/seed/g-frutas/400/300",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
   },
   {
     id: "b5",
@@ -180,16 +203,6 @@ export const MENU_ITEMS: MenuItem[] = [
       { ingredientId: "i16", quantity: 80 }
     ],
     nutrition: { calories: 160, protein: 0, fat: 0, carbs: 40 }
-  },
-  {
-    id: "d1",
-    name: "Bolsa de Gomitas (150g)",
-    description: "Mix de gomitas frutales variadas.",
-    price: 30.00,
-    category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/gummies/400/300",
-    recipe: [{ ingredientId: "i13", quantity: 150 }],
-    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
   },
   {
     id: "b2",
