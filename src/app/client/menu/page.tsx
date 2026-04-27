@@ -21,7 +21,9 @@ import {
   ThumbsUp,
   Sparkles,
   Utensils,
-  XCircle
+  XCircle,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +73,17 @@ export default function ClientMenu() {
       className: "uni-toast-info",
       title: "🍔 ¡Excelente elección!",
       description: `${item.name} añadido al carrito.`,
+    });
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setUpsellStep('none');
+    setPaymentMethod(null);
+    setShowPayment(false);
+    toast({
+      title: "🗑️ Carrito Vaciado",
+      description: "Tu selección ha sido eliminada. Puedes empezar de nuevo.",
     });
   };
 
@@ -130,7 +143,6 @@ export default function ClientMenu() {
 
   const cancelOrder = () => {
     if (currentOrderId) {
-      // If it was a cash order, remove it from pending in admin view
       const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
       const updatedOrders = pendingOrders.filter((o: any) => o.id !== currentOrderId);
       localStorage.setItem('pending_cash_orders', JSON.stringify(updatedOrders));
@@ -199,13 +211,24 @@ export default function ClientMenu() {
                 </Button>
               )}
               {orderStatus === 'ready' && (
-                <Button 
-                  variant="outline" 
-                  className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black gap-2"
-                  onClick={() => setShowFeedback(true)}
-                >
-                  <ThumbsUp size={20} /> CALIFICAR SERVICIO
-                </Button>
+                <div className="flex gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black gap-2"
+                    onClick={() => setShowFeedback(true)}
+                  >
+                    <ThumbsUp size={20} /> CALIFICAR SERVICIO
+                  </Button>
+                  <Button 
+                    className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-14 px-8 font-black gap-2"
+                    onClick={() => {
+                      setOrderStatus('idle');
+                      setCurrentOrderId(null);
+                    }}
+                  >
+                    <RotateCcw size={20} /> NUEVO PEDIDO
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -271,9 +294,17 @@ export default function ClientMenu() {
       </main>
 
       {cart.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-50">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl z-50 flex gap-4">
           <Button 
-            className="w-full h-20 rounded-[2.5rem] shadow-2xl text-2xl font-black flex justify-between px-10 mcd-gradient border-none transition-all hover:scale-105 active:scale-95"
+            variant="destructive"
+            size="icon"
+            className="h-20 w-20 rounded-full shadow-2xl shrink-0"
+            onClick={clearCart}
+          >
+            <Trash2 size={32} />
+          </Button>
+          <Button 
+            className="flex-1 h-20 rounded-[2.5rem] shadow-2xl text-2xl font-black flex justify-between px-10 mcd-gradient border-none transition-all hover:scale-[1.02] active:scale-95"
             onClick={() => setShowPayment(true)}
           >
             <span className="flex items-center gap-4">
@@ -393,13 +424,22 @@ export default function ClientMenu() {
               <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
 
-            <Button 
-              className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" 
-              onClick={handlePayment} 
-              disabled={!paymentMethod}
-            >
-              Confirmar Pedido
-            </Button>
+            <div className="flex flex-col gap-3">
+              <Button 
+                className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" 
+                onClick={handlePayment} 
+                disabled={!paymentMethod}
+              >
+                Confirmar Pedido
+              </Button>
+              <Button 
+                variant="ghost"
+                className="w-full h-12 rounded-2xl text-muted-foreground font-bold" 
+                onClick={clearCart}
+              >
+                Descartar Todo y Empezar de Nuevo
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -424,7 +464,11 @@ export default function ClientMenu() {
               </Button>
             ))}
           </div>
-          <Button className="w-full h-16 rounded-2xl text-xl font-black" onClick={() => setShowFeedback(false)}>
+          <Button className="w-full h-16 rounded-2xl text-xl font-black" onClick={() => {
+            setShowFeedback(false);
+            setOrderStatus('idle');
+            setCurrentOrderId(null);
+          }}>
             Enviar Comentarios
           </Button>
         </DialogContent>
