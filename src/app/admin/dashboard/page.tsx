@@ -13,14 +13,14 @@ import {
   AlertCircle, 
   BarChart3, 
   Clock, 
-  Bell,
-  BellRing,
+  Monitor,
   LogOut,
   ArrowLeft,
   FileText,
   TrendingUp,
   Receipt,
   ChefHat,
+  Tv,
   Wallet,
   CheckCircle2,
   CalendarDays,
@@ -138,6 +138,10 @@ export default function AdminDashboard() {
     monthly: calculateReportData(20),
   }), [confirmedSalesTotal, confirmedItemsStats]);
 
+  const openQueueMonitor = () => {
+    window.open('/queue', '_blank');
+  };
+
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
       <aside className="w-64 bg-white border-r hidden lg:flex flex-col">
@@ -160,8 +164,8 @@ export default function AdminDashboard() {
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/inventory')}>
             <Package size={20} /> Inventario
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/queue')}>
-            <Clock size={20} /> Pantalla de Turnos
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={openQueueMonitor}>
+            <Monitor size={20} /> Monitor de Turnos
           </Button>
         </nav>
         <div className="p-4 border-t">
@@ -177,70 +181,75 @@ export default function AdminDashboard() {
             <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel Administrativo</h1>
             <p className="text-muted-foreground font-medium">Verificación de ingresos y flujo de caja.</p>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20 gap-2">
-                <FileText size={20} /> Reportes de Ventas
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
-              <DialogHeader className="bg-primary p-8 text-white">
-                <DialogTitle className="text-3xl font-black flex items-center gap-3">
-                  <TrendingUp size={32} /> DESGLOSE FINANCIERO
-                </DialogTitle>
-                <DialogDescription className="text-white/80 font-medium text-lg">
-                  Reporte de productos vendidos y liberados en el sistema.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <Tabs defaultValue="daily" className="p-8">
-                <TabsList className="grid w-full grid-cols-3 h-14 bg-muted/50 rounded-2xl p-1 mb-8">
-                  <TabsTrigger value="daily" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">DIARIO</TabsTrigger>
-                  <TabsTrigger value="weekly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">SEMANAL</TabsTrigger>
-                  <TabsTrigger value="monthly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">MENSUAL</TabsTrigger>
-                </TabsList>
+          <div className="flex gap-4">
+            <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={openQueueMonitor}>
+              <Tv size={20} /> Abrir Pantalla Pública
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20 gap-2">
+                  <FileText size={20} /> Reportes de Ventas
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+                <DialogHeader className="bg-primary p-8 text-white">
+                  <DialogTitle className="text-3xl font-black flex items-center gap-3">
+                    <TrendingUp size={32} /> DESGLOSE FINANCIERO
+                  </DialogTitle>
+                  <DialogDescription className="text-white/80 font-medium text-lg">
+                    Reporte de productos vendidos y liberados en el sistema.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Tabs defaultValue="daily" className="p-8">
+                  <TabsList className="grid w-full grid-cols-3 h-14 bg-muted/50 rounded-2xl p-1 mb-8">
+                    <TabsTrigger value="daily" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">DIARIO</TabsTrigger>
+                    <TabsTrigger value="weekly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">SEMANAL</TabsTrigger>
+                    <TabsTrigger value="monthly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">MENSUAL</TabsTrigger>
+                  </TabsList>
 
-                {['daily', 'weekly', 'monthly'].map((period) => (
-                  <TabsContent key={period} value={period} className="mt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                      <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
-                        <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Ventas Totales</p>
-                        <p className="text-3xl font-black text-primary">$ {reportData[period as keyof typeof reportData].totalSales.toFixed(2)}</p>
+                  {['daily', 'weekly', 'monthly'].map((period) => (
+                    <TabsContent key={period} value={period} className="mt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                          <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Ventas Totales</p>
+                          <p className="text-3xl font-black text-primary">$ {reportData[period as keyof typeof reportData].totalSales.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                          <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Cobros Realizados</p>
+                          <p className="text-3xl font-black">{reportData[period as keyof typeof reportData].totalTransactions}</p>
+                        </div>
                       </div>
-                      <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
-                        <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Cobros Realizados</p>
-                        <p className="text-3xl font-black">{reportData[period as keyof typeof reportData].totalTransactions}</p>
-                      </div>
-                    </div>
 
-                    <h3 className="text-xl font-black mb-4 flex items-center gap-2">
-                      <Receipt className="text-primary" /> DESGLOSE POR PRODUCTO
-                    </h3>
-                    <ScrollArea className="h-[300px] border-2 rounded-2xl">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-b-2">
-                            <TableHead className="font-black text-xs uppercase tracking-widest">Producto</TableHead>
-                            <TableHead className="font-black text-xs uppercase tracking-widest text-center">Cant.</TableHead>
-                            <TableHead className="font-black text-xs uppercase tracking-widest text-right">Total Liberado</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {reportData[period as keyof typeof reportData].items.map((item: any, idx: number) => (
-                            <TableRow key={idx} className="hover:bg-muted/20">
-                              <TableCell className="font-bold">{item.name}</TableCell>
-                              <TableCell className="text-center font-black text-primary">{item.qty}</TableCell>
-                              <TableCell className="text-right font-black">$ {item.total.toFixed(2)}</TableCell>
+                      <h3 className="text-xl font-black mb-4 flex items-center gap-2">
+                        <Receipt className="text-primary" /> DESGLOSE POR PRODUCTO
+                      </h3>
+                      <ScrollArea className="h-[300px] border-2 rounded-2xl">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-b-2">
+                              <TableHead className="font-black text-xs uppercase tracking-widest">Producto</TableHead>
+                              <TableHead className="font-black text-xs uppercase tracking-widest text-center">Cant.</TableHead>
+                              <TableHead className="font-black text-xs uppercase tracking-widest text-right">Total Liberado</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </ScrollArea>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </DialogContent>
-          </Dialog>
+                          </TableHeader>
+                          <TableBody>
+                            {reportData[period as keyof typeof reportData].items.map((item: any, idx: number) => (
+                              <TableRow key={idx} className="hover:bg-muted/20">
+                                <TableCell className="font-bold">{item.name}</TableCell>
+                                <TableCell className="text-center font-black text-primary">{item.qty}</TableCell>
+                                <TableCell className="text-right font-black">$ {item.total.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </DialogContent>
+            </Dialog>
+          </div>
         </header>
 
         {/* Verificaciones Pendientes */}
@@ -321,3 +330,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+    
