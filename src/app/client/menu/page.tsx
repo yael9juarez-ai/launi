@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,8 @@ import {
   CreditCard,
   Wallet,
   Star,
-  Plus
+  Plus,
+  ThumbsUp
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +42,7 @@ export default function ClientMenu() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
+  const [showFeedback, setShowFeedback] = useState(false);
   
   const { toast } = useToast();
   const router = useRouter();
@@ -57,24 +59,56 @@ export default function ClientMenu() {
 
   const addToCart = (item: any) => {
     setCart([...cart, item]);
-    setShowUpsell(true); // Mostrar sugerencia de adicional
+    setShowUpsell(true);
     toast({
       className: "uni-toast-info",
       title: "🍔 ¡Excelente elección!",
-      description: `${item.name} añadido.`,
+      description: `${item.name} añadido al carrito.`,
     });
   };
 
-  const handlePayment = (method: 'transfer' | 'cash') => {
+  const handlePayment = () => {
+    const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
+    const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
+
+    if (paymentMethod === 'cash') {
+      // Guardar pedido pendiente en localStorage para el Admin
+      const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
+      pendingOrders.push({
+        id: orderId,
+        user: "Alumno Demo",
+        total: totalAmount,
+        items: cart.map(i => i.name).join(', '),
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem('pending_cash_orders', JSON.stringify(pendingOrders));
+
+      toast({
+        className: "uni-toast-info",
+        title: "💵 PEDIDO REGISTRADO EN CAJA",
+        description: `Por favor, acude a la caja con tu número ${orderId} para pagar $${totalAmount.toFixed(2)}.`,
+      });
+    } else {
+      toast({
+        className: "uni-toast-success",
+        title: "✅ TRANSFERENCIA RECIBIDA",
+        description: "Tu pago ha sido validado. Iniciamos preparación.",
+      });
+    }
+
     setShowPayment(false);
     setCart([]);
     setOrderStatus('preparing');
-    toast({
-      className: "uni-toast-success",
-      title: "✅ Orden en Cocina",
-      description: "Te avisaremos cuando esté lista.",
-    });
-    setTimeout(() => setOrderStatus('ready'), 8000);
+    
+    // Simular que el pedido está listo
+    setTimeout(() => {
+      setOrderStatus('ready');
+      toast({
+        className: "uni-toast-success",
+        title: "🔔 ¡TU COMIDA ESTÁ LISTA!",
+        description: "Pasa a ventanilla por tu orden.",
+      });
+    }, 8000);
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
@@ -121,9 +155,15 @@ export default function ClientMenu() {
                 </p>
               </div>
             </div>
-            <Button variant="outline" className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black" onClick={() => router.push('/queue')}>
-              VER PANTALLA DE TURNOS
-            </Button>
+            {orderStatus === 'ready' && (
+              <Button 
+                variant="outline" 
+                className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black gap-2"
+                onClick={() => setShowFeedback(true)}
+              >
+                <ThumbsUp size={20} /> CALIFICAR SERVICIO
+              </Button>
+            )}
           </div>
         )}
 
@@ -155,7 +195,7 @@ export default function ClientMenu() {
           </div>
         </div>
 
-        {/* Grid de Productos Estilo Fast Food */}
+        {/* Grid de Productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
           {filteredItems.map((item) => (
             <Card key={item.id} className="group border-none shadow-xl rounded-[3rem] overflow-hidden bg-white mcd-card-hover">
@@ -206,7 +246,7 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* Upsell Dialog: ¿Quieres algo más? */}
+      {/* Upsell Dialog */}
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[3rem] p-10 max-w-2xl border-none">
           <div className="text-center space-y-6">
@@ -253,7 +293,10 @@ export default function ClientMenu() {
           <div className="p-10 space-y-6">
             <Button 
               variant="outline" 
-              className="h-24 w-full rounded-3xl flex items-center justify-start gap-6 px-8 border-2 hover:border-primary hover:bg-primary/5 transition-all"
+              className={cn(
+                "h-24 w-full rounded-3xl flex items-center justify-start gap-6 px-8 border-2 transition-all",
+                paymentMethod === 'transfer' ? "border-primary bg-primary/5" : "hover:border-primary/50"
+              )}
               onClick={() => setPaymentMethod('transfer')}
             >
               <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600">
@@ -261,13 +304,16 @@ export default function ClientMenu() {
               </div>
               <div className="text-left">
                 <p className="font-black text-xl">Transferencia</p>
-                <p className="text-sm text-muted-foreground">Pago electrónico UNI-BANK</p>
+                <p className="text-sm text-muted-foreground">Pago UNI-BANK</p>
               </div>
             </Button>
 
             <Button 
               variant="outline" 
-              className="h-24 w-full rounded-3xl flex items-center justify-start gap-6 px-8 border-2 hover:border-primary hover:bg-primary/5 transition-all"
+              className={cn(
+                "h-24 w-full rounded-3xl flex items-center justify-start gap-6 px-8 border-2 transition-all",
+                paymentMethod === 'cash' ? "border-primary bg-primary/5" : "hover:border-primary/50"
+              )}
               onClick={() => setPaymentMethod('cash')}
             >
               <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
@@ -275,13 +321,13 @@ export default function ClientMenu() {
               </div>
               <div className="text-left">
                 <p className="font-black text-xl">Efectivo en Caja</p>
-                <p className="text-sm text-muted-foreground">Paga al recoger tu comida</p>
+                <p className="text-sm text-muted-foreground">Paga al recoger</p>
               </div>
             </Button>
 
             {paymentMethod === 'transfer' && (
               <div className="bg-muted/50 p-6 rounded-3xl border-2 border-dashed border-primary/30 text-center animate-in fade-in zoom-in duration-300">
-                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">CLABE PARA PAGO</p>
+                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">CLABE UNI-BANK</p>
                 <p className="text-2xl font-black text-primary tracking-tighter">0123 4567 8901 2345 67</p>
               </div>
             )}
@@ -291,10 +337,39 @@ export default function ClientMenu() {
               <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
 
-            <Button className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" onClick={() => handlePayment('cash')} disabled={!paymentMethod && cart.length > 0}>
+            <Button 
+              className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" 
+              onClick={handlePayment} 
+              disabled={!paymentMethod}
+            >
               Confirmar Pedido
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feedback Dialog */}
+      <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
+        <DialogContent className="rounded-[3rem] p-12 max-w-md border-none text-center">
+          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={60} />
+          </div>
+          <DialogHeader>
+            <DialogTitle className="text-4xl font-black text-center">¡Disfruta tu comida!</DialogTitle>
+            <DialogDescription className="text-xl font-medium mt-4">
+              ¿Qué tal te pareció el servicio de hoy?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-4 py-8">
+            {[1, 2, 3, 4, 5].map(star => (
+              <Button key={star} variant="ghost" size="icon" className="h-12 w-12 text-secondary hover:scale-125 transition-transform">
+                <Star size={36} fill="currentColor" />
+              </Button>
+            ))}
+          </div>
+          <Button className="w-full h-16 rounded-2xl text-xl font-black" onClick={() => setShowFeedback(false)}>
+            Enviar Comentarios
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

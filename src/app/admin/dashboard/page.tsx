@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,9 @@ import {
   FileText,
   TrendingUp,
   Receipt,
-  ChefHat
+  ChefHat,
+  Wallet,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -46,6 +48,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
@@ -58,11 +61,43 @@ const chartData = [
 
 export default function AdminDashboard() {
   const [activeAlerts] = useState(2);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [extraSales, setExtraSales] = useState<number>(0);
   const router = useRouter();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Cargar pedidos pendientes de localStorage
+    const saved = localStorage.getItem('pending_cash_orders');
+    if (saved) setPendingOrders(JSON.parse(saved));
+    
+    // Cargar ventas confirmadas de la sesión
+    const confirmed = localStorage.getItem('session_confirmed_sales');
+    if (confirmed) setExtraSales(parseFloat(confirmed));
+  }, []);
+
+  const handleConfirmPayment = (order: any) => {
+    // 1. Eliminar de pendientes
+    const updatedPending = pendingOrders.filter(o => o.id !== order.id);
+    setPendingOrders(updatedPending);
+    localStorage.setItem('pending_cash_orders', JSON.stringify(updatedPending));
+
+    // 2. Sumar al corte
+    const newExtra = extraSales + order.total;
+    setExtraSales(newExtra);
+    localStorage.setItem('session_confirmed_sales', newExtra.toString());
+
+    toast({
+      className: "uni-toast-success",
+      title: "✅ PAGO CONFIRMADO",
+      description: `Se han sumado $${order.total.toFixed(2)} al corte de hoy por el pedido ${order.id}.`,
+    });
+  };
 
   const reportStats = useMemo(() => {
-    const totalSales = SALES_RECORDS.reduce((acc, curr) => acc + curr.totalAmount, 0);
-    const totalTransactions = SALES_RECORDS.length;
+    const baseSales = SALES_RECORDS.reduce((acc, curr) => acc + curr.totalAmount, 0);
+    const totalSales = baseSales + extraSales;
+    const totalTransactions = SALES_RECORDS.length + (extraSales > 0 ? 1 : 0); // Simplificado para el demo
     const averageTicket = totalTransactions > 0 ? totalSales / totalTransactions : 0;
     
     const itemsAggregation: Record<string, { name: string, qty: number, total: number }> = {};
@@ -83,7 +118,7 @@ export default function AdminDashboard() {
       averageTicket,
       items: Object.values(itemsAggregation).sort((a, b) => b.total - a.total)
     };
-  }, []);
+  }, [extraSales]);
 
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
@@ -232,6 +267,49 @@ export default function AdminDashboard() {
           ))}
         </div>
 
+        {/* Pendientes de Pago Sección */}
+        {pendingOrders.length > 0 && (
+          <Card className="border-none shadow-xl rounded-[2.5rem] bg-white mb-8 border-l-[1rem] border-l-secondary animate-in slide-in-from-right duration-500">
+            <CardHeader className="p-8 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-2xl font-black flex items-center gap-2">
+                    <Wallet className="text-secondary" /> PENDIENTES DE PAGO EN CAJA
+                  </CardTitle>
+                  <CardDescription className="font-bold text-muted-foreground">Confirma el cobro para sumar al corte diario.</CardDescription>
+                </div>
+                <Badge className="h-10 px-6 rounded-full bg-secondary text-black text-lg font-black">{pendingOrders.length} Pendientes</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pendingOrders.map((order, i) => (
+                  <div key={i} className="bg-muted/30 p-6 rounded-[2rem] border-2 border-secondary/20 flex flex-col justify-between hover:border-secondary transition-all">
+                    <div>
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="text-3xl font-black text-secondary">{order.id}</span>
+                        <Badge variant="outline" className="border-secondary/40 text-[10px] font-black">{new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Badge>
+                      </div>
+                      <p className="font-black text-lg mb-1">{order.user}</p>
+                      <p className="text-sm font-bold text-muted-foreground line-clamp-2">{order.items}</p>
+                    </div>
+                    <div className="mt-6 flex items-center justify-between border-t pt-4">
+                      <p className="text-2xl font-black text-primary">$ {order.total.toFixed(2)}</p>
+                      <Button 
+                        size="sm" 
+                        className="rounded-xl font-black bg-secondary text-black hover:bg-secondary/80 gap-2"
+                        onClick={() => handleConfirmPayment(order)}
+                      >
+                        <CheckCircle2 size={16} /> CONFIRMAR PAGO
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 gap-8 mb-8">
           <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-2">
             <CardHeader className="p-8 pb-2">
@@ -262,40 +340,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
-
-        <Card className="border-none shadow-sm rounded-[2.5rem] bg-white">
-          <CardHeader className="p-8 pb-4">
-            <CardTitle className="text-2xl font-black">Actividad Reciente</CardTitle>
-            <CardDescription className="font-medium">Monitoreo de pedidos en tiempo real.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8 pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { id: "#001", user: "Juan Pérez", item: "Tacos", total: "$ 75.00", status: "Listo", time: "5m" },
-                { id: "#002", user: "Ana Gómez", item: "Hamburguesa", total: "$ 85.00", status: "Preparando", time: "12m" },
-                { id: "#003", user: "Marco Polo", item: "Coca Cola", total: "$ 25.00", status: "Pendiente", time: "18m" },
-              ].map((order, i) => (
-                <div key={i} className="flex items-center justify-between p-5 border-2 border-muted/50 rounded-3xl hover:border-primary/30 transition-all group">
-                  <div className="flex gap-4 items-center">
-                    <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center font-black text-sm group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                      {order.id}
-                    </div>
-                    <div>
-                      <p className="font-black text-sm">{order.user}</p>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{order.item}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={order.status === 'Listo' ? 'default' : order.status === 'Preparando' ? 'secondary' : 'outline'} className="rounded-full px-3 text-[10px] font-black uppercase">
-                      {order.status}
-                    </Badge>
-                    <p className="text-[10px] font-bold text-muted-foreground mt-1">{order.time} ago</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );
