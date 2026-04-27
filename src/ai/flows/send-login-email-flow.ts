@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview Flow para generar un mensaje de confirmación de inicio de sesión personalizado.
+ * @fileOverview Flow para generar un mensaje de confirmación de inicio de sesión personalizado al estilo Gmail.
  */
 
 import { ai } from '@/ai/genkit';
@@ -26,15 +27,20 @@ const loginConfirmationPrompt = ai.definePrompt({
   name: 'loginConfirmationPrompt',
   input: { schema: LoginEmailInputSchema },
   output: { schema: LoginEmailOutputSchema },
-  prompt: `Eres el asistente virtual de UniEats, la cafetería premium de la Universidad UNI.
-Un usuario ha iniciado sesión con los siguientes datos:
-- Usuario/Email: {{{email}}}
-- Rol: {{{role}}}
+  prompt: `Eres el sistema de notificaciones inteligentes de UniEats (Cafetería UNI).
+Un usuario ha accedido al sistema:
+- Email/Buzón: {{{email}}}
+- Perfil: {{{role}}}
 
-Genera un mensaje de confirmación de inicio de sesión breve, entusiasta y con el estilo de McDonald's (muy amigable y enfocado en el servicio). 
-Si es Alumno, menciónale que aproveche las promociones de hoy. 
-Si es Cocinero, deséale una excelente y productiva jornada en los fogones.
-Si es Admin, recuérdale que el panel está actualizado con las ventas en tiempo real.`,
+Genera un correo de confirmación "Gmail-style" breve y muy amigable.
+Usa un tono entusiasta similar al marketing de McDonald's: "¡Estamos felices de verte!", "¡Huele a comida deliciosa!".
+
+Instrucciones por rol:
+- Alumno/Profesor: Menciona que el menú de hoy tiene promociones especiales.
+- Personal de Cocina: Deséales un turno productivo con mucha energía.
+- Admin: Recuérdale que el panel de control está listo para supervisar las ventas.
+
+El asunto debe ser atractivo (ej: "🍔 ¡Bienvenido de nuevo a UniEats!").`,
 });
 
 const sendLoginConfirmationFlow = ai.defineFlow(
@@ -48,8 +54,12 @@ const sendLoginConfirmationFlow = ai.defineFlow(
     if (!output) {
       throw new Error('No se pudo generar el mensaje de confirmación.');
     }
-    // Aquí en una app real llamaríamos a un servicio de correo (SendGrid/Resend)
-    console.log(`[SIMULACIÓN DE CORREO ENVIADO A ${input.email}]`, output);
+    
+    // Simulación de envío a Gmail
+    console.log(`[SIMULACIÓN GMAIL] Enviando a: ${input.email}`);
+    console.log(`[ASUNTO]: ${output.subject}`);
+    console.log(`[CUERPO]: ${output.body}`);
+    
     return output;
   }
 );
