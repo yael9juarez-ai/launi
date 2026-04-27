@@ -27,7 +27,7 @@ const SmartMenuRecommendationInputSchema = z.object({
         name: z.string().describe('The name of the menu item.'),
         description: z.string().describe('A brief description of the menu item.'),
         price: z.number().describe('The price of the menu item.'),
-        category: z.string().describe('The category of the menu item (e.g., "Comida", "Bebidas", "Dulces").'),
+        category: z.string().describe('The category of the menu item (e.g., "Comida", "Bebidas", "Golosinas").'),
       })
     )
     .describe('A comprehensive list of all currently available menu items with their details.'),
@@ -58,7 +58,7 @@ const smartMenuRecommendationPrompt = ai.definePrompt({
   output: { schema: SmartMenuRecommendationOutputSchema },
   prompt: `You are an expert menu recommender for a university cafeteria, UniEats. Your goal is to suggest delicious and appealing menu items to customers based on their preferences, popular choices, and ongoing promotions.
 
-Special Focus: Suggest complementaries. If a user orders "Comida", prioritize suggesting something from "Bebidas" or "Dulces" (like our popular gummy packs).
+Special Focus: Suggest complementaries. If a user orders "Comida", prioritize suggesting something from "Bebidas" or "Golosinas" (like our popular snacks).
 
 Here is the information to consider for making your recommendations:
 
@@ -105,7 +105,7 @@ const smartMenuRecommendationFlow = ai.defineFlow(
     outputSchema: SmartMenuRecommendationOutputSchema,
   },
   async (input) => {
-    const { output } = await smartMenuRecommendationPrompt(input);
+    const { output } = smartMenuRecommendationPrompt(input);
     return output!;
   }
 );

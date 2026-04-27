@@ -1,5 +1,5 @@
 
-export const CATEGORIES = ["Comida", "Bebidas", "Dulces"];
+export const CATEGORIES = ["Comida", "Bebidas", "Golosinas"];
 
 export interface Ingredient {
   id: string;
@@ -105,7 +105,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Gomitas Dientes (100g)",
     description: "100 gramos de gomitas en forma de dientes.",
     price: 20.00,
-    category: "Dulces",
+    category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/gummy-teeth/400/300",
     recipe: [{ ingredientId: "i13", quantity: 100 }],
     nutrition: { calories: 320, protein: 2, fat: 0, carbs: 78 }
@@ -115,7 +115,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Gomitas Aciditos (100g)",
     description: "100 gramos de gomitas con toque ácido.",
     price: 20.00,
-    category: "Dulces",
+    category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/gummy-sour/400/300",
     recipe: [{ ingredientId: "i13", quantity: 100 }],
     nutrition: { calories: 320, protein: 2, fat: 0, carbs: 78 }
@@ -125,7 +125,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Gomitas Pinguino (100g)",
     description: "100 gramos de gomitas forma pinguino.",
     price: 20.00,
-    category: "Dulces",
+    category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/gummy-penguin/400/300",
     recipe: [{ ingredientId: "i13", quantity: 100 }],
     nutrition: { calories: 320, protein: 2, fat: 0, carbs: 78 }
@@ -135,7 +135,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Gomitas Picosas (100g)",
     description: "100 gramos de gomitas con chile picosito.",
     price: 20.00,
-    category: "Dulces",
+    category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/gummy-spicy/400/300",
     recipe: [{ ingredientId: "i13", quantity: 100 }],
     nutrition: { calories: 330, protein: 2, fat: 0, carbs: 80 }

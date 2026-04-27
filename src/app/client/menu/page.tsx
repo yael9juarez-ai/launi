@@ -14,13 +14,13 @@ import {
   ChevronRight,
   ArrowLeft,
   CheckCircle2,
-  X,
   CreditCard,
   Wallet,
   Star,
   Plus,
   ThumbsUp,
-  Sparkles
+  Sparkles,
+  Utensils
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -31,15 +31,16 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
+
+type UpsellStep = 'none' | 'drink' | 'sweet';
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<any[]>([]);
-  const [showUpsell, setShowUpsell] = useState(false);
+  const [upsellStep, setUpsellStep] = useState<UpsellStep>('none');
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
@@ -54,24 +55,29 @@ export default function ClientMenu() {
     return matchesCategory && matchesSearch;
   });
 
-  // Sugerencias mixtas: Bebidas y Dulces
-  const upsellItems = useMemo(() => {
-    const drinks = MENU_ITEMS.filter(item => item.category === "Bebidas").slice(0, 2);
-    const sweets = MENU_ITEMS.filter(item => item.category === "Dulces").slice(0, 2);
-    return [...drinks, ...sweets];
-  }, []);
+  const drinkUpsells = useMemo(() => MENU_ITEMS.filter(item => item.category === "Bebidas").slice(0, 4), []);
+  const sweetUpsells = useMemo(() => MENU_ITEMS.filter(item => item.category === "Golosinas").slice(0, 4), []);
 
   const addToCart = (item: any) => {
     setCart([...cart, item]);
-    // Solo mostramos upsell si el item añadido no es ya un dulce o bebida (para no ser invasivos)
-    if (item.category === "Comida") {
-      setShowUpsell(true);
+    
+    if (item.category === "Comida" && upsellStep === 'none') {
+      setUpsellStep('drink');
     }
+
     toast({
       className: "uni-toast-info",
       title: "🍔 ¡Excelente elección!",
       description: `${item.name} añadido al carrito.`,
     });
+  };
+
+  const nextUpsell = () => {
+    if (upsellStep === 'drink') {
+      setUpsellStep('sweet');
+    } else {
+      setUpsellStep('none');
+    }
   };
 
   const handlePayment = () => {
@@ -247,28 +253,37 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* Upsell Dialog con Dulces y Bebidas */}
-      <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
+      {/* Sequential Upsell Dialog */}
+      <Dialog open={upsellStep !== 'none'} onOpenChange={(open) => !open && setUpsellStep('none')}>
         <DialogContent className="rounded-[3rem] p-10 max-w-2xl border-none">
           <div className="text-center space-y-6">
             <div className="w-24 h-24 bg-secondary/20 rounded-full flex items-center justify-center mx-auto text-secondary mb-4">
-              <Sparkles size={50} fill="currentColor" />
+              {upsellStep === 'drink' ? <Sparkles size={50} fill="currentColor" /> : <Utensils size={50} />}
             </div>
+            
             <DialogHeader>
-              <DialogTitle className="text-4xl font-black">¿Deseas algo más?</DialogTitle>
-              <DialogDescription className="text-xl font-medium">¡Añade un postre o una bebida para completar tu combo!</DialogDescription>
+              <DialogTitle className="text-4xl font-black">
+                {upsellStep === 'drink' ? '¿Quieres agregar un agua?' : '¿Deseas agregar una golosina?'}
+              </DialogTitle>
+              <DialogDescription className="text-xl font-medium">
+                {upsellStep === 'drink' 
+                  ? 'Refréscate con una de nuestras aguas naturales recién preparadas.' 
+                  : '¡El toque dulce perfecto para terminar tu comida!'}
+              </DialogDescription>
             </DialogHeader>
+
             <div className="grid grid-cols-2 gap-6 mt-8">
-              {upsellItems.map(item => (
-                <Card key={item.id} className="border-2 border-muted hover:border-secondary transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer flex flex-col" onClick={() => {
-                  setCart([...cart, item]);
-                  setShowUpsell(false);
-                }}>
+              {(upsellStep === 'drink' ? drinkUpsells : sweetUpsells).map(item => (
+                <Card 
+                  key={item.id} 
+                  className="border-2 border-muted hover:border-secondary transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer flex flex-col" 
+                  onClick={() => {
+                    setCart([...cart, item]);
+                    nextUpsell();
+                  }}
+                >
                   <div className="aspect-video relative">
                     <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
-                    <Badge className="absolute top-2 right-2 bg-primary/90 text-white font-black">
-                      {item.category === 'Dulces' ? 'DULCE' : 'BEBIDA'}
-                    </Badge>
                   </div>
                   <div className="p-4 text-center flex-1 flex flex-col justify-between">
                     <div>
@@ -282,8 +297,9 @@ export default function ClientMenu() {
                 </Card>
               ))}
             </div>
-            <Button variant="ghost" className="text-muted-foreground font-black text-lg" onClick={() => setShowUpsell(false)}>
-              Continuar con mi orden.
+
+            <Button variant="ghost" className="text-muted-foreground font-black text-lg" onClick={nextUpsell}>
+              {upsellStep === 'drink' ? 'No, gracias. Ver golosinas.' : 'Continuar con mi orden.'}
             </Button>
           </div>
         </DialogContent>
