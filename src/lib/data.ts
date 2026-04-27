@@ -107,7 +107,7 @@ export const MENU_ITEMS: MenuItem[] = [
     id: "m9",
     name: "Pan de Dulce",
     description: "Pieza de pan de dulce fresco, recompra de La Esperanza.",
-    price: 18.00,
+    price: 30.00,
     category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/sweetbread/400/300",
     recipe: [
