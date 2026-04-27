@@ -35,7 +35,7 @@ export default function POSPage() {
     const saved = localStorage.getItem('uni_inventory');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Validar si es el inventario nuevo
+      // Validar integridad del inventario (ej. i33 para vainilla)
       if (!parsed.find((i: any) => i.id === 'i33')) {
         setInventory(INGREDIENTS);
         localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
@@ -55,7 +55,6 @@ export default function POSPage() {
       if (e.key === 'uni_inventory') syncInventory();
     };
     window.addEventListener('storage', handleStorageChange);
-    
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
@@ -113,7 +112,7 @@ export default function POSPage() {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     
-    // Deducción atómica
+    // DEDUCCIÓN ATÓMICA DE INVENTARIO
     const savedInv = localStorage.getItem('uni_inventory');
     const freshInv = savedInv ? JSON.parse(savedInv) : [...inventory];
     const newInventory = freshInv.map((ing: any) => ({ ...ing }));
@@ -127,10 +126,13 @@ export default function POSPage() {
       });
     });
     
-    setInventory(newInventory);
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
-    window.dispatchEvent(new Event('storage')); // Sincronizar otras pestañas
+    setInventory(newInventory);
+    
+    // Notificar a otras pantallas (Inventario y Menú Alumno)
+    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
 
+    // Registrar en estadísticas financieras
     const currentTotal = parseFloat(localStorage.getItem('confirmed_sales_total') || '0');
     localStorage.setItem('confirmed_sales_total', (currentTotal + total).toString());
 

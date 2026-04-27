@@ -56,6 +56,7 @@ export default function ClientMenu() {
   const syncInventory = () => {
     const savedInv = localStorage.getItem('uni_inventory');
     const parsedInv = savedInv ? JSON.parse(savedInv) : [];
+    // Validar si es el inventario completo (incluyendo vainilla i33)
     const needsUpdate = !parsedInv.find((i: any) => i.id === 'i33');
 
     if (!savedInv || needsUpdate) {
@@ -69,7 +70,7 @@ export default function ClientMenu() {
   useEffect(() => {
     syncInventory();
     
-    // Sincronización entre ventanas/tabs
+    // Escuchar cambios de otras ventanas o de la Caja (POS)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'uni_inventory') syncInventory();
     };
@@ -160,12 +161,11 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    // Obtener inventario actual para descontar de forma atómica
+    // DEDUCCIÓN REAL DE INVENTARIO
     const savedInv = localStorage.getItem('uni_inventory');
     const currentInv = savedInv ? JSON.parse(savedInv) : [...inventory];
     const newInventory = currentInv.map((ing: any) => ({ ...ing }));
 
-    // Descontar cada ingrediente de cada receta en el carrito
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ingIndex = newInventory.findIndex((i: any) => i.id === r.ingredientId);
@@ -175,13 +175,13 @@ export default function ClientMenu() {
       });
     });
 
-    // Guardar y notificar
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
     setInventory(newInventory);
     
-    // Forzar evento manual para otras pestañas que no son 'storage' en la misma ventana
-    window.dispatchEvent(new Event('storage'));
+    // Notificar a otras pestañas (Inventario y Caja)
+    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
 
+    // Registrar pedido para cocina
     const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
     kitchenOrders.push({
       id: orderId,
@@ -198,6 +198,7 @@ export default function ClientMenu() {
     });
     localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
+    // Registrar para liberación en dashboard admin
     const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
     pendingVerifications.push({
       id: orderId,
@@ -346,7 +347,7 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* Sugerencias Secuenciales */}
+      {/* Sugerencias de Upsell */}
       <Dialog open={upsellStep !== 'none'} onOpenChange={(open) => !open && setUpsellStep('none')}>
         <DialogContent className="rounded-[3rem] p-10 max-w-2xl border-none">
           <div className="text-center space-y-6">
@@ -379,7 +380,7 @@ export default function ClientMenu() {
         </DialogContent>
       </Dialog>
 
-      {/* Pago */}
+      {/* Ventana de Pago */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
           <div className="bg-primary p-10 text-white">
@@ -405,7 +406,7 @@ export default function ClientMenu() {
               <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
             <Button className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" onClick={handlePayment} disabled={!paymentMethod}>
-              Confirmar
+              Confirmar Pedido
             </Button>
             <Button variant="ghost" className="w-full text-muted-foreground font-bold" onClick={clearCart}>
               Descartar todo

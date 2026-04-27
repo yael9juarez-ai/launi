@@ -32,7 +32,7 @@ export default function InventoryPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
+  const syncInventory = () => {
     const saved = localStorage.getItem('uni_inventory');
     if (saved) {
       setItems(JSON.parse(saved));
@@ -40,6 +40,17 @@ export default function InventoryPage() {
       setItems(INITIAL_INGREDIENTS);
       localStorage.setItem('uni_inventory', JSON.stringify(INITIAL_INGREDIENTS));
     }
+  };
+
+  useEffect(() => {
+    syncInventory();
+    
+    // Escuchar cambios de otras pestañas (Ventas en POS o Menú Alumno)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'uni_inventory') syncInventory();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleStockChange = (id: string, newStock: number) => {
@@ -51,6 +62,9 @@ export default function InventoryPage() {
 
   const saveInventory = () => {
     localStorage.setItem('uni_inventory', JSON.stringify(items));
+    // Notificar a otras pestañas
+    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
+    
     toast({
       className: "uni-toast-success",
       title: "📦 ALMACÉN ACTUALIZADO",
@@ -61,6 +75,7 @@ export default function InventoryPage() {
   const resetToDefault = () => {
     setItems(INITIAL_INGREDIENTS);
     localStorage.setItem('uni_inventory', JSON.stringify(INITIAL_INGREDIENTS));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
     toast({
       title: "🔄 REESTABLECIDO",
       description: "Inventario reiniciado a valores base.",
@@ -78,7 +93,6 @@ export default function InventoryPage() {
     return { color: "text-emerald-500", bg: "bg-emerald-500/10", label: "ÓPTIMO", progress: "bg-emerald-500" };
   };
 
-  // Función de Formateo Humano (Kg, Litros, etc.)
   const formatHumanStock = (amount: number, unit: string) => {
     if (unit === 'ml') {
       if (amount >= 1000) return `${(amount / 1000).toFixed(2)} Litros`;
@@ -101,7 +115,7 @@ export default function InventoryPage() {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="text-4xl font-black tracking-tighter">Administración de Almacén</h1>
+            <h1 className="text-4xl font-black tracking-tighter text-foreground">Administración de Almacén</h1>
             <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">Insumos y Materias Primas</p>
           </div>
         </div>
@@ -145,7 +159,7 @@ export default function InventoryPage() {
             </div>
             <div>
               <p className="text-xs font-black text-muted-foreground uppercase">Estado General</p>
-              <p className="text-2xl font-black">{((items.length - criticalCount) / items.length * 100).toFixed(0)}% Óptimo</p>
+              <p className="text-2xl font-black">{items.length > 0 ? ((items.length - criticalCount) / items.length * 100).toFixed(0) : 0}% Óptimo</p>
             </div>
           </div>
         </Card>
