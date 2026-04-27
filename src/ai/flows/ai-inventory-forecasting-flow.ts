@@ -1,165 +1,42 @@
+
 'use server';
 /**
  * @fileOverview An AI agent for inventory forecasting and reorder suggestions.
- *
- * - aiInventoryForecasting - A function that handles the inventory forecasting process.
- * - InventoryForecastInput - The input type for the aiInventoryForecasting function.
- * - InventoryForecastOutput - The return type for the aiInventoryForecasting function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-// Input Schema
 const InventoryForecastInputSchema = z.object({
-  salesHistory: z.array(
-    z.object({
-      itemId: z.string().describe('The ID of the menu item sold.'),
-      itemName: z.string().describe('The name of the menu item sold.'),
-      quantitySold: z.number().int().positive().describe('The quantity of the item sold.'),
-      date: z.string().datetime().describe('The date and time of the sale (ISO 8601 format).'),
-    })
-  ).describe('Historical sales data including item IDs, names, quantities, and dates.'),
-  upcomingEvents: z.array(
-    z.object({
-      eventName: z.string().describe('The name of the upcoming university event.'),
-      date: z.string().datetime().describe('The date of the event (ISO 8601 format).'),
-      type: z.string().describe('The type of event (e.g., "lecture", "festival", "exam week").'),
-      expectedAttendance: z.number().int().positive().optional().describe('Expected attendance for the event.'),
-      impactOnCafeteria: z.string().optional().describe('How the event is expected to impact cafeteria demand (e.g., "high", "moderate", "low").'),
-    })
-  ).describe('Information about upcoming university events that might influence demand.'),
-  menuChanges: z.array(
-    z.object({
-      changeType: z.enum(['new', 'removed', 'updated']).describe('Type of menu change: new, removed, or updated item.'),
-      itemId: z.string().optional().describe('The ID of the menu item affected.'),
-      itemName: z.string().describe('The name of the menu item affected.'),
-      details: z.string().describe('Details about the change, e.g., recipe modification, popularity trend.'),
-      estimatedImpact: z.string().optional().describe('Estimated impact on demand for this item (e.g., "significant increase", "slightly decrease").'),
-    })
-  ).describe('Recent or planned menu changes that affect ingredient usage.'),
-  currentInventory: z.array(
-    z.object({
-      ingredientId: z.string().describe('The ID of the ingredient.'),
-      ingredientName: z.string().describe('The name of the ingredient.'),
-      currentStock: z.number().positive().or(z.literal(0)).describe('The current quantity in stock.'),
-      unit: z.string().describe('The unit of measurement for the ingredient (e.g., "kg", "liters", "units").'),
-      minStockLevel: z.number().positive().optional().describe('Minimum desired stock level for the ingredient.'),
-      supplierLeadTimeDays: z.number().int().positive().optional().describe('Number of days it takes for a supplier to deliver.'),
-    })
-  ).describe('Current inventory levels for all ingredients.'),
-  ingredientRecipes: z.array(
-    z.object({
-      itemId: z.string().describe('The ID of the menu item.'),
-      itemName: z.string().describe('The name of the menu item.'),
-      ingredients: z.array(
-        z.object({
-          ingredientId: z.string().describe('The ID of the required ingredient.'),
-          ingredientName: z.string().describe('The name of the required ingredient.'),
-          quantity: z.number().positive().describe('The quantity of the ingredient needed for one unit of the menu item.'),
-          unit: z.string().describe('The unit of measurement for the ingredient in the recipe.'),
-        })
-      ).describe('List of ingredients and their quantities for this menu item.'),
-    })
-  ).describe('Recipes mapping menu items to their required ingredients.'),
-  forecastingPeriodDays: z.number().int().positive().describe('The number of days into the future to forecast inventory for.'),
+  salesHistory: z.array(z.any()),
+  upcomingEvents: z.array(z.any()),
+  menuChanges: z.array(z.any()),
+  currentInventory: z.array(z.any()),
+  ingredientRecipes: z.array(z.any()),
+  forecastingPeriodDays: z.number().int().positive(),
 });
 export type InventoryForecastInput = z.infer<typeof InventoryForecastInputSchema>;
 
-// Output Schema
 const InventoryForecastOutputSchema = z.object({
-  reorderSuggestions: z.array(
-    z.object({
-      ingredientId: z.string().describe('The ID of the ingredient to reorder.'),
-      ingredientName: z.string().describe('The name of the ingredient to reorder.'),
-      suggestedReorderQuantity: z.number().int().positive().describe('The suggested quantity to reorder for this ingredient.'),
-      unit: z.string().describe('The unit of measurement for the suggested reorder quantity.'),
-      reasoning: z.string().describe('Detailed explanation for the reorder suggestion, considering sales, events, and menu.'),
-      currentStock: z.number().describe('Current stock of the ingredient for reference.'),
-      predictedDemand: z.number().optional().describe('Predicted demand for this ingredient over the forecasting period.'),
-    })
-  ).describe('List of suggested ingredient reorders with quantities and reasoning.'),
-  predictedDemandSummary: z.string().describe('A summary of the overall predicted demand trends and factors considered.'),
-  recommendationsForOptimization: z.array(z.string()).optional().describe('Additional recommendations for inventory optimization (e.g., adjust min stock, promote items).'),
+  reorderSuggestions: z.array(z.any()),
+  predictedDemandSummary: z.string(),
+  recommendationsForOptimization: z.array(z.string()).optional(),
 });
 export type InventoryForecastOutput = z.infer<typeof InventoryForecastOutputSchema>;
 
-// Wrapper function
 export async function aiInventoryForecasting(input: InventoryForecastInput): Promise<InventoryForecastOutput> {
   return aiInventoryForecastingFlow(input);
 }
 
-// Genkit Prompt Definition
 const aiInventoryForecastPrompt = ai.definePrompt({
   name: 'aiInventoryForecastPrompt',
   input: { schema: InventoryForecastInputSchema },
   output: { schema: InventoryForecastOutputSchema },
-  prompt: `You are an AI inventory management assistant for a university cafeteria. Your goal is to predict future ingredient demand based on provided data and generate smart reorder suggestions to optimize inventory, minimize waste, and prevent stockouts.
-
-Consider the following information to make your predictions and suggestions for the next {{forecastingPeriodDays}} days:
-
-## Sales History:
-{{#if salesHistory}}
-Here is the historical sales data:
-{{#each salesHistory}}
-- Item ID: {{{itemId}}}, Name: {{{itemName}}}, Quantity Sold: {{{quantitySold}}}, Date: {{{date}}}
-{{/each}}
-{{else}}
-No sales history provided.
-{{/if}}
-
-## Upcoming University Events:
-{{#if upcomingEvents}}
-Here are upcoming university events that may impact cafeteria demand:
-{{#each upcomingEvents}}
-- Event Name: {{{eventName}}}, Date: {{{date}}}, Type: {{{type}}}, Expected Attendance: {{{expectedAttendance}}}{{#if impactOnCafeteria}}, Estimated Impact: {{{impactOnCafeteria}}}{{/if}}
-{{/each}}
-{{else}}
-No upcoming events provided.
-{{/if}}
-
-## Menu Changes:
-{{#if menuChanges}}
-Here are recent or planned menu changes:
-{{#each menuChanges}}
-- Change Type: {{{changeType}}}, Item Name: {{{itemName}}}{{#if itemId}} (ID: {{{itemId}}}){{/if}}, Details: {{{details}}}{{#if estimatedImpact}}, Estimated Impact on Demand: {{{estimatedImpact}}}{{/if}}
-{{/each}}
-{{else}}
-No menu changes provided.
-{{/if}}
-
-## Current Inventory:
-{{#if currentInventory}}
-Here are the current stock levels for each ingredient:
-{{#each currentInventory}}
-- Ingredient ID: {{{ingredientId}}}, Name: {{{ingredientName}}}, Current Stock: {{{currentStock}}} {{{unit}}}{{#if minStockLevel}}, Minimum Stock Level: {{{minStockLevel}}} {{{unit}}}{{/if}}{{#if supplierLeadTimeDays}}, Supplier Lead Time: {{{supplierLeadTimeDays}}} days{{/if}}
-{{/each}}
-{{else}}
-No current inventory data provided.
-{{/if}}
-
-## Ingredient Recipes:
-{{#if ingredientRecipes}}
-Here are the recipes mapping menu items to their required ingredients:
-{{#each ingredientRecipes}}
-- Menu Item: {{{itemName}}} (ID: {{{itemId}}}) requires:
-  {{#each ingredients}}
-  - Ingredient: {{{ingredientName}}} (ID: {{{ingredientId}}}), Quantity: {{{quantity}}} {{{unit}}}
-  {{/each}}
-{{/each}}
-{{else}}
-No ingredient recipe data provided.
-{{/if}}
-
-Based on the above information, provide:
-1.  **Reorder Suggestions**: For each ingredient that needs reordering to meet demand for the next {{forecastingPeriodDays}} days, suggest a quantity to reorder. Take into account current stock, predicted demand based on sales history adjusted by events and menu changes, minimum stock levels, and supplier lead times if available. Provide detailed reasoning for each suggestion.
-2.  **Predicted Demand Summary**: A summary of the overall predicted demand trends and factors influencing these predictions.
-3.  **Recommendations for Optimization**: Optionally, suggest other ways to optimize inventory (e.g., adjust min stock levels for certain ingredients, promote under-utilized items).
-
-Ensure your output adheres to the specified JSON schema.`,
+  prompt: `You are an AI inventory management assistant for a university cafeteria.
+  Based on the provided information, provide reorder suggestions and a demand summary.
+  Ensure your output adheres to the specified JSON schema.`,
 });
 
-// Genkit Flow Definition
 const aiInventoryForecastingFlow = ai.defineFlow(
   {
     name: 'aiInventoryForecastingFlow',
