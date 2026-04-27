@@ -42,9 +42,10 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i8", name: "Refresco 600ml (Botella)", stock: 120, unit: "pzas", minStock: 24 },
   { id: "i9", name: "Agua Purificada", stock: 500000, unit: "ml", minStock: 50000 },
   { id: "i13", name: "Gomitas Varias (Stock)", stock: 50000, unit: "gr", minStock: 5000 },
-  { id: "i14", name: "Concentrado Jamaica", stock: 10000, unit: "ml", minStock: 1000 },
-  { id: "i15", name: "Concentrado Horchata", stock: 10000, unit: "ml", minStock: 1000 },
-  { id: "i16", name: "Concentrado Limón", stock: 10000, unit: "ml", minStock: 1000 },
+  // Aguas de sabores como PIEZAS (Botellas)
+  { id: "i14", name: "Botella Agua Jamaica", stock: 60, unit: "pzas", minStock: 12 },
+  { id: "i15", name: "Botella Agua Horchata", stock: 60, unit: "pzas", minStock: 12 },
+  { id: "i16", name: "Botella Agua Limón", stock: 60, unit: "pzas", minStock: 12 },
   { id: "i18", name: "Aceite Vegetal", stock: 10000, unit: "ml", minStock: 2000 },
   { id: "i19", name: "Lechuga Fresca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i20", name: "Tomate Rojo", stock: 8000, unit: "gr", minStock: 1000 },
@@ -59,7 +60,6 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i32", name: "Polvo para Hornear", stock: 2000, unit: "gr", minStock: 100 },
   { id: "i33", name: "Extracto de Vainilla", stock: 2000, unit: "ml", minStock: 50 },
   { id: "i29", name: "Miel de Abeja", stock: 5000, unit: "ml", minStock: 500 },
-  // Pan de Recompra
   { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 150, unit: "pzas", minStock: 10 },
 ];
 
@@ -97,18 +97,18 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: "m7",
     name: "Hot Cakes Caseros (Orden 3)",
-    description: "Receta secreta: 2 tazas de harina, 1 de azúcar, mantequilla, 3 huevos y vainilla.",
+    description: "Receta secreta: Harina, azúcar, mantequilla, huevos y vainilla.",
     price: 65.00,
     category: "Comida",
     imageUrl: "https://picsum.photos/seed/hotcakes/400/300",
     recipe: [
-      { ingredientId: "i24", quantity: 250 }, // Harina
-      { ingredientId: "i31", quantity: 200 }, // Azúcar
-      { ingredientId: "i27", quantity: 115 }, // Mantequilla
-      { ingredientId: "i26", quantity: 3 },   // Huevos
-      { ingredientId: "i25", quantity: 240 }, // Leche
-      { ingredientId: "i32", quantity: 15 },  // Polvo hornear
-      { ingredientId: "i33", quantity: 5 }    // Vainilla
+      { ingredientId: "i24", quantity: 250 },
+      { ingredientId: "i31", quantity: 200 },
+      { ingredientId: "i27", quantity: 115 },
+      { ingredientId: "i26", quantity: 3 },
+      { ingredientId: "i25", quantity: 240 },
+      { ingredientId: "i32", quantity: 15 },
+      { ingredientId: "i33", quantity: 5 }
     ],
     nutrition: { calories: 550, protein: 15, fat: 22, carbs: 75 }
   },
@@ -124,7 +124,6 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
   },
-  // VARIEDAD DE GOMITAS
   {
     id: "g1",
     name: "Gomitas Pinguino (150g)",
@@ -167,40 +166,37 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "b5",
-    name: "Agua de Jamaica (1L)",
-    description: "Agua fresca natural de jamaica.",
+    name: "Agua de Jamaica (Botella)",
+    description: "Botella de agua fresca de jamaica.",
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/jamaica/400/300",
     recipe: [
-      { ingredientId: "i9", quantity: 1000 },
-      { ingredientId: "i14", quantity: 80 }
+      { ingredientId: "i14", quantity: 1 }
     ],
     nutrition: { calories: 180, protein: 0, fat: 0, carbs: 45 }
   },
   {
     id: "b6",
-    name: "Agua de Horchata (1L)",
-    description: "Agua fresca cremosa de horchata.",
+    name: "Agua de Horchata (Botella)",
+    description: "Botella de agua fresca de horchata.",
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/horchata/400/300",
     recipe: [
-      { ingredientId: "i9", quantity: 1000 },
-      { ingredientId: "i15", quantity: 80 }
+      { ingredientId: "i15", quantity: 1 }
     ],
     nutrition: { calories: 250, protein: 2, fat: 4, carbs: 55 }
   },
   {
     id: "b7",
-    name: "Agua de Limón (1L)",
-    description: "Agua fresca de limón recién preparada.",
+    name: "Agua de Limón (Botella)",
+    description: "Botella de agua fresca de limón.",
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/lemonade/400/300",
     recipe: [
-      { ingredientId: "i9", quantity: 1000 },
-      { ingredientId: "i16", quantity: 80 }
+      { ingredientId: "i16", quantity: 1 }
     ],
     nutrition: { calories: 160, protein: 0, fat: 0, carbs: 40 }
   },
