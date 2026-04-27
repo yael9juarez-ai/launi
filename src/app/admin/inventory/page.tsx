@@ -77,7 +77,7 @@ export default function InventoryPage() {
     return { color: "text-emerald-500", bg: "bg-emerald-500/10", label: "ÓPTIMO", progress: "bg-emerald-500" };
   };
 
-  // Función "Humana" para entender cantidades
+  // Función "Humana" para entender cantidades (Kg, Litros, etc.)
   const formatHumanStock = (amount: number, unit: string) => {
     if (unit === 'ml') {
       if (amount >= 1000) return `${(amount / 1000).toFixed(1)} Litros`;
@@ -98,8 +98,8 @@ export default function InventoryPage() {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="text-4xl font-black tracking-tighter">Administración de Insumos</h1>
-            <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">Control Granular de Materia Prima</p>
+            <h1 className="text-4xl font-black tracking-tighter">Almacén e Insumos</h1>
+            <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">Control Central de Mercancía</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -142,14 +142,14 @@ export default function InventoryPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <CardTitle className="text-3xl font-black flex items-center gap-3">
-                <Database className="text-primary" /> Inventario Central
+                <Database className="text-primary" /> Inventario Global
               </CardTitle>
-              <CardDescription className="font-bold">Desglose técnico y lectura humana de existencias.</CardDescription>
+              <CardDescription className="font-bold">Cantidades precisas con lectura amigable para el personal.</CardDescription>
             </div>
             <div className="relative w-full md:w-96">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
               <Input 
-                placeholder="Buscar ingrediente (ej. Carne, Aceite)..." 
+                placeholder="Buscar insumo (ej. Harina, Carne)..." 
                 className="pl-12 h-12 rounded-2xl border-2 focus:border-primary bg-muted/20"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -180,7 +180,7 @@ export default function InventoryPage() {
 
                   <div className="flex-1 px-0 md:px-12 mb-4 md:mb-0">
                     <div className="flex justify-between mb-2">
-                      <span className="text-xs font-black text-muted-foreground uppercase">Estado Actual</span>
+                      <span className="text-xs font-black text-muted-foreground uppercase">Stock Actual</span>
                       <span className={cn("text-sm font-black", status.color)}>
                         {formatHumanStock(item.stock, item.unit)}
                       </span>
@@ -190,7 +190,7 @@ export default function InventoryPage() {
 
                   <div className="flex items-center gap-3 justify-end md:w-1/4">
                     <div className="flex flex-col items-end mr-2">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase mb-1">Ajuste Manual</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase mb-1">Entrada Manual</span>
                       <div className="flex items-center bg-white rounded-2xl border-2 p-1 px-3 shadow-sm">
                         <Input 
                           type="number" 

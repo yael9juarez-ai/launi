@@ -30,7 +30,7 @@ export interface MenuItem {
   };
 }
 
-// INVENTARIO DE INSUMOS (MATERIA PRIMA)
+// INVENTARIO DE INSUMOS (ALMACÉN CENTRAL)
 export const INGREDIENTS: Ingredient[] = [
   { id: "i1", name: "Pan de Hamburguesa", stock: 100, unit: "pzas", minStock: 20 },
   { id: "i2", name: "Carne de Res Molida", stock: 20000, unit: "gr", minStock: 5000 },
