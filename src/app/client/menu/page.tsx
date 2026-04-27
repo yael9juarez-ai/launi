@@ -73,13 +73,17 @@ export default function ClientMenu() {
   }, []);
 
   const checkStockAvailability = (item: MenuItem, currentCart: any[] = cart) => {
-    if (inventory.length === 0) return false;
+    // Jalamos el inventario más fresco de localStorage para evitar errores de desfase
+    const savedInv = localStorage.getItem('uni_inventory');
+    const currentInventory = savedInv ? JSON.parse(savedInv) : inventory;
+    
+    if (currentInventory.length === 0) return false;
     
     // Contar cuántos de este item ya hay en el carrito para validación acumulada
     const itemCountInCart = currentCart.filter(i => i.id === item.id).length;
     
     return item.recipe.every(r => {
-      const ing = inventory.find(i => i.id === r.ingredientId);
+      const ing = currentInventory.find((i: any) => i.id === r.ingredientId);
       return ing && ing.stock >= (r.quantity * (itemCountInCart + 1));
     });
   };
@@ -133,14 +137,23 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    // Actualizar inventario local y persistente
-    const newInventory = [...inventory];
+    // Obtener inventario actual para descontar
+    const savedInv = localStorage.getItem('uni_inventory');
+    const currentInv = savedInv ? JSON.parse(savedInv) : [...inventory];
+    
+    const newInventory = currentInv.map((ing: any) => ({ ...ing }));
+
     cart.forEach(cartItem => {
-        cartItem.recipe.forEach((r: any) => {
-            const ingIndex = newInventory.findIndex(i => i.id === r.ingredientId);
-            if (ingIndex !== -1) newInventory[ingIndex].stock -= r.quantity;
-        });
+        if (cartItem.recipe) {
+            cartItem.recipe.forEach((r: any) => {
+                const ingIndex = newInventory.findIndex((i: any) => i.id === r.ingredientId);
+                if (ingIndex !== -1) {
+                    newInventory[ingIndex].stock -= r.quantity;
+                }
+            });
+        }
     });
+
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
     setInventory(newInventory);
 
@@ -176,7 +189,7 @@ export default function ClientMenu() {
     toast({
       className: "uni-toast-info",
       title: `ORDEN ${orderId}`,
-      description: "Tu pedido ha sido enviado a cocina.",
+      description: "Tu pedido ha sido enviado a cocina e insumos descontados.",
     });
 
     setShowPayment(false);
