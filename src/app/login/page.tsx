@@ -41,17 +41,7 @@ export default function LoginPage() {
         toast({
           className: "uni-toast-success",
           title: "🔐 ¡Bienvenido, Admin!",
-          description: (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                <CheckCircle className="text-emerald-600" size={24} />
-              </div>
-              <div>
-                <p className="font-bold">Acceso Administrativo Concedido</p>
-                <p className="text-xs text-muted-foreground">Gestionando sucursal UNI...</p>
-              </div>
-            </div>
-          ),
+          description: "Acceso administrativo concedido.",
         });
         return;
       }
@@ -62,31 +52,27 @@ export default function LoginPage() {
         toast({
           className: "uni-toast-success",
           title: "🎒 ¡Hola, Alumno!",
-          description: (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <CheckCircle className="text-blue-600" size={24} />
-              </div>
-              <div>
-                <p className="font-bold">Sesión Iniciada</p>
-                <p className="text-xs text-muted-foreground">Accediendo al menú del día...</p>
-              </div>
-            </div>
-          ),
+          description: "Sesión iniciada correctamente.",
         });
         return;
       }
 
-      // Acceso Comunidad UNI (Otros)
-      if (role === 'community') {
-        router.push('/client/menu');
+      // Acceso Cocinero universal
+      if (email === 'cocinero' && password === 'cocinero') {
+        router.push('/admin/kitchen');
         toast({
           className: "uni-toast-success",
-          title: `🏠 ¡Hola, Comunidad UNI!`,
-          description: "Acceso concedido al menú de la cafetería.",
+          title: "👨‍🍳 ¡Hola, Cocinero!",
+          description: "Panel de pedidos activo.",
         });
-      } else if (role === 'admin' && (email !== 'admin' || password !== 'admin')) {
-        setError("Credenciales de administrador incorrectas.");
+        return;
+      }
+
+      // Acceso por Roles
+      if (role === 'community') {
+        router.push('/client/menu');
+      } else if (role === 'staff' || email === 'cocinero') {
+        router.push('/admin/kitchen');
       } else {
         router.push('/admin/dashboard');
       }
@@ -132,7 +118,7 @@ export default function LoginPage() {
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     <SelectItem value="community">Comunidad UNI (Estudiantes/Profesores)</SelectItem>
-                    <SelectItem value="staff">Personal Administrativo / Staff</SelectItem>
+                    <SelectItem value="staff">Personal de Cocina / Staff</SelectItem>
                     <SelectItem value="admin">Administrador del Sistema</SelectItem>
                   </SelectContent>
                 </Select>
@@ -144,7 +130,7 @@ export default function LoginPage() {
                   <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="email" 
-                    placeholder="admin, alumno o usuario institucional" 
+                    placeholder="admin, alumno, cocinero..." 
                     className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -176,10 +162,7 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-4 py-8 bg-muted/20 text-center text-xs text-muted-foreground">
             <div className="space-y-1">
               <p className="font-medium">
-                Demo Admin: <span className="font-black text-foreground">admin / admin</span>
-              </p>
-              <p className="font-medium">
-                Demo Alumno: <span className="font-black text-foreground">alumno / alumno</span>
+                Demo Cocina: <span className="font-black text-foreground">cocinero / cocinero</span>
               </p>
             </div>
           </CardFooter>

@@ -19,7 +19,8 @@ import {
   ArrowLeft,
   FileText,
   TrendingUp,
-  Receipt
+  Receipt,
+  ChefHat
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -96,6 +97,9 @@ export default function AdminDashboard() {
         <nav className="flex-1 p-4 space-y-2">
           <Button variant="ghost" className="w-full justify-start gap-3 text-primary bg-primary/5 font-bold rounded-xl">
             <BarChart3 size={20} /> Dashboard
+          </Button>
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/kitchen')}>
+            <ChefHat size={20} /> Cocina
           </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/pos')}>
             <DollarSign size={20} /> Punto de Venta
