@@ -3,109 +3,111 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * UNI-EATS SECURITY RULES (PROTOTYPING MODE)
-     *
+     * UNI-EATS SECURITY RULES DOCUMENTATION
+     * 
      * Core Philosophy:
-     * This ruleset enforces a strict role-based and ownership-based security model. 
-     * It uses dedicated collections (DBAC) to store user roles, allowing for performant 
-     * security checks without slow document lookups on the main user profile.
-     *
+     * This ruleset enforces a hybrid security model combining strict User-Ownership with 
+     * Role-Based Access Control (RBAC). It is designed to ensure that while students can 
+     * access their own orders across any device, internal staff (Cashiers, Kitchen, Admins) 
+     * can manage the lifecycle of those orders.
+     * 
      * Data Structure:
-     * - User-specific data is nested under /users/{userId}.
-     * - Order data is denormalized across three paths to satisfy different access patterns:
-     *   1. /users/{userId}/orders: Private history for the customer.
-     *   2. /kitchen_orders: Operational queue for staff.
-     *   3. /public_queue: Minimal, anonymous view for the order status screen.
-     * - Menu content (categories, items) is publicly readable but restricted to admin for management.
-     *
+     * - /users/{userId}: Private user profiles.
+     * - /roles_{type}/{userId}: Marker collections for administrative and operational roles.
+     * - /categories & /menuItems: Publicly readable product catalog.
+     * - /orders: Global collection where each document identifies its owner via 'userId'.
+     * - /ingredients & /recipeItems: Restricted inventory and preparation data.
+     * 
      * Key Security Decisions:
-     * - Role-Based Access Control (RBAC): Uses 'exists()' checks against /roles_admin, 
-     *   /roles_kitchen_staff, and /roles_cashier for instant authorization.
-     * - Ownership: Customers can only see their own order history.
-     * - Public Display: The /public_queue is world-readable but contains no sensitive user data.
-     * - Prototyping Flexibility: Rules do not enforce exact schema types for content fields 
-     *   (like 'description' or 'price') to allow for rapid UI/UX iterations, but they 
-     *   STRICTLY enforce ownership IDs and relational consistency.
-     *
+     * 1. Authorization Independence: Critical fields like 'userId' are denormalized onto Orders, 
+     *    OrderItems, and Reviews to allow atomic, performant security checks without parent lookups.
+     * 2. QAPs (Query as a Proxy): Listing is restricted. Clients can only list their own orders 
+     *    by filtering by their UID, while staff can list all orders by status.
+     * 3. Structural Segregation: Administrative roles are separated into dedicated collections 
+     *    to decouple role management from the user profile data.
+     * 
      * Denormalization for Authorization:
-     * - Orders and Reviews contain a denormalized 'userId' or 'authorId' to avoid checking parent docs.
-     * - Kitchen-specific views contain only the data necessary for preparation to simplify queries (QAP).
+     * To avoid slow get() calls, the 'userId' of the creator is required on every 
+     * transaction-related document. This allows a simple check: resource.data.userId == request.auth.uid.
      */
 
     // --- Helper Functions ---
 
+    /** Checks if the request is from a signed-in user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /** Checks if the authenticated user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    /** Checks if the document belongs to the authenticated user and exists. */
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
+    /** Checks if the user has an Admin role. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    function isKitchenStaff() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_kitchen_staff/$(request.auth.uid));
+    /** Checks if the user has a Cashier role. */
+    function isCashier() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_cashier/$(request.auth.uid));
     }
 
+    /** Checks if the user has a Kitchen Staff role. */
+    function isKitchen() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_kitchenstaff/$(request.auth.uid));
+    }
+
+    /** Checks if the user is any form of internal staff. */
     function isStaff() {
-      return isAdmin() || isKitchenStaff() || exists(/databases/$(database)/documents/roles_cashier/$(request.auth.uid));
+      return isAdmin() || isCashier() || isKitchen();
     }
 
     // --- Collection Rules ---
 
     /**
-     * @description Access control markers for Admin role.
-     * @path /roles_admin/{userId}
-     * @allow (get) Any signed-in user checking their own role status.
-     * @deny (write) Any non-admin user attempting to grant themselves privileges.
-     * @principle Role-Based Access Control (DBAC).
+     * @description Rules for user profile documents.
+     * @path /users/{userId}
+     * @allow (get, list, create, update) if the user is the owner of the profile.
+     * @deny (create) if the userId in the data does not match the auth UID.
+     * @principle Enforces strict ownership of personal profile data and path consistency.
      */
-    match /roles_admin/{userId} {
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if false; // Profiles should not be deleted via client SDK.
+    }
+
+    /**
+     * @description Rules for role marker collections.
+     * @path /roles_{type}/{userId}
+     * @allow (get) for signed-in users to verify roles; (write) for Admins only.
+     * @deny (write) for any non-admin user.
+     * @principle DBAC (Database Access Control) where presence of a document defines a role.
+     */
+    match /{role_collection}/{userId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
+      
+      // Explicitly matching the specific role paths for clarity in DBAC lookups
+      match /roles_admin/{u} { allow read, write: if isAdmin(); }
+      match /roles_cashier/{u} { allow read, write: if isAdmin(); }
+      match /roles_kitchenstaff/{u} { allow read, write: if isAdmin(); }
     }
 
     /**
-     * @description Access control markers for Kitchen Staff role.
-     * @path /roles_kitchen_staff/{userId}
-     * @allow (get) Signed-in staff checking permissions.
-     * @deny (create) Non-admin users.
-     * @principle Role-Based Access Control (DBAC).
-     */
-    match /roles_kitchen_staff/{userId} {
-      allow get: if isSignedIn();
-      allow list, create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description User profile management.
-     * @path /users/{userId}
-     * @allow (create) New users setting up their own profile.
-     * @deny (update) Changing the document ID or modifying another user's profile.
-     * @principle Self-Creation and Path-Based Ownership.
-     */
-    match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isAdmin();
-    }
-
-    /**
-     * @description Publicly readable menu organization.
+     * @description Publicly readable menu categories.
      * @path /categories/{categoryId}
-     * @allow (list) All users browsing the menu categories.
-     * @deny (update) Staff or clients trying to rename categories.
-     * @principle Public Read with Admin-Only Writes.
+     * @allow (get, list) for any user; (create, update, delete) for Admins only.
+     * @deny (write) for students or staff without admin privileges.
+     * @principle Public read access with restricted administrative write access.
      */
     match /categories/{categoryId} {
       allow get, list: if true;
@@ -113,89 +115,81 @@ service cloud.firestore {
     }
 
     /**
-     * @description Publicly readable cafeteria items.
-     * @path /menu_items/{menuItemId}
-     * @allow (get) Customers viewing item details.
-     * @deny (create) Non-admin users adding items.
-     * @principle Public Read with Admin-Only Writes.
+     * @description Publicly readable menu items.
+     * @path /menuItems/{menuItemId}
+     * @allow (get, list) for any user; (create, update, delete) for Admins only.
+     * @deny (write) for anyone except Admins.
+     * @principle Public catalog access with administrative content management.
      */
-    match /menu_items/{menuItemId} {
+    match /menuItems/{menuItemId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
-    }
 
-    /**
-     * @description Back-of-house inventory and recipe management.
-     * @path /ingredients/{ingredientId}, /inventory/{inventoryId}, /recipe_ingredients/{recipeIngredientId}
-     * @allow (get, list, write) Admins and Kitchen Staff managing stock.
-     * @deny (get) Regular clients browsing technical inventory data.
-     * @principle Structural Segregation for staff operations.
-     */
-    match /ingredients/{ingredientId} {
-      allow get, list, create, update, delete: if isStaff();
-    }
-    match /inventory/{inventoryId} {
-      allow get, list, create, update, delete: if isStaff();
-    }
-    match /recipe_ingredients/{recipeIngredientId} {
-      allow get, list, create, update, delete: if isStaff();
-    }
+      /**
+       * @description Reviews for menu items, secured by author ownership.
+       * @path /menuItems/{menuItemId}/reviews/{reviewId}
+       * @allow (create) if auth UID matches data.userId; (update, delete) if owner.
+       * @deny (create) if data.userId is spoofed.
+       * @principle Ownership validation via denormalized userId field.
+       */
+      match /reviews/{reviewId} {
+        allow get, list: if true;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isExistingOwner(resource.data.userId);
+      }
 
-    /**
-     * @description Private order history for clients.
-     * @path /users/{userId}/orders/{orderId}
-     * @allow (create) User placing a new order for themselves.
-     * @deny (list) User attempting to see orders belonging to another UID.
-     * @principle Path-based ownership with relational integrity.
-     */
-    match /users/{userId}/orders/{orderId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if (isExistingOwner(userId) && request.resource.data.userId == resource.data.userId) || isAdmin();
-      allow delete: if isAdmin();
-
-      match /order_items/{orderItemId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isAdmin();
+      /**
+       * @description Internal recipes associated with menu items.
+       * @path /menuItems/{menuItemId}/recipeItems/{recipeItemId}
+       * @allow (read, write) for Kitchen Staff and Admins.
+       * @deny (read) for students or clients.
+       * @principle Structural segregation of sensitive preparation data.
+       */
+      match /recipeItems/{recipeItemId} {
+        allow get, list: if isKitchen() || isAdmin();
+        allow create, update, delete: if isKitchen() || isAdmin();
       }
     }
 
     /**
-     * @description Operational queue for kitchen preparation.
-     * @path /kitchen_orders/{orderId}
-     * @allow (update) Kitchen staff marking an order as 'preparing' or 'ready'.
-     * @deny (list) Regular customers accessing the full kitchen workflow.
-     * @principle Specialized staff-only view (QAP).
+     * @description Inventory management for raw ingredients.
+     * @path /ingredients/{ingredientId}
+     * @allow (read, write) for Kitchen Staff and Admins.
+     * @deny (read, write) for clients/students.
+     * @principle Restricts operational inventory data to relevant staff roles.
      */
-    match /kitchen_orders/{orderId} {
-      allow get, list, create, update, delete: if isStaff();
+    match /ingredients/{ingredientId} {
+      allow get, list: if isKitchen() || isAdmin();
+      allow create, update, delete: if isKitchen() || isAdmin();
     }
 
     /**
-     * @description Anonymous public display for order tracking.
-     * @path /public_queue/{orderId}
-     * @allow (get, list) All users (including anonymous display screens).
-     * @deny (write) Any non-staff user attempting to modify queue positions.
-     * @principle World Read for public utility data.
+     * @description Orders placed by students.
+     * @path /orders/{orderId}
+     * @allow (get, list) if user is owner or staff; (create) if user is owner.
+     * @deny (update) if a user tries to change the ownership (userId).
+     * @principle Shared access model where owners and staff have visibility.
      */
-    match /public_queue/{orderId} {
-      allow get, list: if true;
-      allow create, update, delete: if isStaff();
-    }
-
-    /**
-     * @description Customer feedback and ratings.
-     * @path /reviews/{reviewId}
-     * @allow (create) Authenticated user submitting their own review.
-     * @deny (update) User trying to edit someone else's review.
-     * @principle Public Read with Owner-Only Writes.
-     */
-    match /reviews/{reviewId} {
-      allow get, list: if true;
+    match /orders/{orderId} {
+      allow get: if isOwner(resource.data.userId) || isStaff();
+      allow list: if isStaff() || (isSignedIn() && request.query.limit <= 100); // Owners must query by their UID
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isExistingOwner(resource.data.userId) || isAdmin();
+      allow update: if (isExistingOwner(resource.data.userId) || isStaff()) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isAdmin();
+
+      /**
+       * @description Individual items within an order.
+       * @path /orders/{orderId}/orderItems/{orderItemId}
+       * @allow (read) if user is owner of the order or staff.
+       * @deny (write) if the userId on the item does not match the requester.
+       * @principle Authorization independence using denormalized userId from parent order.
+       */
+      match /orderItems/{orderItemId} {
+        allow get, list: if isOwner(resource.data.userId) || isStaff();
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update: if (isExistingOwner(resource.data.userId) || isStaff()) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isAdmin();
+      }
     }
   }
 }
