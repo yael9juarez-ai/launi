@@ -100,54 +100,49 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    if (paymentMethod === 'cash') {
-      const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
-      pendingOrders.push({
-        id: orderId,
-        user: "Alumno Demo",
-        total: totalAmount,
-        items: cart.map(i => i.name).join(', '),
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem('pending_cash_orders', JSON.stringify(pendingOrders));
+    // 1. Enviar a Cocina inmediatamente
+    const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
+    kitchenOrders.push({
+      id: orderId,
+      items: cart.map(i => ({ name: i.name, qty: 1 })),
+      status: 'pending',
+      time: '1m',
+      user: "Comunidad UNI",
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
-      toast({
-        className: "uni-toast-info",
-        title: "💵 PEDIDO REGISTRADO EN CAJA",
-        description: `Por favor, acude a la caja con tu número ${orderId} para pagar $${totalAmount.toFixed(2)}.`,
-      });
-    } else {
-      toast({
-        className: "uni-toast-success",
-        title: "✅ TRANSFERENCIA RECIBIDA",
-        description: "Tu pago ha sido validado. Iniciamos preparación.",
-      });
-    }
+    // 2. Enviar a Verificación de Administrador (Caja/Transferencia)
+    const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
+    pendingVerifications.push({
+      id: orderId,
+      user: "Comunidad UNI",
+      total: totalAmount,
+      method: paymentMethod,
+      items: cart.map(i => ({ id: i.id, name: i.name, price: i.price })),
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('pending_verifications', JSON.stringify(pendingVerifications));
+
+    toast({
+      className: "uni-toast-info",
+      title: orderId,
+      description: paymentMethod === 'cash' 
+        ? "Acude a caja para pagar. Tu orden ya está en cocina." 
+        : "Transferencia registrada. Verificaremos tu pago pronto.",
+    });
 
     setShowPayment(false);
     setCart([]);
     setOrderStatus('preparing');
     
-    // Simulate order becoming ready
-    const readyTimer = setTimeout(() => {
+    // Simular que la orden está lista después de un tiempo
+    setTimeout(() => {
       setOrderStatus('ready');
-      toast({
-        className: "uni-toast-success",
-        title: "🔔 ¡TU COMIDA ESTÁ LISTA!",
-        description: "Pasa a ventanilla por tu orden.",
-      });
-    }, 8000);
-
-    return () => clearTimeout(readyTimer);
+    }, 12000);
   };
 
   const cancelOrder = () => {
-    if (currentOrderId) {
-      const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
-      const updatedOrders = pendingOrders.filter((o: any) => o.id !== currentOrderId);
-      localStorage.setItem('pending_cash_orders', JSON.stringify(updatedOrders));
-    }
-
     setOrderStatus('idle');
     setCurrentOrderId(null);
     toast({
@@ -211,24 +206,15 @@ export default function ClientMenu() {
                 </Button>
               )}
               {orderStatus === 'ready' && (
-                <div className="flex gap-4">
-                  <Button 
-                    variant="outline" 
-                    className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black gap-2"
-                    onClick={() => setShowFeedback(true)}
-                  >
-                    <ThumbsUp size={20} /> CALIFICAR SERVICIO
-                  </Button>
-                  <Button 
-                    className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-14 px-8 font-black gap-2"
-                    onClick={() => {
-                      setOrderStatus('idle');
-                      setCurrentOrderId(null);
-                    }}
-                  >
-                    <RotateCcw size={20} /> NUEVO PEDIDO
-                  </Button>
-                </div>
+                <Button 
+                  className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-14 px-8 font-black gap-2"
+                  onClick={() => {
+                    setOrderStatus('idle');
+                    setCurrentOrderId(null);
+                  }}
+                >
+                  <RotateCcw size={20} /> NUEVO PEDIDO
+                </Button>
               )}
             </div>
           </div>
@@ -412,65 +398,19 @@ export default function ClientMenu() {
               </div>
             </Button>
 
-            {paymentMethod === 'transfer' && (
-              <div className="bg-muted/50 p-6 rounded-3xl border-2 border-dashed border-primary/30 text-center animate-in fade-in zoom-in duration-300">
-                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">CLABE UNI-BANK</p>
-                <p className="text-2xl font-black text-primary tracking-tighter">0123 4567 8901 2345 67</p>
-              </div>
-            )}
-
             <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-6 mt-4">
               <span>Total</span>
               <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <Button 
-                className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" 
-                onClick={handlePayment} 
-                disabled={!paymentMethod}
-              >
-                Confirmar Pedido
-              </Button>
-              <Button 
-                variant="ghost"
-                className="w-full h-12 rounded-2xl text-muted-foreground font-bold" 
-                onClick={clearCart}
-              >
-                Descartar Todo y Empezar de Nuevo
-              </Button>
-            </div>
+            <Button 
+              className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" 
+              onClick={handlePayment} 
+              disabled={!paymentMethod}
+            >
+              Confirmar Pedido
+            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Feedback Dialog */}
-      <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
-        <DialogContent className="rounded-[3rem] p-12 max-w-md border-none text-center">
-          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 size={60} />
-          </div>
-          <DialogHeader>
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-            <DialogTitle className="text-4xl font-black text-center">¡Disfruta tu comida!</DialogTitle>
-            <DialogDescription className="text-xl font-medium mt-4">
-              ¿Qué tal te pareció el servicio de hoy?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center gap-4 py-8">
-            {[1, 2, 3, 4, 5].map(star => (
-              <Button key={star} variant="ghost" size="icon" className="h-12 w-12 text-secondary hover:scale-125 transition-transform">
-                <Star size={36} fill="currentColor" />
-              </Button>
-            ))}
-          </div>
-          <Button className="w-full h-16 rounded-2xl text-xl font-black" onClick={() => {
-            setShowFeedback(false);
-            setOrderStatus('idle');
-            setCurrentOrderId(null);
-          }}>
-            Enviar Comentarios
-          </Button>
         </DialogContent>
       </Dialog>
     </div>

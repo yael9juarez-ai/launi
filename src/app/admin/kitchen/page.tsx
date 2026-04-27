@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,8 @@ import {
   Flame, 
   LogOut, 
   ArrowLeft,
-  Timer
+  Timer,
+  RefreshCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -27,25 +28,35 @@ interface Order {
   user: string;
 }
 
-const INITIAL_ORDERS: Order[] = [
-  { id: "#108", items: [{ name: "Hamburguesa Clásica", qty: 2 }, { name: "Coca Cola", qty: 2 }], status: 'pending', time: '1m', user: 'Carlos M.' },
-  { id: "#107", items: [{ name: "Orden de Tacos (3)", qty: 1 }], status: 'preparing', time: '4m', user: 'Ana L.' },
-  { id: "#105", items: [{ name: "Maruchan Preparada", qty: 1 }], status: 'preparing', time: '12m', user: 'Roberto G.' },
-];
-
 export default function KitchenPage() {
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const router = useRouter();
   const { toast } = useToast();
 
+  const loadOrders = () => {
+    const saved = localStorage.getItem('kitchen_orders');
+    if (saved) {
+      setOrders(JSON.parse(saved));
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+    // Polling simple para simular tiempo real en el prototipo
+    const interval = setInterval(loadOrders, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const updateStatus = (id: string, newStatus: 'preparing' | 'ready') => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    const updatedOrders = orders.map(o => o.id === id ? { ...o, status: newStatus } : o);
+    setOrders(updatedOrders);
+    localStorage.setItem('kitchen_orders', JSON.stringify(updatedOrders));
     
     if (newStatus === 'ready') {
       toast({
         className: "uni-toast-success",
         title: `✅ PEDIDO ${id} LISTO`,
-        description: "El monitor de turnos ha sido actualizado.",
+        description: "Notificado al cliente.",
       });
     }
   };
@@ -59,15 +70,15 @@ export default function KitchenPage() {
           </div>
           <div>
             <h1 className="text-4xl font-black tracking-tighter">Cocina UniEats</h1>
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Gestión de Insumos & Comandas</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Órdenes Entrantes en Tiempo Real</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" className="rounded-full h-14 w-14" onClick={loadOrders}>
+            <RefreshCw size={24} />
+          </Button>
           <Button variant="outline" className="rounded-2xl h-14 px-8 gap-3 font-black text-lg border-2" onClick={() => router.push('/admin/dashboard')}>
             <ArrowLeft size={24} /> PANEL ADMIN
-          </Button>
-          <Button variant="ghost" className="rounded-2xl h-14 w-14 text-destructive hover:bg-destructive/10" onClick={() => router.push('/login')}>
-            <LogOut size={24} />
           </Button>
         </div>
       </header>
@@ -77,7 +88,7 @@ export default function KitchenPage() {
         <section className="flex flex-col gap-8">
           <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm">
             <h2 className="text-3xl font-black flex items-center gap-4">
-              <Clock className="text-primary animate-pulse" /> NUEVAS ÓRDENES 
+              <Clock className="text-primary animate-pulse" /> POR EMPEZAR 
             </h2>
             <Badge className="h-12 px-6 rounded-full bg-primary text-white text-2xl font-black">
               {orders.filter(o => o.status === 'pending').length}
@@ -87,16 +98,13 @@ export default function KitchenPage() {
           <ScrollArea className="flex-1">
             <div className="space-y-6 pr-4">
               {orders.filter(o => o.status === 'pending').map(order => (
-                <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden border-l-[1rem] border-l-primary mcd-card-hover">
+                <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden border-l-[1rem] border-l-primary">
                   <div className="p-8">
                     <div className="flex justify-between items-start mb-6">
                       <div>
                         <p className="text-4xl font-black text-primary">{order.id}</p>
                         <p className="text-xl font-bold text-muted-foreground">{order.user}</p>
                       </div>
-                      <Badge variant="outline" className="h-10 px-4 rounded-full border-2 font-black gap-2">
-                        <Timer size={16} /> {order.time}
-                      </Badge>
                     </div>
                     <div className="space-y-3 mb-8">
                       {order.items.map((item, i) => (
@@ -112,7 +120,7 @@ export default function KitchenPage() {
                       className="w-full h-20 rounded-3xl text-2xl font-black mcd-gradient shadow-xl shadow-primary/20 gap-3"
                       onClick={() => updateStatus(order.id, 'preparing')}
                     >
-                      <Flame size={28} /> EMPEZAR PREPARACIÓN
+                      <Flame size={28} /> PREPARAR
                     </Button>
                   </div>
                 </Card>
@@ -135,16 +143,13 @@ export default function KitchenPage() {
           <ScrollArea className="flex-1">
             <div className="space-y-6 pr-4">
               {orders.filter(o => o.status === 'preparing').map(order => (
-                <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden border-l-[1rem] border-l-secondary mcd-card-hover">
+                <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden border-l-[1rem] border-l-secondary">
                   <div className="p-8">
                     <div className="flex justify-between items-start mb-6">
                       <div>
                         <p className="text-4xl font-black text-secondary">{order.id}</p>
                         <p className="text-xl font-bold text-muted-foreground">{order.user}</p>
                       </div>
-                      <Badge variant="outline" className="h-10 px-4 rounded-full border-2 border-secondary/30 bg-secondary/10 font-black gap-2">
-                        <Timer size={16} /> {order.time}
-                      </Badge>
                     </div>
                     <div className="space-y-3 mb-8">
                       {order.items.map((item, i) => (
@@ -160,7 +165,7 @@ export default function KitchenPage() {
                       className="w-full h-20 rounded-3xl text-2xl font-black bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 gap-3 text-white border-none"
                       onClick={() => updateStatus(order.id, 'ready')}
                     >
-                      <CheckCircle2 size={28} /> MARCAR COMO LISTO
+                      <CheckCircle2 size={28} /> LISTO
                     </Button>
                   </div>
                 </Card>
