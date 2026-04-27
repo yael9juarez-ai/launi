@@ -32,6 +32,7 @@ export interface MenuItem {
 
 // INVENTARIO DE INSUMOS (ALMACÉN CENTRAL)
 // Las cantidades están en la unidad base (gr, ml, pzas)
+// Conversiones aproximadas: 1 taza harina = 125g, 1 taza azúcar = 200g, 1 taza leche = 240ml
 export const INGREDIENTS: Ingredient[] = [
   { id: "i1", name: "Pan de Hamburguesa", stock: 100, unit: "pzas", minStock: 20 },
   { id: "i2", name: "Carne de Res Molida", stock: 20000, unit: "gr", minStock: 5000 },
@@ -51,12 +52,17 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i20", name: "Tomate Rojo", stock: 8000, unit: "gr", minStock: 1000 },
   { id: "i21", name: "Cebolla Blanca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i23", name: "Sal Refinada", stock: 5000, unit: "gr", minStock: 500 },
-  { id: "i24", name: "Harina Preparada (Hot Cakes)", stock: 15000, unit: "gr", minStock: 2000 },
+  // Ingredientes para Hot Cakes
+  { id: "i24", name: "Harina de Trigo", stock: 15000, unit: "gr", minStock: 2000 },
   { id: "i25", name: "Leche Entera", stock: 20000, unit: "ml", minStock: 3000 },
-  { id: "i26", name: "Huevo Fresco", stock: 120, unit: "pzas", minStock: 24 },
-  { id: "i27", name: "Mantequilla", stock: 4000, unit: "gr", minStock: 500 },
-  { id: "i29", name: "Miel / Jarabe", stock: 5000, unit: "ml", minStock: 500 },
-  { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 50, unit: "pzas", minStock: 10 },
+  { id: "i26", name: "Huevo Fresco", stock: 200, unit: "pzas", minStock: 24 },
+  { id: "i27", name: "Mantequilla Sin Sal", stock: 4000, unit: "gr", minStock: 500 },
+  { id: "i31", name: "Azúcar Blanca", stock: 10000, unit: "gr", minStock: 1000 },
+  { id: "i32", name: "Polvo para Hornear", stock: 1000, unit: "gr", minStock: 100 },
+  { id: "i33", name: "Extracto de Vainilla", stock: 1000, unit: "ml", minStock: 50 },
+  { id: "i29", name: "Miel de Abeja", stock: 5000, unit: "ml", minStock: 500 },
+  // Pan de Recompra
+  { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 100, unit: "pzas", minStock: 10 },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -93,18 +99,21 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: "m7",
     name: "Hot Cakes Caseros (Orden 3)",
-    description: "Hechos al momento con harina, leche y huevo. Con mantequilla y miel.",
+    description: "Hechos al momento con harina, azúcar, leche, huevo y vainilla.",
     price: 65.00,
     category: "Comida",
     imageUrl: "https://picsum.photos/seed/hotcakes/400/300",
     recipe: [
-      { ingredientId: "i24", quantity: 200 },
-      { ingredientId: "i25", quantity: 150 },
-      { ingredientId: "i26", quantity: 1 },
-      { ingredientId: "i27", quantity: 20 },
-      { ingredientId: "i29", quantity: 40 }
+      { ingredientId: "i24", quantity: 250 }, // 2 tazas aprox
+      { ingredientId: "i31", quantity: 200 }, // 1 taza aprox
+      { ingredientId: "i27", quantity: 115 }, // 1/2 taza mantequilla
+      { ingredientId: "i26", quantity: 3 },   // 3 huevos
+      { ingredientId: "i25", quantity: 240 }, // 1 taza leche
+      { ingredientId: "i32", quantity: 15 },  // 1 cda polvo hornear
+      { ingredientId: "i33", quantity: 5 },   // 1 cdta vainilla
+      { ingredientId: "i29", quantity: 30 }   // Topping miel
     ],
-    nutrition: { calories: 450, protein: 12, fat: 18, carbs: 65 }
+    nutrition: { calories: 550, protein: 15, fat: 22, carbs: 75 }
   },
   {
     id: "m9",

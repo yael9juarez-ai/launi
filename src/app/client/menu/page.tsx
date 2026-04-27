@@ -54,13 +54,18 @@ export default function ClientMenu() {
   const router = useRouter();
 
   useEffect(() => {
-    // Cargar inventario con fallback a datos iniciales
+    // Forzar actualización si faltan ingredientes clave en el localStorage
     const savedInv = localStorage.getItem('uni_inventory');
-    if (savedInv) {
-      setInventory(JSON.parse(savedInv));
-    } else {
+    const parsedInv = savedInv ? JSON.parse(savedInv) : [];
+    
+    // Verificamos si i31 (azúcar) existe para saber si es el inventario viejo
+    const isOldInventory = parsedInv.length > 0 && !parsedInv.find((i: any) => i.id === 'i31');
+
+    if (!savedInv || isOldInventory) {
       setInventory(INGREDIENTS);
       localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
+    } else {
+      setInventory(parsedInv);
     }
 
     const savedUser = localStorage.getItem('unieats_user');
