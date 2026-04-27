@@ -263,11 +263,11 @@ export default function ClientMenu() {
             
             <DialogHeader>
               <DialogTitle className="text-4xl font-black">
-                {upsellStep === 'drink' ? '¿Quieres agregar un agua?' : '¿Deseas agregar una golosina?'}
+                {upsellStep === 'drink' ? '¿Quieres agregar una bebida?' : '¿Deseas agregar una golosina?'}
               </DialogTitle>
               <DialogDescription className="text-xl font-medium">
                 {upsellStep === 'drink' 
-                  ? 'Refréscate con una de nuestras aguas naturales recién preparadas.' 
+                  ? 'Refréscate con una de nuestras bebidas recién preparadas.' 
                   : '¡El toque dulce perfecto para terminar tu comida!'}
               </DialogDescription>
             </DialogHeader>
