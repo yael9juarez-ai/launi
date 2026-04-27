@@ -1,18 +1,43 @@
 {
   "entities": {
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Defines the different access levels and permissions within the UniEats system, such as Client, Cashier, Kitchen Staff, and Admin.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Role entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the role (e.g., 'Client', 'Cashier', 'Kitchen Staff', 'Admin')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief explanation of the responsibilities and permissions associated with this role."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the UniEats system, including clients (students, faculty, administrative staff) and internal staff (cashier, kitchen, administration). This entity supports different roles to manage access and functionality.",
+      "description": "Represents an individual user of the UniEats application, including clients (students, teachers) and internal staff (cashiers, kitchen, administration). Assumes an external authentication system for credentials.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the User entity."
         },
-        "institutionalEmail": {
+        "email": {
           "type": "string",
-          "description": "The institutional email of the user, used for login and identification.",
+          "description": "The institutional email address of the user, used for login.",
           "format": "email"
         },
         "firstName": {
@@ -23,27 +48,27 @@
           "type": "string",
           "description": "The last name of the user."
         },
-        "role": {
+        "roleId": {
           "type": "string",
-          "description": "The role of the user within the system, determining their permissions and access. Examples include 'student', 'professor', 'admin-client', 'cashier', 'kitchen', 'admin-staff'."
+          "description": "Reference to the Role assigned to this user. (Relationship: Role 1:N User)"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the user profile was created.",
+          "description": "Timestamp when the user account was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp indicating the last time the user profile was updated.",
+          "description": "Timestamp when the user account was last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "institutionalEmail",
+        "email",
         "firstName",
         "lastName",
-        "role",
+        "roleId",
         "createdAt",
         "updatedAt"
       ]
@@ -52,7 +77,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Defines a classification for menu items, helping to organize the menu for customers and staff (e.g., 'Main Courses', 'Drinks', 'Desserts').",
+      "description": "Categorizes menu items, helping to organize the menu for customers and staff (e.g., 'Bebidas', 'Dulces', 'Platos Principales').",
       "properties": {
         "id": {
           "type": "string",
@@ -60,23 +85,24 @@
         },
         "name": {
           "type": "string",
-          "description": "The name of the category (e.g., 'Beverages', 'Snacks')."
+          "description": "The name of the category (e.g., 'Main Courses', 'Drinks', 'Desserts')."
         },
         "description": {
           "type": "string",
-          "description": "A brief description of the category."
+          "description": "A brief description of what this category includes."
         }
       },
       "required": [
         "id",
-        "name"
+        "name",
+        "description"
       ]
     },
     "MenuItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MenuItem",
       "type": "object",
-      "description": "Represents a specific food or drink item available for purchase in the cafeteria menu, including its details and categorization.",
+      "description": "Represents a single item available for purchase from the cafeteria menu, including its details, price, and availability.",
       "properties": {
         "id": {
           "type": "string",
@@ -84,37 +110,41 @@
         },
         "name": {
           "type": "string",
-          "description": "The name of the menu item (e.g., 'Chicken Sandwich', 'Coffee')."
+          "description": "The name of the menu item (e.g., 'Café Americano', 'Sandwich de Pollo')."
         },
         "description": {
           "type": "string",
-          "description": "A detailed description of the menu item, including ingredients or preparation."
+          "description": "A detailed description of the menu item, including ingredients or preparation style."
         },
         "price": {
           "type": "number",
-          "description": "The current selling price of the menu item."
+          "description": "The selling price of the menu item."
         },
         "imageUrl": {
           "type": "string",
-          "description": "A URL to an image of the menu item for display in the frontend.",
+          "description": "URL to an image of the menu item.",
           "format": "uri"
         },
         "categoryId": {
           "type": "string",
-          "description": "Reference to the Category this menu item belongs to. (Relationship: Category 1:N MenuItem)"
+          "description": "Reference to the category this menu item belongs to. (Relationship: Category 1:N MenuItem)"
         },
         "isAvailable": {
           "type": "boolean",
-          "description": "A boolean indicating whether the item is currently available for ordering."
+          "description": "Indicates if the menu item is currently available for order."
+        },
+        "preparationTimeMinutes": {
+          "type": "number",
+          "description": "Estimated time in minutes required to prepare this item."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the menu item was added.",
+          "description": "Timestamp when the menu item was created in the system.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp indicating the last time the menu item's details were updated.",
+          "description": "Timestamp when the menu item was last updated.",
           "format": "date-time"
         }
       },
@@ -126,15 +156,118 @@
         "imageUrl",
         "categoryId",
         "isAvailable",
+        "preparationTimeMinutes",
         "createdAt",
         "updatedAt"
+      ]
+    },
+    "Ingredient": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ingredient",
+      "type": "object",
+      "description": "Represents a raw material or component used in the preparation of menu items, allowing for detailed inventory control.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Ingredient entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the ingredient (e.g., 'Café Grano', 'Leche Fresca', 'Pan de Molde')."
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit of measure for this ingredient (e.g., 'grams', 'ml', 'unit', 'kg', 'liter')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the ingredient."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "unit",
+        "description"
+      ]
+    },
+    "Inventory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Inventory",
+      "type": "object",
+      "description": "Tracks the current stock levels of individual ingredients, facilitating inventory control and low-stock alerts.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Inventory record."
+        },
+        "ingredientId": {
+          "type": "string",
+          "description": "Reference to the Ingredient being tracked. (Relationship: Ingredient 1:N Inventory)"
+        },
+        "currentStock": {
+          "type": "number",
+          "description": "The current quantity of the ingredient in stock, measured in its defined unit."
+        },
+        "minStockLevel": {
+          "type": "number",
+          "description": "The minimum stock level for this ingredient, triggering a low-stock alert when reached."
+        },
+        "lastRestockDate": {
+          "type": "string",
+          "description": "Timestamp of the last time this ingredient was restocked.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the inventory record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ingredientId",
+        "currentStock",
+        "minStockLevel",
+        "lastRestockDate",
+        "updatedAt"
+      ]
+    },
+    "RecipeIngredient": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RecipeIngredient",
+      "type": "object",
+      "description": "A linking entity that defines the quantity of each ingredient required for a specific menu item, forming its recipe. (Relationship: MenuItem N:N Ingredient)",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RecipeIngredient record."
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "Reference to the MenuItem for which this ingredient is used. (Relationship: MenuItem N:N Ingredient)"
+        },
+        "ingredientId": {
+          "type": "string",
+          "description": "Reference to the Ingredient used in the menu item. (Relationship: MenuItem N:N Ingredient)"
+        },
+        "quantityNeeded": {
+          "type": "number",
+          "description": "The quantity of the ingredient required to prepare one unit of the menu item."
+        }
+      },
+      "required": [
+        "id",
+        "menuItemId",
+        "ingredientId",
+        "quantityNeeded"
       ]
     },
     "Order": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents a customer's placed order, containing general information about the order, its status, and pickup details.",
+      "description": "Represents a customer's placed order, containing overall details like total amount, status, and pickup information.",
       "properties": {
         "id": {
           "type": "string",
@@ -142,45 +275,49 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who placed the order. (Relationship: User 1:N Order)"
+          "description": "Reference to the user who placed the order. (Relationship: User 1:N Order)"
         },
-        "orderDate": {
+        "orderDateTime": {
           "type": "string",
           "description": "The date and time when the order was placed.",
           "format": "date-time"
         },
         "pickupTime": {
           "type": "string",
-          "description": "The scheduled date and time for the customer to pick up the order.",
+          "description": "The customer-selected date and time for order pickup.",
           "format": "date-time"
         },
         "totalAmount": {
           "type": "number",
-          "description": "The total monetary amount of the order, including all items."
+          "description": "The total monetary value of the order."
         },
         "status": {
           "type": "string",
-          "description": "The current status of the order (e.g., 'pending', 'preparing', 'ready for pickup', 'picked up', 'cancelled')."
+          "description": "The current status of the order (e.g., 'pending', 'preparing', 'ready_for_pickup', 'completed', 'cancelled')."
         },
-        "notes": {
+        "queueNumber": {
+          "type": "number",
+          "description": "An optional number indicating the order's position in the preparation queue, for customer visibility."
+        },
+        "specialInstructions": {
           "type": "string",
-          "description": "Any general notes or special instructions for the entire order."
+          "description": "Any specific instructions or requests from the customer regarding the order."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the order record was created.",
+          "description": "Timestamp when the order record was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp indicating the last time the order's status or details were updated.",
+          "description": "Timestamp when the order record was last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
-        "orderDate",
+        "orderDateTime",
         "pickupTime",
         "totalAmount",
         "status",
@@ -192,7 +329,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OrderItem",
       "type": "object",
-      "description": "Represents a specific item within a customer's order, detailing the quantity and price at the time of purchase, including any item-specific notes.",
+      "description": "Represents a specific menu item included within an order, detailing its quantity and any customizations.",
       "properties": {
         "id": {
           "type": "string",
@@ -200,23 +337,23 @@
         },
         "orderId": {
           "type": "string",
-          "description": "Reference to the Order this item belongs to. (Relationship: Order 1:N OrderItem)"
+          "description": "Reference to the parent order. (Relationship: Order 1:N OrderItem)"
         },
         "menuItemId": {
           "type": "string",
-          "description": "Reference to the MenuItem that was ordered. (Relationship: MenuItem 1:N OrderItem)"
+          "description": "Reference to the menu item included in this order item. (Relationship: MenuItem 1:N OrderItem)"
         },
         "quantity": {
           "type": "number",
-          "description": "The number of units of this menu item included in the order."
+          "description": "The quantity of the menu item ordered."
         },
-        "unitPrice": {
+        "itemPrice": {
           "type": "number",
           "description": "The price of a single unit of the menu item at the time the order was placed."
         },
-        "notes": {
+        "customizations": {
           "type": "string",
-          "description": "Any specific customization notes for this particular item (e.g., 'no onions', 'extra cheese')."
+          "description": "A string representing any special customizations for this specific item (e.g., 'sin cebolla', 'extra queso')."
         }
       },
       "required": [
@@ -224,137 +361,47 @@
         "orderId",
         "menuItemId",
         "quantity",
-        "unitPrice"
+        "itemPrice"
       ]
     },
-    "InventoryItem": {
+    "Review": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InventoryItem",
+      "title": "Review",
       "type": "object",
-      "description": "Tracks the stock levels of a specific item or ingredient in the cafeteria's inventory, enabling inventory control and low-stock alerts.",
+      "description": "Stores customer feedback and ratings for specific menu items, contributing to recommendations and quality improvement.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the InventoryItem entity."
-        },
-        "menuItemId": {
-          "type": "string",
-          "description": "Reference to the MenuItem this inventory item is associated with. (Relationship: MenuItem 1:1 InventoryItem - simplified for direct stock tracking of a menu product)."
-        },
-        "currentStock": {
-          "type": "number",
-          "description": "The current quantity of the inventory item in stock."
-        },
-        "minStockLevel": {
-          "type": "number",
-          "description": "The minimum stock quantity at which an alert should be triggered."
-        },
-        "unitOfMeasure": {
-          "type": "string",
-          "description": "The unit in which the stock is measured (e.g., 'grams', 'liters', 'units', 'pieces')."
-        },
-        "lastUpdated": {
-          "type": "string",
-          "description": "Timestamp indicating when the inventory item's stock or details were last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "menuItemId",
-        "currentStock",
-        "minStockLevel",
-        "unitOfMeasure",
-        "lastUpdated"
-      ]
-    },
-    "InventoryTransaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InventoryTransaction",
-      "type": "object",
-      "description": "Records every movement (e.g., incoming, outgoing, adjustment) of an inventory item, providing an audit trail for stock changes.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InventoryTransaction entity."
-        },
-        "inventoryItemId": {
-          "type": "string",
-          "description": "Reference to the InventoryItem affected by this transaction. (Relationship: InventoryItem 1:N InventoryTransaction)"
-        },
-        "transactionType": {
-          "type": "string",
-          "description": "The type of inventory transaction (e.g., 'RECEIPT' for incoming stock, 'ISSUE' for outgoing stock, 'ADJUSTMENT' for corrections, 'SPOILAGE')."
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the inventory item involved in the transaction. Positive for additions, negative for removals."
-        },
-        "transactionDate": {
-          "type": "string",
-          "description": "The date and time when the transaction occurred.",
-          "format": "date-time"
+          "description": "Unique identifier for the Review entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User (typically staff) who performed or recorded this transaction. (Relationship: User 1:N InventoryTransaction)"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Any additional notes or reasons for the inventory transaction."
-        }
-      },
-      "required": [
-        "id",
-        "inventoryItemId",
-        "transactionType",
-        "quantity",
-        "transactionDate",
-        "userId"
-      ]
-    },
-    "RatingAndComment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RatingAndComment",
-      "type": "object",
-      "description": "Allows customers to submit ratings and comments for menu items or their overall cafeteria experience, contributing to feedback and recommendation systems.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the RatingAndComment entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who submitted the rating/comment. (Relationship: User 1:N RatingAndComment)"
+          "description": "Reference to the user who submitted the review. (Relationship: User 1:N Review)"
         },
         "menuItemId": {
           "type": "string",
-          "description": "Optional reference to the MenuItem that was rated or commented on. (Relationship: MenuItem 1:N RatingAndComment)"
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Optional reference to a specific Order associated with the feedback. This allows rating the overall order experience. (Relationship: Order 1:N RatingAndComment)"
+          "description": "Reference to the menu item being reviewed. (Relationship: MenuItem 1:N Review)"
         },
         "rating": {
           "type": "number",
-          "description": "A numerical rating, typically on a scale (e.g., 1 to 5 stars)."
+          "description": "The numerical rating given to the menu item, typically on a scale (e.g., 1 to 5 stars)."
         },
         "comment": {
           "type": "string",
-          "description": "The textual feedback or comment provided by the user."
+          "description": "Optional textual feedback or comment from the user."
         },
-        "commentDate": {
+        "createdAt": {
           "type": "string",
-          "description": "The date and time when the rating and comment were submitted.",
+          "description": "Timestamp when the review was submitted.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
+        "menuItemId",
         "rating",
-        "comment",
-        "commentDate"
+        "createdAt"
       ]
     }
   },
@@ -367,35 +414,13 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/roles_admin/{userId}",
         "definition": {
           "entityName": "User",
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores individual user profiles. Users can typically read and update their own profiles. Admin-staff can manage all user profiles. Includes the user's assigned role. This collection is for profile data, with separate collections for explicit role checks for permissions.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, matching Firebase Authentication's UID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_adminStaff/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "A dedicated collection to grant and verify 'admin-staff' privileges. The existence of a document for a userId in this collection indicates the user is an administrator with full staff permissions. Used for efficient 'existence' checks in security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user (Firebase Auth UID) who has the 'admin-staff' role."
-            }
-          ]
+          "description": "Dedicated collection for admin users. Document ID is the user's UID. Used for explicit role-based access control checks (DBAC) using `exists()` in security rules."
         }
       },
       {
@@ -405,43 +430,31 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "A dedicated collection to grant and verify 'cashier' privileges. The existence of a document for a userId in this collection indicates the user is a cashier. Used for efficient 'existence' checks in security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user (Firebase Auth UID) who has the 'cashier' role."
-            }
-          ]
+          "description": "Dedicated collection for cashier users. Document ID is the user's UID. Used for explicit role-based access control checks (DBAC) using `exists()` in security rules."
         }
       },
       {
-        "path": "/roles_kitchen/{userId}",
+        "path": "/roles_kitchen_staff/{userId}",
         "definition": {
           "entityName": "User",
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "A dedicated collection to grant and verify 'kitchen' privileges. The existence of a document for a userId in this collection indicates the user works in the kitchen. Used for efficient 'existence' checks in security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user (Firebase Auth UID) who has the 'kitchen' role."
-            }
-          ]
+          "description": "Dedicated collection for kitchen staff users. Document ID is the user's UID. Used for explicit role-based access control checks (DBAC) using `exists()` in security rules."
         }
       },
       {
-        "path": "/roles_adminClient/{userId}",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "A dedicated collection to grant and verify 'admin-client' privileges for users who are clients. The existence of a document for a userId in this collection indicates the user has specific elevated client permissions. Used for efficient 'existence' checks in security rules.",
+          "description": "Stores user profiles. Each document is owned by the corresponding user (path-based ownership). Readable by the user themselves and by admin users.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user (Firebase Auth UID) who has the 'admin-client' role."
+              "description": "The unique identifier of the user (Firebase Authentication UID)."
             }
           ]
         }
@@ -453,7 +466,7 @@
           "schema": {
             "$ref": "#/backend/entities/Category"
           },
-          "description": "Defines menu item categories. These documents are publicly readable by all users, allowing for dynamic menu browsing. Writes (create, update, delete) are restricted to 'admin-staff' users.",
+          "description": "Defines menu item categories. Publicly readable for clients to browse the menu, admin managed for creation, editing, and deletion.",
           "params": [
             {
               "name": "categoryId",
@@ -463,13 +476,13 @@
         }
       },
       {
-        "path": "/menuItems/{menuItemId}",
+        "path": "/menu_items/{menuItemId}",
         "definition": {
           "entityName": "MenuItem",
           "schema": {
             "$ref": "#/backend/entities/MenuItem"
           },
-          "description": "Contains details for all menu items. These documents are publicly readable by all users. Writes (create, update, delete) are restricted to 'admin-staff' users. Includes `categoryId` as a reference.",
+          "description": "Stores details for each menu item, including name, description, price, and availability. Publicly readable for clients, admin managed.",
           "params": [
             {
               "name": "menuItemId",
@@ -479,14 +492,66 @@
         }
       },
       {
-        "path": "/orders/{orderId}",
+        "path": "/ingredients/{ingredientId}",
+        "definition": {
+          "entityName": "Ingredient",
+          "schema": {
+            "$ref": "#/backend/entities/Ingredient"
+          },
+          "description": "Defines raw materials and components used in menu item recipes. Restricted to admin and kitchen staff.",
+          "params": [
+            {
+              "name": "ingredientId",
+              "description": "The unique identifier of the ingredient."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/inventory/{inventoryId}",
+        "definition": {
+          "entityName": "Inventory",
+          "schema": {
+            "$ref": "#/backend/entities/Inventory"
+          },
+          "description": "Tracks the current stock levels of ingredients. Restricted to admin and kitchen staff. Includes denormalized 'ingredientId' for direct querying.",
+          "params": [
+            {
+              "name": "inventoryId",
+              "description": "The unique identifier of the inventory record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/recipe_ingredients/{recipeIngredientId}",
+        "definition": {
+          "entityName": "RecipeIngredient",
+          "schema": {
+            "$ref": "#/backend/entities/RecipeIngredient"
+          },
+          "description": "Links menu items to their required ingredients and quantities. Restricted to admin and kitchen staff.",
+          "params": [
+            {
+              "name": "recipeIngredientId",
+              "description": "The unique identifier for the recipe ingredient record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores all customer orders. Clients can create and read their own orders by filtering on `userId`. Staff (cashier, kitchen) and admin-staff can read all orders and update specific fields like `status`. Includes denormalized 'userId' for authorization independence.",
+          "description": "Primary collection for client-specific orders. Contains full order details. Access is restricted to the owning client (userId in path) and admin. Includes denormalized 'userId' for ownership checks and 'status', 'queueNumber' for overall order state.",
           "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who placed the order."
+            },
             {
               "name": "orderId",
               "description": "The unique identifier of the order."
@@ -495,14 +560,18 @@
         }
       },
       {
-        "path": "/orders/{orderId}/orderItems/{orderItemId}",
+        "path": "/users/{userId}/orders/{orderId}/order_items/{orderItemId}",
         "definition": {
           "entityName": "OrderItem",
           "schema": {
             "$ref": "#/backend/entities/OrderItem"
           },
-          "description": "Represents individual items within a specific order. Access is tied to the parent order's permissions. Includes denormalized 'userId' (owner of the parent order) for authorization independence without requiring a parent `get()` call.",
+          "description": "Subcollection storing individual items for a specific order. Inherits ownership from the parent order. Includes 'menuItemId', 'quantity', and 'itemPrice'.",
           "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who placed the parent order."
+            },
             {
               "name": "orderId",
               "description": "The unique identifier of the parent order."
@@ -515,58 +584,54 @@
         }
       },
       {
-        "path": "/inventoryItems/{inventoryItemId}",
+        "path": "/kitchen_orders/{orderId}",
         "definition": {
-          "entityName": "InventoryItem",
+          "entityName": "Order",
           "schema": {
-            "$ref": "#/backend/entities/InventoryItem"
+            "$ref": "#/backend/entities/Order"
           },
-          "description": "Tracks stock levels for menu-related ingredients or products. This collection is only accessible (read/write) by 'kitchen' and 'admin-staff' roles, ensuring strict internal control.",
+          "description": "Denormalized view of orders for kitchen staff. Contains essential order details like 'status', 'queueNumber', 'pickupTime', 'orderDateTime', 'specialInstructions', and a summary of ordered items. Read/write access is limited to kitchen staff (for status updates) and admin. This collection ensures QAPs for kitchen staff's 'list' operations.",
           "params": [
             {
-              "name": "inventoryItemId",
-              "description": "The unique identifier of the inventory item."
+              "name": "orderId",
+              "description": "The unique identifier of the order (matches the ID in the user's orders)."
             }
           ]
         }
       },
       {
-        "path": "/inventoryItems/{inventoryItemId}/transactions/{transactionId}",
+        "path": "/public_queue/{orderId}",
         "definition": {
-          "entityName": "InventoryTransaction",
+          "entityName": "Order",
           "schema": {
-            "$ref": "#/backend/entities/InventoryTransaction"
+            "$ref": "#/backend/entities/Order"
           },
-          "description": "Records all inventory movements (e.g., receipts, issues, adjustments) for a specific inventory item. These transactions are read-only after creation and accessible only by 'kitchen' and 'admin-staff' roles. Includes `userId` for audit purposes.",
+          "description": "Denormalized, minimal view of orders for the public display screen. Contains only 'queueNumber', 'status', and 'pickupTime'. This collection is world-readable to allow anonymous users to view the queue status, ensuring QAPs for public access.",
           "params": [
             {
-              "name": "inventoryItemId",
-              "description": "The unique identifier of the parent inventory item."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier of the inventory transaction."
+              "name": "orderId",
+              "description": "The unique identifier of the order (matches the ID in the user's orders)."
             }
           ]
         }
       },
       {
-        "path": "/ratings/{ratingId}",
+        "path": "/reviews/{reviewId}",
         "definition": {
-          "entityName": "RatingAndComment",
+          "entityName": "Review",
           "schema": {
-            "$ref": "#/backend/entities/RatingAndComment"
+            "$ref": "#/backend/entities/Review"
           },
-          "description": "Stores customer ratings and comments. All ratings are publicly readable. Clients can create, update, and delete only their own ratings. 'Admin-staff' can read and delete any rating. Includes denormalized 'userId' for authorization independence.",
+          "description": "Stores customer reviews for menu items. Writable by authenticated users for their own reviews, readable by all. Includes denormalized 'userId' for authorization independence.",
           "params": [
             {
-              "name": "ratingId",
-              "description": "The unique identifier of the rating and comment."
+              "name": "reviewId",
+              "description": "The unique identifier of the review."
             }
           ]
         }
       }
     ],
-    "reasoning": "The recommended Firestore structure is designed to be secure, scalable, and debuggable, adhering strictly to the provided CORE DESIGN PRINCIPLES and DESIGN STRATEGY MANDATES. It leverages structural segregation and denormalization for authorization independence, enabling simple and robust security rules.\n\n**Authorization Independence (CRITICAL):** This structure ensures Authorization Independence by denormalizing crucial authorization context directly into the documents where it's needed. For example, the `userId` field is explicitly included in `Order`, `OrderItem`, and `RatingAndComment` documents. This allows security rules to check ownership (e.g., `resource.data.userId == request.auth.uid`) without requiring expensive and complex `get()` calls to parent documents or separate user profiles. This strategy is vital for maintaining atomic operations and simplifying rule debugging.\n\n**QAPs (Rules are not Filters) and Structural Segregation:** To support secure `list` operations (QAPs) and handle different security postures, the design employs Structural Segregation. Rather than nesting all data under a user's private path, which would prevent staff from listing all orders or administrators from listing all categories, we utilize top-level collections for entities that require broader visibility while still enforcing strict access controls:\n\n*   **Public/Global Data:** Collections like `/categories` and `/menuItems` are top-level and publicly readable, enabling any client to `list` them. Writes are restricted to specific staff roles.\n*   **User-Owned Data with Staff Management:** The `/orders` and `/ratings` collections are top-level. This allows staff roles (Cashier, Kitchen, Admin-Staff) to efficiently `list` and manage all orders or reviews, while clients can only `list` or interact with their own documents by querying against the denormalized `userId` field (`where('userId', '==', request.auth.uid)`).\n*   **Staff-Only Data:** Collections like `/inventoryItems` and their subcollections are strictly accessible only by authorized staff roles, ensuring data privacy and integrity.\n*   **Role-Based Access Control (DBAC):** For staff and privileged client roles (`admin-staff`, `cashier`, `kitchen`, `admin-client`), dedicated top-level collections like `/roles_adminStaff/{userId}` are used. The *existence* of a document in these collections grants the respective role. This 'Existence over Content' approach completely eliminates `get()` calls for role checks in security rules, making them highly efficient and easy to reason about (e.g., `exists(/databases/$(database)/documents/roles_adminStaff/$(request.auth.uid))`).\n\n**Clarity of Intent and Predictability:** The use of descriptive collection names and parameters (e.g., `users/{userId}`, `orders/{orderId}`, `menuItems/{menuItemId}`) makes the purpose and ownership of data immediately clear. Consistent field names like `userId` for ownership are standardized across denormalized fields. The system clearly separates responsibilities, making security rules straightforward to write and audit, thereby minimizing complexity and enhancing debuggability."
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and debuggable by strictly adhering to the core design principles, especially Authorization Independence, Structural Segregation, and Query as Permission (QAP). \n\n**Authorization Independence via Denormalization:**\n\n*   **User Roles (DBAC):** Instead of relying on `User.roleId` for real-time authorization checks (which would require a `get()` on the user document), dedicated collections such as `/roles_admin/{userId}`, `/roles_cashier/{userId}`, and `/roles_kitchen_staff/{userId}` are used. Authorization rules can perform a simple `exists()` check on these collections, providing atomic and performant role-based access control without hierarchical dependencies.\n*   **Orders:** To facilitate distinct access patterns for clients, kitchen staff, and public displays, order data is denormalized across three main collections:\n    1.  `/users/{userId}/orders/{orderId}`: This is the primary, user-owned record of an order, containing all details. It ensures that clients can only access their own orders (path-based ownership). The `OrderItem` subcollection here further clarifies this ownership.\n    2.  `/kitchen_orders/{orderId}`: A denormalized subset of order data specifically tailored for kitchen staff. It includes `status`, `queueNumber`, `pickupTime`, `specialInstructions`, and a summary of items (e.g., `orderItemsSummary`). This collection's homogenous security posture (only kitchen staff can list/update relevant orders) enables simple QAPs for kitchen staff without them needing access to all user-specific data or performing complex joins.\n    3.  `/public_queue/{orderId}`: A minimal, denormalized view of orders (`queueNumber`, `status`, `pickupTime`) designed for public display screens. This collection is world-readable, again ensuring a homogenous security posture and enabling simple QAPs for anonymous users to view the queue.\n\nThis denormalization for orders is critical. It eliminates `get()` calls in security rules to check parent order status or client ownership when kitchen staff or public screens need to access data. Updates to an order (e.g., status change by kitchen staff) will trigger Cloud Functions to synchronize the relevant fields across the `/users/{userId}/orders/{orderId}`, `/kitchen_orders/{orderId}`, and `/public_queue/{orderId}` documents.\n\n**Structural Segregation for QAPs:**\n\n*   **Homogeneous Security Posture:** Each collection or subcollection is designed with a specific security posture in mind, simplifying security rules and enabling efficient queries (QAPs).\n    *   `/menu_items` and `/categories` are globally readable for clients, but admin-writable.\n    *   `/users/{userId}` ensures path-based ownership for private user data.\n    *   `/ingredients`, `/inventory`, and `/recipe_ingredients` are restricted to administrative and kitchen staff for management.\n    *   The explicit separation of `/users/{userId}/orders/{orderId}`, `/kitchen_orders/{orderId}`, and `/public_queue/{orderId}` ensures that `list` operations (QAPs) are robust. For instance, kitchen staff can perform a simple `list` on `/kitchen_orders` filtered by `status` without violating QAPs by exposing unrelated user data. Clients perform `list` on their own orders via the `/users/{userId}/orders` path, which is inherently secure.\n\n**Clarity of Intent & Debuggability:**\n\n*   Consistent naming conventions (e.g., `userId`, `orderId`, `menuItemId`) and descriptive wildcards (e.g., `{userId}` not `{id}`) enhance readability and debuggability of rules.\n*   The `status` field in `Order` (and its denormalized versions) explicitly models the Finite State Machine of an order, making rule logic for state transitions clear and manageable.\n\nThis architecture ensures that the different user types (clients, kitchen, admin, cashier, public) can efficiently and securely access only the data relevant to their roles and use cases, minimizing the complexity of Firestore security rules."
   }
 }
