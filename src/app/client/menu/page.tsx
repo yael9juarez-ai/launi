@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
+import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,14 +16,13 @@ import {
   CheckCircle2,
   CreditCard,
   Wallet,
-  Star,
   Plus,
-  ThumbsUp,
   Sparkles,
   Utensils,
   XCircle,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Database
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -48,10 +47,23 @@ export default function ClientMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [inventory, setInventory] = useState<Ingredient[]>([]);
   
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('uni_inventory');
+    if (saved) setInventory(JSON.parse(saved));
+  }, []);
+
+  const checkStockAvailability = (item: MenuItem, currentCart: any[] = cart) => {
+    const itemCountInCart = currentCart.filter(i => i.id === item.id).length;
+    return item.recipe.every(r => {
+      const ing = inventory.find(i => i.id === r.ingredientId);
+      return ing && ing.stock >= (r.quantity * (itemCountInCart + 1));
+    });
+  };
 
   const filteredItems = MENU_ITEMS.filter(item => {
     const matchesCategory = selectedCategory === "Todas" || item.category === selectedCategory;
@@ -63,6 +75,15 @@ export default function ClientMenu() {
   const sweetUpsells = useMemo(() => MENU_ITEMS.filter(item => item.category === "Golosinas").slice(0, 4), []);
 
   const addToCart = (item: any) => {
+    if (!checkStockAvailability(item)) {
+      toast({
+        variant: "destructive",
+        title: "🚫 PRODUCTO AGOTADO",
+        description: "Lo sentimos, no hay insumos suficientes para este producto.",
+      });
+      return;
+    }
+
     setCart([...cart, item]);
     
     if (item.category === "Comida" && upsellStep === 'none') {
@@ -71,8 +92,8 @@ export default function ClientMenu() {
 
     toast({
       className: "uni-toast-info",
-      title: "🍔 ¡Excelente elección!",
-      description: `${item.name} añadido al carrito.`,
+      title: "🍔 ¡AÑADIDO!",
+      description: `${item.name} listo en tu carrito.`,
     });
   };
 
@@ -81,10 +102,6 @@ export default function ClientMenu() {
     setUpsellStep('none');
     setPaymentMethod(null);
     setShowPayment(false);
-    toast({
-      title: "🗑️ Carrito Vaciado",
-      description: "Tu selección ha sido eliminada. Puedes empezar de nuevo.",
-    });
   };
 
   const nextUpsell = () => {
@@ -100,11 +117,29 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    // 1. Enviar a Cocina inmediatamente
+    // 1. DEDUCIR INVENTARIO GLOBAL
+    const newInventory = [...inventory];
+    cart.forEach(cartItem => {
+        cartItem.recipe.forEach((r: any) => {
+            const ingIndex = newInventory.findIndex(i => i.id === r.ingredientId);
+            if (ingIndex !== -1) {
+                newInventory[ingIndex].stock -= r.quantity;
+            }
+        });
+    });
+    localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
+    setInventory(newInventory);
+
+    // 2. Enviar a Cocina
     const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
     kitchenOrders.push({
       id: orderId,
-      items: cart.map(i => ({ name: i.name, qty: 1 })),
+      items: cart.reduce((acc: any[], item) => {
+        const existing = acc.find(i => i.name === item.name);
+        if (existing) existing.qty += 1;
+        else acc.push({ name: item.name, qty: 1 });
+        return acc;
+      }, []),
       status: 'pending',
       time: '1m',
       user: "Comunidad UNI",
@@ -112,7 +147,7 @@ export default function ClientMenu() {
     });
     localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
-    // 2. Enviar a Verificación de Administrador (Caja/Transferencia)
+    // 3. Enviar a Verificación de Administrador
     const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
     pendingVerifications.push({
       id: orderId,
@@ -126,30 +161,17 @@ export default function ClientMenu() {
 
     toast({
       className: "uni-toast-info",
-      title: orderId,
-      description: paymentMethod === 'cash' 
-        ? "Acude a caja para pagar. Tu orden ya está en cocina." 
-        : "Transferencia registrada. Verificaremos tu pago pronto.",
+      title: `ORDEN ${orderId}`,
+      description: paymentMethod === 'cash' ? "Paga en caja. Tu orden ya se está preparando." : "Verificaremos tu transferencia pronto.",
     });
 
     setShowPayment(false);
     setCart([]);
     setOrderStatus('preparing');
     
-    // Simular que la orden está lista después de un tiempo
     setTimeout(() => {
       setOrderStatus('ready');
     }, 12000);
-  };
-
-  const cancelOrder = () => {
-    setOrderStatus('idle');
-    setCurrentOrderId(null);
-    toast({
-      variant: "destructive",
-      title: "🚫 PEDIDO CANCELADO",
-      description: "Tu orden ha sido eliminada del sistema.",
-    });
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
@@ -163,14 +185,14 @@ export default function ClientMenu() {
           </Button>
           <div className="flex flex-col">
             <span className="text-2xl font-black tracking-tighter text-primary">UniEats</span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Premium Fast Food</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Premium Campus Food</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="relative h-14 w-14 rounded-2xl bg-muted/50">
             <ShoppingCart size={28} />
             {cart.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-secondary text-black text-xs w-6 h-6 flex items-center justify-center rounded-full font-black border-2 border-white shadow-lg">
+              <span className="absolute -top-2 -right-2 bg-secondary text-black text-xs w-6 h-6 flex items-center justify-center rounded-full font-black border-2 border-white shadow-lg animate-bounce">
                 {cart.length}
               </span>
             )}
@@ -181,50 +203,39 @@ export default function ClientMenu() {
       <main className="container mx-auto px-6 py-10">
         {orderStatus !== 'idle' && (
           <div className={cn(
-            "mb-10 p-8 rounded-[2.5rem] flex items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
-            orderStatus === 'ready' && "bg-emerald-500"
+            "mb-10 p-8 rounded-[3rem] flex items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
+            orderStatus === 'ready' && "bg-emerald-500 bg-none"
           )}>
             <div className="flex items-center gap-6">
               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center">
                 {orderStatus === 'preparing' ? <Clock className="w-10 h-10 animate-spin" /> : <CheckCircle2 className="w-10 h-10" />}
               </div>
               <div>
-                <p className="text-sm font-black uppercase tracking-widest opacity-80">Estado de tu Orden {currentOrderId}</p>
+                <p className="text-sm font-black uppercase tracking-widest opacity-80">ESTADO ORDEN {currentOrderId}</p>
                 <p className="text-4xl font-black">
-                  {orderStatus === 'preparing' ? '¡Estamos cocinando!' : '¡TU ORDEN ESTÁ LISTA!'}
+                  {orderStatus === 'preparing' ? '¡ESTAMOS COCINANDO!' : '¡TU ORDEN ESTÁ LISTA!'}
                 </p>
               </div>
             </div>
-            <div className="flex gap-4">
-              {orderStatus === 'preparing' && (
-                <Button 
-                  variant="destructive"
-                  className="rounded-2xl h-14 px-8 font-black gap-2 bg-white text-primary hover:bg-white/90"
-                  onClick={cancelOrder}
-                >
-                  <XCircle size={20} /> CANCELAR PEDIDO
-                </Button>
-              )}
-              {orderStatus === 'ready' && (
-                <Button 
-                  className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-14 px-8 font-black gap-2"
-                  onClick={() => {
-                    setOrderStatus('idle');
-                    setCurrentOrderId(null);
-                  }}
-                >
-                  <RotateCcw size={20} /> NUEVO PEDIDO
-                </Button>
-              )}
-            </div>
+            {orderStatus === 'ready' && (
+              <Button 
+                className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-16 px-8 font-black text-xl gap-2"
+                onClick={() => {
+                  setOrderStatus('idle');
+                  setCurrentOrderId(null);
+                }}
+              >
+                <RotateCcw size={24} /> NUEVO PEDIDO
+              </Button>
+            )}
           </div>
         )}
 
         <div className="flex flex-col gap-8 mb-12">
-          <div className="relative group">
-            <Search className="absolute left-6 top-5 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <div className="relative">
+            <Search className="absolute left-6 top-5 h-6 w-6 text-muted-foreground" />
             <Input 
-              placeholder="¿Qué se te antoja hoy?" 
+              placeholder="¿Qué te gustaría comer hoy?" 
               className="pl-16 h-16 bg-white border-2 border-muted hover:border-primary/30 rounded-[2rem] text-xl font-medium shadow-sm transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -237,7 +248,7 @@ export default function ClientMenu() {
                 variant={selectedCategory === cat ? "default" : "secondary"}
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  "rounded-full h-14 px-10 font-black text-lg shadow-sm whitespace-nowrap transition-all",
+                  "rounded-full h-14 px-10 font-black text-lg shadow-sm whitespace-nowrap",
                   selectedCategory === cat ? "scale-105 shadow-xl shadow-primary/20" : "hover:bg-muted"
                 )}
               >
@@ -248,34 +259,46 @@ export default function ClientMenu() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-          {filteredItems.map((item) => (
-            <Card key={item.id} className="group border-none shadow-xl rounded-[3rem] overflow-hidden bg-white mcd-card-hover">
-              <div className="aspect-[4/3] relative overflow-hidden">
-                <Image 
-                  src={item.imageUrl} 
-                  alt={item.name} 
-                  fill 
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute top-6 right-6 bg-secondary text-black h-12 px-6 rounded-full text-xl font-black flex items-center justify-center shadow-xl">
-                  $ {item.price.toFixed(2)}
+          {filteredItems.map((item) => {
+            const available = checkStockAvailability(item);
+            return (
+              <Card key={item.id} className={cn(
+                "group border-none shadow-xl rounded-[3rem] overflow-hidden bg-white mcd-card-hover",
+                !available && "opacity-50 grayscale"
+              )}>
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  <Image 
+                    src={item.imageUrl} 
+                    alt={item.name} 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute top-6 right-6 bg-secondary text-black h-12 px-6 rounded-full text-xl font-black flex items-center justify-center shadow-xl">
+                    $ {item.price.toFixed(2)}
+                  </div>
+                  {!available && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <Badge variant="destructive" className="text-xl h-12 px-8 rounded-full font-black animate-pulse">AGOTADO</Badge>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <CardHeader className="p-8">
-                <p className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-2">{item.category}</p>
-                <CardTitle className="text-2xl font-black group-hover:text-primary transition-colors">{item.name}</CardTitle>
-                <CardDescription className="text-base font-medium leading-relaxed mt-2 line-clamp-2">{item.description}</CardDescription>
-              </CardHeader>
-              <CardFooter className="p-8 pt-0">
-                <Button 
-                  className="w-full h-16 rounded-2xl font-black text-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.03] active:scale-[0.97]" 
-                  onClick={() => addToCart(item)}
-                >
-                  Añadir al Carrito
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                <CardHeader className="p-8">
+                  <p className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-2">{item.category}</p>
+                  <CardTitle className="text-2xl font-black">{item.name}</CardTitle>
+                  <CardDescription className="text-base font-medium leading-relaxed mt-2 line-clamp-2">{item.description}</CardDescription>
+                </CardHeader>
+                <CardFooter className="p-8 pt-0">
+                  <Button 
+                    className="w-full h-16 rounded-2xl font-black text-xl shadow-xl shadow-primary/20 transition-all" 
+                    onClick={() => addToCart(item)}
+                    disabled={!available}
+                  >
+                    {available ? 'Añadir al Carrito' : 'Insumos Agotados'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       </main>
 
@@ -284,7 +307,7 @@ export default function ClientMenu() {
           <Button 
             variant="destructive"
             size="icon"
-            className="h-20 w-20 rounded-full shadow-2xl shrink-0"
+            className="h-20 w-20 rounded-full shadow-2xl shrink-0 border-4 border-white"
             onClick={clearCart}
           >
             <Trash2 size={32} />
@@ -313,10 +336,10 @@ export default function ClientMenu() {
             </div>
             
             <DialogHeader>
-              <DialogTitle className="text-4xl font-black">
+              <DialogTitle className="text-4xl font-black text-center">
                 {upsellStep === 'drink' ? '¿Quieres agregar una bebida?' : '¿Deseas agregar una golosina?'}
               </DialogTitle>
-              <DialogDescription className="text-xl font-medium">
+              <DialogDescription className="text-xl font-medium text-center">
                 {upsellStep === 'drink' 
                   ? 'Refréscate con una de nuestras bebidas recién preparadas.' 
                   : '¡El toque dulce perfecto para terminar tu comida!'}
@@ -324,29 +347,36 @@ export default function ClientMenu() {
             </DialogHeader>
 
             <div className="grid grid-cols-2 gap-6 mt-8">
-              {(upsellStep === 'drink' ? drinkUpsells : sweetUpsells).map(item => (
-                <Card 
-                  key={item.id} 
-                  className="border-2 border-muted hover:border-secondary transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer flex flex-col" 
-                  onClick={() => {
-                    setCart([...cart, item]);
-                    nextUpsell();
-                  }}
-                >
-                  <div className="aspect-video relative">
-                    <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
-                  </div>
-                  <div className="p-4 text-center flex-1 flex flex-col justify-between">
-                    <div>
-                      <p className="font-black text-lg line-clamp-1">{item.name}</p>
-                      <p className="text-secondary font-black text-xl">$ {item.price.toFixed(2)}</p>
+              {(upsellStep === 'drink' ? drinkUpsells : sweetUpsells).map(item => {
+                const available = checkStockAvailability(item);
+                return (
+                  <Card 
+                    key={item.id} 
+                    className={cn(
+                      "border-2 border-muted hover:border-secondary transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer flex flex-col",
+                      !available && "opacity-40 grayscale pointer-events-none"
+                    )} 
+                    onClick={() => {
+                      setCart([...cart, item]);
+                      nextUpsell();
+                    }}
+                  >
+                    <div className="aspect-video relative">
+                      <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                      {!available && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Badge variant="destructive">AGOTADO</Badge></div>}
                     </div>
-                    <Button variant="secondary" className="w-full mt-3 rounded-xl font-black gap-2">
-                      <Plus size={18} /> AÑADIR
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                    <div className="p-4 text-center flex-1 flex flex-col justify-between">
+                      <div>
+                        <p className="font-black text-lg line-clamp-1">{item.name}</p>
+                        <p className="text-secondary font-black text-xl">$ {item.price.toFixed(2)}</p>
+                      </div>
+                      <Button variant="secondary" className="w-full mt-3 rounded-xl font-black gap-2" disabled={!available}>
+                        <Plus size={18} /> AÑADIR
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
 
             <Button variant="ghost" className="text-muted-foreground font-black text-lg" onClick={nextUpsell}>
@@ -358,10 +388,10 @@ export default function ClientMenu() {
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
+        <DialogContent className="rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
           <div className="bg-primary p-10 text-white">
             <h2 className="text-4xl font-black">Finalizar Pedido</h2>
-            <p className="text-white/80 font-medium text-lg mt-2">¿Cómo prefieres pagar hoy?</p>
+            <p className="text-white/80 font-medium text-lg mt-2">Elige tu método de pago favorito.</p>
           </div>
           <div className="p-10 space-y-6">
             <Button 
