@@ -99,6 +99,7 @@ export default function AdminDashboard() {
     const totalTransactions = records.length + (extra > 0 ? 1 : 0);
     const averageTicket = totalTransactions > 0 ? totalSales / totalTransactions : 0;
     
+    // Agregación de productos vendidos
     const itemsAggregation: Record<string, { name: string, qty: number, total: number }> = {};
     
     records.forEach(record => {
@@ -110,6 +111,15 @@ export default function AdminDashboard() {
         itemsAggregation[item.itemId].total += item.quantity * item.price;
       });
     });
+
+    // Simular ventas en el desglose para el extra de caja (si existe)
+    if (extra > 0) {
+      if (!itemsAggregation['manual']) {
+        itemsAggregation['manual'] = { name: "Ventas Varias (Caja)", qty: pendingOrders.length || 1, total: extra };
+      } else {
+        itemsAggregation['manual'].total += extra;
+      }
+    }
 
     return {
       totalSales,
@@ -125,7 +135,7 @@ export default function AdminDashboard() {
       weekly: calculatePeriodStats([...SALES_RECORDS, ...SALES_RECORDS, ...SALES_RECORDS], extraSales * 5),
       monthly: calculatePeriodStats([...SALES_RECORDS, ...SALES_RECORDS, ...SALES_RECORDS, ...SALES_RECORDS], extraSales * 20),
     };
-  }, [extraSales]);
+  }, [extraSales, pendingOrders.length]);
 
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
