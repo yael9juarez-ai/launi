@@ -5,7 +5,7 @@ export interface Ingredient {
   id: string;
   name: string;
   stock: number;
-  unit: string;
+  unit: 'pzas' | 'gr' | 'ml' | 'rebanadas';
   minStock: number;
 }
 
@@ -31,6 +31,7 @@ export interface MenuItem {
 }
 
 // INVENTARIO DE INSUMOS (MATERIA PRIMA)
+// Los valores de stock siempre se guardan en la unidad base (ml, gr, pzas)
 export const INGREDIENTS: Ingredient[] = [
   { id: "i1", name: "Pan de Hamburguesa", stock: 50, unit: "pzas", minStock: 10 },
   { id: "i2", name: "Carne de Res (150g)", stock: 45, unit: "pzas", minStock: 10 },
@@ -39,12 +40,12 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i5", name: "Tortilla de Harina", stock: 120, unit: "pzas", minStock: 30 },
   { id: "i6", name: "Tortilla de Maíz", stock: 300, unit: "pzas", minStock: 50 },
   { id: "i7", name: "Sopa Maruchan (Vaso)", stock: 60, unit: "pzas", minStock: 10 },
-  { id: "i8", name: "Refresco 600ml", stock: 100, unit: "botellas", minStock: 20 },
-  { id: "i9", name: "Agua Purificada (ml)", stock: 50000, unit: "ml", minStock: 5000 },
+  { id: "i8", name: "Refresco 600ml", stock: 100, unit: "pzas", minStock: 20 },
+  { id: "i9", name: "Agua Purificada", stock: 50000, unit: "ml", minStock: 5000 },
   { id: "i10", name: "Leche sabor Choco", stock: 40, unit: "pzas", minStock: 10 },
   { id: "i11", name: "Arroz Sushi", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i12", name: "Alga Nori", stock: 100, unit: "pzas", minStock: 20 },
-  { id: "i13", name: "Gomitas Varias (gr)", stock: 10000, unit: "gr", minStock: 1000 },
+  { id: "i13", name: "Gomitas Varias", stock: 10000, unit: "gr", minStock: 1000 },
   { id: "i14", name: "Concentrado Jamaica", stock: 5000, unit: "ml", minStock: 500 },
   { id: "i15", name: "Concentrado Limón", stock: 5000, unit: "ml", minStock: 500 },
   { id: "i16", name: "Concentrado Maracuyá", stock: 5000, unit: "ml", minStock: 500 },

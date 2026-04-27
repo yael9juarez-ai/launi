@@ -18,7 +18,9 @@ import {
   TrendingDown, 
   PlusCircle, 
   History,
-  RotateCcw
+  RotateCcw,
+  Scale,
+  Droplets
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -74,6 +76,19 @@ export default function InventoryPage() {
     if (item.stock <= item.minStock) return { color: "text-destructive", bg: "bg-destructive/10", label: "CRÍTICO", progress: "bg-destructive" };
     if (ratio < 1) return { color: "text-secondary", bg: "bg-secondary/10", label: "BAJO", progress: "bg-secondary" };
     return { color: "text-emerald-500", bg: "bg-emerald-500/10", label: "ÓPTIMO", progress: "bg-emerald-500" };
+  };
+
+  // Función para que la gente entienda las cantidades (ml -> Litros, gr -> Kg)
+  const formatHumanStock = (amount: number, unit: string) => {
+    if (unit === 'ml') {
+      if (amount >= 1000) return `${(amount / 1000).toFixed(1)} Litros`;
+      return `${amount} ml`;
+    }
+    if (unit === 'gr') {
+      if (amount >= 1000) return `${(amount / 1000).toFixed(1)} Kg`;
+      return `${amount} gr`;
+    }
+    return `${amount} ${unit}`;
   };
 
   return (
@@ -153,7 +168,7 @@ export default function InventoryPage() {
                 <div key={item.id} className="group flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[2rem] border-2 border-muted hover:border-primary/20 transition-all bg-muted/5">
                   <div className="flex items-center gap-6 mb-4 md:mb-0 md:w-1/3">
                     <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center transition-colors", status.bg)}>
-                      <Box size={32} className={status.color} />
+                      {item.unit === 'ml' ? <Droplets className={status.color} /> : <Scale className={status.color} />}
                     </div>
                     <div>
                       <h3 className="text-xl font-black">{item.name}</h3>
@@ -166,23 +181,25 @@ export default function InventoryPage() {
 
                   <div className="flex-1 px-0 md:px-12 mb-4 md:mb-0">
                     <div className="flex justify-between mb-2">
-                      <span className="text-xs font-black text-muted-foreground uppercase">Nivel de Stock</span>
+                      <span className="text-xs font-black text-muted-foreground uppercase">Inventario Real</span>
                       <span className={cn("text-sm font-black", status.color)}>
-                        {item.stock} / {item.minStock * 5} {item.unit}
+                        {formatHumanStock(item.stock, item.unit)}
                       </span>
                     </div>
                     <Progress value={progressValue} className="h-3 rounded-full bg-muted shadow-inner" indicatorClassName={status.progress} />
                   </div>
 
                   <div className="flex items-center gap-3 justify-end md:w-1/4">
-                    <div className="flex items-center bg-white rounded-2xl border-2 p-1 px-3 shadow-sm">
-                      <Input 
-                        type="number" 
-                        className="w-20 border-none text-center font-black text-lg focus-visible:ring-0" 
-                        value={item.stock} 
-                        onChange={(e) => handleStockChange(item.id, parseFloat(e.target.value) || 0)}
-                      />
-                      <span className="text-muted-foreground font-black text-xs uppercase ml-1">{item.unit}</span>
+                    <div className="flex flex-col items-end mr-2">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase mb-1">Ajustar ({item.unit})</span>
+                      <div className="flex items-center bg-white rounded-2xl border-2 p-1 px-3 shadow-sm">
+                        <Input 
+                          type="number" 
+                          className="w-20 border-none text-center font-black text-lg focus-visible:ring-0" 
+                          value={item.stock} 
+                          onChange={(e) => handleStockChange(item.id, parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
                     </div>
                     <Button 
                       size="icon" 
