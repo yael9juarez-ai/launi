@@ -22,7 +22,8 @@ import {
   XCircle,
   Trash2,
   RotateCcw,
-  Tv
+  Tv,
+  Star
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -35,14 +36,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
-
-type UpsellStep = 'none' | 'drink' | 'sweet';
+import { smartMenuRecommendation } from '@/ai/flows/smart-menu-recommendation-flow';
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<any[]>([]);
-  const [upsellStep, setUpsellStep] = useState<UpsellStep>('none');
+  const [showUpsell, setShowUpsell] = useState(false);
+  const [upsellRecommendations, setUpsellRecommendations] = useState<any[]>([]);
+  const [lastAddedItem, setLastAddedItem] = useState<MenuItem | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
@@ -55,48 +57,33 @@ export default function ClientMenu() {
 
   const syncInventory = () => {
     const savedInv = localStorage.getItem('uni_inventory');
-    const parsedInv = savedInv ? JSON.parse(savedInv) : [];
-    // Verificamos si los nuevos ingredientes de botellas están presentes
-    const needsUpdate = !parsedInv.find((i: any) => i.id === 'i14' && i.unit === 'pzas');
-
-    if (!savedInv || needsUpdate) {
+    if (!savedInv) {
       setInventory(INGREDIENTS);
       localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
     } else {
-      setInventory(parsedInv);
+      setInventory(JSON.parse(savedInv));
     }
   };
 
   useEffect(() => {
     syncInventory();
-    
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'uni_inventory') syncInventory();
     };
     window.addEventListener('storage', handleStorageChange);
-
     const savedUser = localStorage.getItem('unieats_user');
     if (savedUser) setUserName(JSON.parse(savedUser).name);
-    
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const checkStockAvailability = (newItem: MenuItem, currentCart: any[]) => {
-    const savedInv = localStorage.getItem('uni_inventory');
-    const currentInv = savedInv ? JSON.parse(savedInv) : inventory;
-    
-    if (currentInv.length === 0) return false;
-
+    const currentInv = JSON.parse(localStorage.getItem('uni_inventory') || JSON.stringify(INGREDIENTS));
     const requirements: Record<string, number> = {};
     
-    currentCart.forEach(cartItem => {
+    [...currentCart, newItem].forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
       });
-    });
-
-    newItem.recipe.forEach((r: any) => {
-      requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
     });
 
     return Object.entries(requirements).every(([ingId, qty]) => {
@@ -105,110 +92,98 @@ export default function ClientMenu() {
     });
   };
 
-  const filteredItems = MENU_ITEMS.filter(item => {
-    const matchesCategory = selectedCategory === "Todas" || item.category === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const drinkUpsells = useMemo(() => MENU_ITEMS.filter(item => item.category === "Bebidas").slice(0, 4), []);
-  const sweetUpsells = useMemo(() => MENU_ITEMS.filter(item => item.category === "Golosinas").slice(0, 4), []);
-
-  const addToCart = (item: any) => {
-    if (!checkStockAvailability(item, cart)) {
-      toast({
-        variant: "destructive",
-        title: "🚫 INSUMOS AGOTADOS",
-        description: `No hay suficientes unidades para este pedido.`,
+  const getAiRecommendations = async (item: MenuItem) => {
+    try {
+      const result = await smartMenuRecommendation({
+        availableMenuItems: MENU_ITEMS.map(m => ({ 
+          name: m.name, 
+          description: m.description, 
+          price: m.price, 
+          category: m.category 
+        })),
+        customerOrderHistory: [item.name],
+        currentPromotions: ["Refresco gratis en la compra de 2 hamburguesas"]
       });
+      
+      // Mapear nombres de vuelta a objetos MENU_ITEMS
+      const items = result.recommendations
+        .map(rec => {
+          const match = MENU_ITEMS.find(m => m.name === rec.item);
+          return match ? { ...match, reason: rec.reason } : null;
+        })
+        .filter(i => i !== null && i.id !== item.id)
+        .slice(0, 2);
+
+      setUpsellRecommendations(items);
+      setShowUpsell(true);
+    } catch (error) {
+      console.error("Error fetching AI recommendations:", error);
+    }
+  };
+
+  const addToCart = (item: any, silent = false) => {
+    if (!checkStockAvailability(item, cart)) {
+      toast({ variant: "destructive", title: "🚫 AGOTADO", description: `Sin insumos para preparar ${item.name}.` });
       return;
     }
 
     setCart([...cart, item]);
     
-    if (item.category === "Comida" && upsellStep === 'none') {
-      setUpsellStep('drink');
+    if (!silent) {
+      setLastAddedItem(item);
+      getAiRecommendations(item);
+      toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
+    } else {
+      setShowUpsell(false);
     }
-
-    toast({
-      className: "uni-toast-info",
-      title: "AÑADIDO AL CARRITO",
-      description: `${item.name} listo para ordenar.`,
-    });
   };
 
   const clearCart = () => {
     setCart([]);
-    setUpsellStep('none');
     setPaymentMethod(null);
     setShowPayment(false);
   };
 
-  const nextUpsell = () => {
-    if (upsellStep === 'drink') setUpsellStep('sweet');
-    else setUpsellStep('none');
-  };
-
   const handlePayment = () => {
     if (cart.length === 0) return;
-
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    const savedInv = localStorage.getItem('uni_inventory');
-    const currentInv = savedInv ? JSON.parse(savedInv) : [...inventory];
-    const newInventory = currentInv.map((ing: any) => ({ ...ing }));
+    const currentInv = JSON.parse(localStorage.getItem('uni_inventory') || '[]');
+    const newInventory = [...currentInv];
 
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
-        const ingIndex = newInventory.findIndex((i: any) => i.id === r.ingredientId);
-        if (ingIndex !== -1) {
-          newInventory[ingIndex].stock -= r.quantity;
-        }
+        const idx = newInventory.findIndex((i: any) => i.id === r.ingredientId);
+        if (idx !== -1) newInventory[idx].stock -= r.quantity;
       });
     });
 
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
-    setInventory(newInventory);
-    
     window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
 
     const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
     kitchenOrders.push({
       id: orderId,
       items: cart.reduce((acc: any[], item) => {
-        const existing = acc.find(i => i.name === item.name);
-        if (existing) existing.qty += 1;
-        else acc.push({ name: item.name, qty: 1 });
+        const ex = acc.find(i => i.name === item.name);
+        if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1 });
         return acc;
       }, []),
-      status: 'pending',
-      time: '1m',
-      user: userName,
-      timestamp: new Date().toISOString()
+      status: 'pending', user: userName, timestamp: new Date().toISOString()
     });
     localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
-    const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
-    pendingVerifications.push({
-      id: orderId,
-      user: userName,
-      total: totalAmount,
-      method: paymentMethod,
-      items: cart.map(i => ({ id: i.id, name: i.name, price: i.price })),
-      timestamp: new Date().toISOString()
+    const pending = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
+    pending.push({
+      id: orderId, user: userName, total: totalAmount, method: paymentMethod,
+      items: cart.map(i => ({ name: i.name, price: i.price })), timestamp: new Date().toISOString()
     });
-    localStorage.setItem('pending_verifications', JSON.stringify(pendingVerifications));
+    localStorage.setItem('pending_verifications', JSON.stringify(pending));
 
-    toast({
-      className: "uni-toast-info",
-      title: `ORDEN ${orderId} ENVIADA`,
-      description: "Insumos descontados. Pasa a ventanilla.",
-    });
-
-    setShowPayment(false);
     setCart([]);
+    setShowPayment(false);
     setOrderStatus('preparing');
   };
 
@@ -233,23 +208,18 @@ export default function ClientMenu() {
 
       <main className="container mx-auto px-4 py-8">
         {orderStatus !== 'idle' && (
-          <div className={cn(
-            "mb-8 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
-            orderStatus === 'ready' && "bg-emerald-500 bg-none"
-          )}>
-            <div className="flex items-center gap-4 mb-4 md:mb-0">
+          <div className="mb-8 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top">
+            <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-                {orderStatus === 'preparing' ? <Clock className="w-8 h-8 animate-spin" /> : <CheckCircle2 className="w-8 h-8" />}
+                <Clock className="w-8 h-8 animate-spin" />
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase opacity-80">ORDEN {currentOrderId}</p>
-                <p className="text-2xl font-black">
-                  {orderStatus === 'preparing' ? '¡PREPARANDO!' : '¡LISTO!'}
-                </p>
+                <p className="text-2xl font-black">¡EN PREPARACIÓN!</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full md:w-auto bg-white/10 text-white border-2 rounded-xl h-14 px-8 font-black text-lg" onClick={() => { setOrderStatus('idle'); setCurrentOrderId(null); }}>
-              {orderStatus === 'ready' ? 'ENTENDIDO' : 'CANCELAR'}
+            <Button variant="outline" className="mt-4 md:mt-0 bg-white/10 text-white border-2 rounded-xl h-14 px-8 font-black" onClick={() => setOrderStatus('idle')}>
+              ENTENDIDO
             </Button>
           </div>
         )}
@@ -258,7 +228,7 @@ export default function ClientMenu() {
           <div className="relative">
             <Search className="absolute left-5 top-5 h-6 w-6 text-muted-foreground" />
             <Input 
-              placeholder="¿Qué vas a comer hoy?" 
+              placeholder="Busca tu comida favorita..." 
               className="pl-16 h-16 bg-white border-2 rounded-2xl text-xl font-medium shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -279,31 +249,23 @@ export default function ClientMenu() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => {
-            const available = checkStockAvailability(item, cart);
+          {MENU_ITEMS.filter(item => (selectedCategory === "Todas" || item.category === selectedCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => {
+            const avail = checkStockAvailability(item, cart);
             return (
-              <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2rem] overflow-hidden bg-white flex flex-col transition-all active:scale-95", !available && "opacity-50 grayscale")}>
-                <div className="aspect-[16/9] relative overflow-hidden shrink-0">
-                  <Image 
-                    src={item.imageUrl} 
-                    alt={item.name} 
-                    fill 
-                    className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    priority={item.id === 'm7' || item.id === 'm2'}
-                  />
-                  <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center justify-center shadow-xl">
+              <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2rem] overflow-hidden bg-white flex flex-col transition-all", !avail && "opacity-50 grayscale")}>
+                <div className="aspect-[16/9] relative overflow-hidden">
+                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="(max-width: 768px) 100vw, 33vw" />
+                  <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center shadow-xl">
                     $ {item.price.toFixed(2)}
                   </div>
                 </div>
-                <CardHeader className="p-6 flex-1">
+                <CardHeader className="p-6">
                   <p className="text-[10px] font-black text-primary uppercase mb-1">{item.category}</p>
                   <CardTitle className="text-xl font-black line-clamp-1">{item.name}</CardTitle>
-                  <CardDescription className="line-clamp-2 font-medium mt-1 text-sm">{item.description}</CardDescription>
                 </CardHeader>
                 <CardFooter className="p-6 pt-0 mt-auto">
-                  <Button className="w-full h-14 rounded-xl font-black text-lg" onClick={() => addToCart(item)} disabled={!available}>
-                    {available ? 'Añadir' : 'Agotado'}
+                  <Button className="w-full h-14 rounded-xl font-black text-lg" onClick={() => addToCart(item)} disabled={!avail}>
+                    {avail ? 'Añadir' : 'Agotado'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -324,26 +286,56 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* Ventana de Pago */}
+      {/* RECOMENDACIONES DE IA (UPSELL) */}
+      <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
+        <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg mx-4">
+          <div className="bg-secondary p-8 text-black relative">
+            <div className="absolute top-0 right-0 p-4">
+               <Sparkles className="w-12 h-12 text-black/20 animate-pulse" />
+            </div>
+            <h2 className="text-3xl font-black leading-tight">¿Te gustaría algo más?</h2>
+            <p className="font-bold opacity-70">Sugerencias inteligentes para acompañar tu {lastAddedItem?.name}.</p>
+          </div>
+          <div className="p-8 space-y-4 bg-white">
+            {upsellRecommendations.map((rec: any) => (
+              <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 border-muted hover:border-primary/20 transition-all group">
+                <div className="w-20 h-20 relative rounded-2xl overflow-hidden shrink-0">
+                  <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-black text-sm">{rec.name}</p>
+                  <p className="text-[10px] text-muted-foreground font-bold leading-tight mt-1 line-clamp-2 italic">"{rec.reason}"</p>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-primary font-black text-sm">$ {rec.price.toFixed(2)}</p>
+                    <Button size="sm" className="h-8 rounded-full font-black px-4 text-[10px]" onClick={() => addToCart(rec, true)}>
+                      <Plus className="w-3 h-3 mr-1" /> AÑADIR
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button variant="ghost" className="w-full h-14 rounded-2xl font-black text-muted-foreground" onClick={() => setShowUpsell(false)}>
+              No, gracias
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* VENTANA DE PAGO */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md mx-4">
           <div className="bg-primary p-8 text-white">
             <h2 className="text-3xl font-black">Finalizar Pago</h2>
           </div>
           <div className="p-8 space-y-4">
-            <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")}
-                    onClick={() => setPaymentMethod('transfer')}>
-              <CreditCard size={24} />
-              <p className="font-black text-lg">Transferencia / QR</p>
+            <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('transfer')}>
+              <CreditCard size={24} /> <p className="font-black text-lg">Transferencia / QR</p>
             </Button>
-            <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")}
-                    onClick={() => setPaymentMethod('cash')}>
-              <Wallet size={24} />
-              <p className="font-black text-lg">Efectivo en Ventanilla</p>
+            <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('cash')}>
+              <Wallet size={24} /> <p className="font-black text-lg">Efectivo en Ventanilla</p>
             </Button>
             <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-4 mt-4">
-              <span>Total</span>
-              <span className="text-primary">$ {total.toFixed(2)}</span>
+              <span>Total</span> <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
             <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient shadow-lg" onClick={handlePayment} disabled={!paymentMethod}>
               Confirmar Pedido
