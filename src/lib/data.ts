@@ -47,15 +47,13 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i19", name: "Lechuga Fresca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i20", name: "Tomate Rojo", stock: 8000, unit: "gr", minStock: 1000 },
   { id: "i21", name: "Cebolla Blanca", stock: 5000, unit: "gr", minStock: 1000 },
-  { id: "i22", name: "Papas Crudas", stock: 30000, unit: "gr", minStock: 5000 },
   { id: "i23", name: "Sal Refinada", stock: 5000, unit: "gr", minStock: 500 },
   { id: "i24", name: "Harina Preparada", stock: 15000, unit: "gr", minStock: 2000 },
   { id: "i25", name: "Leche Entera", stock: 20000, unit: "ml", minStock: 3000 },
   { id: "i26", name: "Huevo Fresco", stock: 120, unit: "pzas", minStock: 24 },
   { id: "i27", name: "Mantequilla", stock: 4000, unit: "gr", minStock: 500 },
-  { id: "i28", name: "Maíz Palomero", stock: 10000, unit: "gr", minStock: 1000 },
   { id: "i29", name: "Miel / Jarabe", stock: 5000, unit: "ml", minStock: 500 },
-  { id: "i30", name: "Pan de Dulce", stock: 50, unit: "pzas", minStock: 10 },
+  { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 50, unit: "pzas", minStock: 10 },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -90,23 +88,9 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 580, protein: 28, fat: 32, carbs: 42 }
   },
   {
-    id: "m6",
-    name: "Papas a la Francesa",
-    description: "Papas crujientes con un toque de sal marina.",
-    price: 45.00,
-    category: "Comida",
-    imageUrl: "https://picsum.photos/seed/french-fries/400/300",
-    recipe: [
-      { ingredientId: "i22", quantity: 200 },
-      { ingredientId: "i18", quantity: 30 },
-      { ingredientId: "i23", quantity: 2 }
-    ],
-    nutrition: { calories: 350, protein: 3, fat: 15, carbs: 48 }
-  },
-  {
     id: "m7",
-    name: "Hot Cakes (Orden 3)",
-    description: "Hot cakes esponjosos servidos con mantequilla y miel.",
+    name: "Hot Cakes Caseros (Orden 3)",
+    description: "Hot cakes preparados al momento con harina, leche y huevo. Servidos con mantequilla y miel.",
     price: 65.00,
     category: "Comida",
     imageUrl: "https://picsum.photos/seed/hotcakes/400/300",
@@ -120,24 +104,9 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 450, protein: 12, fat: 18, carbs: 65 }
   },
   {
-    id: "m8",
-    name: "Palomitas Mantequilla",
-    description: "Bolsa grande de palomitas recién hechas con extra mantequilla.",
-    price: 45.00,
-    category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/popcorn/400/300",
-    recipe: [
-      { ingredientId: "i28", quantity: 100 },
-      { ingredientId: "i18", quantity: 20 },
-      { ingredientId: "i27", quantity: 25 },
-      { ingredientId: "i23", quantity: 2 }
-    ],
-    nutrition: { calories: 420, protein: 6, fat: 28, carbs: 42 }
-  },
-  {
     id: "m9",
     name: "Pan de Dulce",
-    description: "Pieza de pan dulce del día (Concha, Oreja o Donut).",
+    description: "Pieza de pan de dulce fresco, recompra de La Esperanza.",
     price: 18.00,
     category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/sweetbread/400/300",
