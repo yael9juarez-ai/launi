@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -14,9 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UtensilsCrossed, Mail, Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { sendLoginConfirmationEmail } from '@/ai/flows/send-login-email-flow';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -27,55 +27,60 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
-    setTimeout(() => {
-      setLoading(false);
-      
-      // Acceso Admin universal
+    // Simulación de delay de login
+    setTimeout(async () => {
+      let targetPath = '';
+      let userRoleName = '';
+
+      // Lógica de acceso por perfiles específicos (sin consecuencia en funcionalidad)
       if (email === 'admin' && password === 'admin') {
-        router.push('/admin/dashboard');
-        toast({
-          className: "uni-toast-success",
-          title: "🔐 ¡Bienvenido, Admin!",
-          description: "Acceso administrativo concedido.",
-        });
-        return;
-      }
-
-      // Acceso Alumno universal
-      if (email === 'alumno' && password === 'alumno') {
-        router.push('/client/menu');
-        toast({
-          className: "uni-toast-success",
-          title: "🎒 ¡Hola, Alumno!",
-          description: "Sesión iniciada correctamente.",
-        });
-        return;
-      }
-
-      // Acceso Cocinero universal
-      if (email === 'cocinero' && password === 'cocinero') {
-        router.push('/admin/kitchen');
-        toast({
-          className: "uni-toast-success",
-          title: "👨‍🍳 ¡Hola, Cocinero!",
-          description: "Panel de pedidos activo.",
-        });
-        return;
-      }
-
-      // Acceso por Roles
-      if (role === 'community') {
-        router.push('/client/menu');
-      } else if (role === 'staff' || email === 'cocinero') {
-        router.push('/admin/kitchen');
+        targetPath = '/admin/dashboard';
+        userRoleName = 'Administrador';
+      } else if (email === 'alumno' && password === 'alumno') {
+        targetPath = '/client/menu';
+        userRoleName = 'Estudiante/Profesor';
+      } else if (email === 'cocinero' && password === 'cocinero') {
+        targetPath = '/admin/kitchen';
+        userRoleName = 'Personal de Cocina';
       } else {
-        router.push('/admin/dashboard');
+        // Fallback por rol seleccionado si no se usan credenciales universales
+        if (role === 'community') {
+          targetPath = '/client/menu';
+          userRoleName = 'Comunidad UNI';
+        } else if (role === 'staff') {
+          targetPath = '/admin/kitchen';
+          userRoleName = 'Personal de Staff';
+        } else {
+          targetPath = '/admin/dashboard';
+          userRoleName = 'Administrador';
+        }
       }
+
+      // Disparar confirmación por "correo" vía IA (Genkit)
+      try {
+        sendLoginConfirmationEmail({ email, role: userRoleName });
+        toast({
+          className: "uni-toast-info",
+          title: "📧 CONFIRMACIÓN ENVIADA",
+          description: `Se ha enviado un correo de bienvenida a ${email}.`,
+        });
+      } catch (e) {
+        console.error("Error al enviar confirmación:", e);
+      }
+
+      setLoading(false);
+      router.push(targetPath);
+      
+      toast({
+        className: "uni-toast-success",
+        title: `✅ ¡Bienvenido!`,
+        description: `Sesión iniciada como ${userRoleName}.`,
+      });
     }, 1200);
   };
 
@@ -162,7 +167,13 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-4 py-8 bg-muted/20 text-center text-xs text-muted-foreground">
             <div className="space-y-1">
               <p className="font-medium">
-                Demo Cocina: <span className="font-black text-foreground">cocinero / cocinero</span>
+                Alumnos: <span className="font-black text-foreground">alumno / alumno</span>
+              </p>
+              <p className="font-medium">
+                Admin: <span className="font-black text-foreground">admin / admin</span>
+              </p>
+              <p className="font-medium">
+                Cocina: <span className="font-black text-foreground">cocinero / cocinero</span>
               </p>
             </div>
           </CardFooter>
