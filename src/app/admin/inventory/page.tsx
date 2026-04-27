@@ -1,8 +1,6 @@
+'use client';
 
-"use client";
-
-import { useState, useEffect } from 'react';
-import { INGREDIENTS as INITIAL_INGREDIENTS, Ingredient } from '@/lib/data';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   ArrowLeft, 
-  Save, 
   Search, 
   Box, 
   RotateCcw,
@@ -22,76 +19,55 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { INGREDIENTS as INITIAL_INGREDIENTS } from '@/lib/data';
 
 export default function InventoryPage() {
-  const [items, setItems] = useState<Ingredient[]>([]);
   const [search, setSearch] = useState("");
   const router = useRouter();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
-  const syncInventory = () => {
-    const saved = localStorage.getItem('uni_inventory');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Forzamos actualización si detectamos que el agua purificada sigue en ml o faltan nuevos campos
-      const isOutdated = parsed.find((i: any) => i.id === 'i9' && i.unit === 'ml');
-      
-      if (isOutdated) {
-        setItems(INITIAL_INGREDIENTS);
-        localStorage.setItem('uni_inventory', JSON.stringify(INITIAL_INGREDIENTS));
-      } else {
-        setItems(parsed);
-      }
-    } else {
-      setItems(INITIAL_INGREDIENTS);
-      localStorage.setItem('uni_inventory', JSON.stringify(INITIAL_INGREDIENTS));
-    }
-  };
-
-  useEffect(() => {
-    syncInventory();
-    
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'uni_inventory') syncInventory();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const ingredientsQuery = useMemoFirebase(() => collection(firestore, 'ingredients'), [firestore]);
+  const { data: items } = useCollection(ingredientsQuery);
 
   const handleStockChange = (id: string, newStock: number) => {
-    const updated = items.map(item => 
-      item.id === id ? { ...item, stock: Math.max(0, newStock) } : item
-    );
-    setItems(updated);
-  };
-
-  const saveInventory = () => {
-    localStorage.setItem('uni_inventory', JSON.stringify(items));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
-    
-    toast({
-      className: "uni-toast-success",
-      title: "📦 ALMACÉN ACTUALIZADO",
-      description: "Inventario guardado. Los cambios se reflejan en tiempo real.",
+    const itemRef = doc(firestore, 'ingredients', id);
+    updateDocumentNonBlocking(itemRef, {
+      currentStock: Math.max(0, newStock),
+      updatedAt: serverTimestamp()
     });
   };
 
-  const resetToDefault = () => {
-    setItems(INITIAL_INGREDIENTS);
-    localStorage.setItem('uni_inventory', JSON.stringify(INITIAL_INGREDIENTS));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
+  const resetToDefault = async () => {
+    const batch = writeBatch(firestore);
+    INITIAL_INGREDIENTS.forEach((ing) => {
+      const docRef = doc(firestore, 'ingredients', ing.id);
+      batch.set(docRef, {
+        id: ing.id,
+        name: ing.name,
+        unitOfMeasure: ing.unit,
+        currentStock: ing.stock,
+        minStockLevel: ing.minStock,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    });
+    await batch.commit();
     toast({
       title: "🔄 REESTABLECIDO",
-      description: "Inventario reiniciado a valores base.",
+      description: "Inventario reiniciado a valores base en la nube.",
     });
   };
 
-  const filteredItems = items.filter(i => 
+  const filteredItems = items?.filter(i => 
     i.name.toLowerCase().includes(search.toLowerCase())
-  );
+  ) || [];
 
-  const getStockStatus = (item: Ingredient) => {
-    const ratio = item.stock / item.minStock;
+  const getStockStatus = (item: any) => {
+    const ratio = item.currentStock / item.minStockLevel;
     if (ratio <= 1) return { color: "text-destructive", bg: "bg-destructive/10", label: "CRÍTICO", progress: "bg-destructive" };
     if (ratio <= 2) return { color: "text-secondary", bg: "bg-secondary/10", label: "BAJO", progress: "bg-secondary" };
     return { color: "text-emerald-500", bg: "bg-emerald-500/10", label: "ÓPTIMO", progress: "bg-emerald-500" };
@@ -117,16 +93,13 @@ export default function InventoryPage() {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-foreground">Almacén Central</h1>
-            <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Insumos y Productos</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-foreground">Almacén Central (Cloud)</h1>
+            <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Sincronizado en todos los dispositivos</p>
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <Button variant="outline" className="flex-1 md:flex-none rounded-xl h-12 px-6 font-bold gap-2" onClick={resetToDefault}>
-            <RotateCcw size={20} />
-          </Button>
-          <Button className="flex-1 md:flex-none rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20 gap-2" onClick={saveInventory}>
-            <Save size={20} /> Guardar
+            <RotateCcw size={20} /> Inicializar Almacén
           </Button>
         </div>
       </header>
@@ -155,18 +128,18 @@ export default function InventoryPage() {
           <div className="grid grid-cols-1 gap-4">
             {filteredItems.map((item) => {
               const status = getStockStatus(item);
-              const progressValue = Math.min(100, (item.stock / (item.minStock * 4)) * 100);
+              const progressValue = Math.min(100, (item.currentStock / (item.minStockLevel * 4)) * 100);
               
               return (
                 <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-2 border-muted hover:border-primary/20 transition-all bg-muted/5">
                   <div className="flex items-center gap-4 md:gap-6 mb-4 md:mb-0 md:w-1/3">
                     <div className={cn("w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center transition-colors shadow-sm", status.bg)}>
-                      {item.unit === 'ml' ? <Droplets className={status.color} /> : item.unit === 'pzas' ? <Package className={status.color} /> : <Scale className={status.color} />}
+                      {item.unitOfMeasure === 'ml' ? <Droplets className={status.color} /> : item.unitOfMeasure === 'pzas' ? <Package className={status.color} /> : <Scale className={status.color} />}
                     </div>
                     <div>
                       <h3 className="text-lg md:text-xl font-black leading-tight">{item.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="rounded-full font-bold uppercase text-[9px]">{item.unit}</Badge>
+                        <Badge variant="outline" className="rounded-full font-bold uppercase text-[9px]">{item.unitOfMeasure}</Badge>
                         <Badge className={cn("rounded-full font-black text-[9px]", status.bg, status.color)}>{status.label}</Badge>
                       </div>
                     </div>
@@ -176,7 +149,7 @@ export default function InventoryPage() {
                     <div className="flex justify-between mb-2">
                       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Stock Disponible</span>
                       <span className={cn("text-xs font-black", status.color)}>
-                        {formatHumanStock(item.stock, item.unit)}
+                        {formatHumanStock(item.currentStock, item.unitOfMeasure)}
                       </span>
                     </div>
                     <Progress value={progressValue} className="h-3 rounded-full bg-muted shadow-inner" indicatorClassName={status.progress} />
@@ -188,14 +161,14 @@ export default function InventoryPage() {
                       <Input 
                         type="number" 
                         className="w-20 md:w-24 text-center font-black h-9 rounded-xl border-2" 
-                        value={item.stock} 
+                        value={item.currentStock} 
                         onChange={(e) => handleStockChange(item.id, parseFloat(e.target.value) || 0)}
                       />
                     </div>
                     <Button 
                       size="icon" 
                       className="rounded-xl h-10 w-10 md:h-12 md:w-12 mcd-gradient shadow-lg"
-                      onClick={() => handleStockChange(item.id, item.stock + (item.unit === 'ml' || item.unit === 'gr' ? 1000 : 1))}
+                      onClick={() => handleStockChange(item.id, item.currentStock + (item.unitOfMeasure === 'ml' || item.unitOfMeasure === 'gr' ? 1000 : 1))}
                     >
                       <PlusCircle size={20} />
                     </Button>

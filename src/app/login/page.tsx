@@ -1,12 +1,11 @@
-
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Select,
   SelectContent,
@@ -14,9 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UtensilsCrossed, Mail, Lock, Loader2, AlertCircle, UserPlus, LogIn, User } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Loader2, UserPlus, LogIn, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/firebase';
+import { signInAnonymously, updateProfile } from 'firebase/auth';
 import { sendLoginConfirmationEmail } from '@/ai/flows/send-login-email-flow';
 import { cn } from '@/lib/utils';
 
@@ -29,88 +29,58 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('community');
-  const [error, setError] = useState<string | null>(null);
+  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     
-    setTimeout(async () => {
-      let targetPath = '';
-      let userRoleName = '';
-      let displayName = '';
+    try {
+      // Para efectos del MVP, usamos Anonymous Auth con perfiles mockeados
+      const userCredential = await signInAnonymously(auth);
+      const displayName = mode === 'login' ? (email || 'Usuario UniEats') : name;
+      
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
+
+      let targetPath = '/client/menu';
+      let userRoleName = 'Alumno/Profesor';
 
       if (mode === 'login') {
-        // PERFILES MAESTROS
-        if (email === 'admin' && password === 'admin') {
+        if (email === 'admin') {
           targetPath = '/admin/dashboard';
           userRoleName = 'Admin';
-          displayName = 'Administrador General';
-        } else if (email === 'alumno' && password === 'alumno') {
-          targetPath = '/client/menu';
-          userRoleName = 'Alumno/Profesor';
-          displayName = 'Estudiante UNI';
-        } else if (email === 'cocinero' && password === 'cocinero') {
+        } else if (email === 'cocinero') {
           targetPath = '/admin/kitchen';
           userRoleName = 'Personal de Cocina';
-          displayName = 'Chef de Turno';
-        } else {
-          // Fallback por selección manual
-          if (role === 'admin') {
-            targetPath = '/admin/dashboard';
-            userRoleName = 'Admin';
-            displayName = email;
-          } else if (role === 'staff') {
-            targetPath = '/admin/kitchen';
-            userRoleName = 'Personal de Cocina';
-            displayName = email;
-          } else {
-            targetPath = '/client/menu';
-            userRoleName = 'Alumno/Profesor';
-            displayName = email;
-          }
         }
-      } else {
-        // REGISTRO
-        targetPath = '/client/menu';
-        userRoleName = 'Alumno/Profesor';
-        displayName = name;
-        
-        toast({
-          className: "uni-toast-success",
-          title: "🎉 ¡REGISTRO EXITOSO!",
-          description: `Bienvenido a UniEats, ${name}.`,
-        });
       }
 
-      // Guardar sesión local para los otros monitores
-      localStorage.setItem('unieats_user', JSON.stringify({
-        name: displayName,
-        role: userRoleName,
-        email: email
-      }));
+      await sendLoginConfirmationEmail({ 
+        email: displayName, 
+        role: userRoleName 
+      });
 
-      try {
-        const emailResult = await sendLoginConfirmationEmail({ 
-          email: email || name, 
-          role: userRoleName 
-        });
+      toast({
+        className: "uni-toast-success",
+        title: "BIENVENIDO",
+        description: `Sesión iniciada como ${displayName}.`,
+      });
 
-        toast({
-          className: "uni-toast-info",
-          title: `📧 GMAIL: ${emailResult.subject}`,
-          description: `Confirmación enviada a ${email || name}.`,
-        });
-      } catch (e) {
-        console.error("IA Email Error:", e);
-      }
-
-      setLoading(false);
       router.push(targetPath);
-    }, 1000);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo iniciar sesión. Revisa tu conexión.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -194,21 +164,6 @@ export default function LoginPage() {
                         className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email-reg" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Correo Institucional</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
-                      <Input 
-                        id="email-reg" 
-                        type="email"
-                        placeholder="ejemplo@uni.edu" 
-                        className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
                         required 
                       />
                     </div>

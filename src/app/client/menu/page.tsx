@@ -1,10 +1,9 @@
-
-"use client";
+'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient, INGREDIENTS } from '@/lib/data';
+import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -13,17 +12,12 @@ import {
   Clock, 
   ChevronRight,
   ArrowLeft,
-  CheckCircle2,
   CreditCard,
   Wallet,
   Plus,
   Sparkles,
-  Utensils,
-  XCircle,
   Trash2,
-  RotateCcw,
-  Tv,
-  Star
+  Tv
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -31,12 +25,14 @@ import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import { smartMenuRecommendation } from '@/ai/flows/smart-menu-recommendation-flow';
+import { useFirestore, useCollection, useUser, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -49,37 +45,19 @@ export default function ClientMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const [inventory, setInventory] = useState<Ingredient[]>([]);
-  const [userName, setUserName] = useState("Comunidad UNI");
-  
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
-  const syncInventory = () => {
-    const savedInv = localStorage.getItem('uni_inventory');
-    if (!savedInv) {
-      setInventory(INGREDIENTS);
-      localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
-    } else {
-      setInventory(JSON.parse(savedInv));
-    }
-  };
-
-  useEffect(() => {
-    syncInventory();
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'uni_inventory') syncInventory();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    const savedUser = localStorage.getItem('unieats_user');
-    if (savedUser) setUserName(JSON.parse(savedUser).name);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Suscribirse al inventario en tiempo real
+  const ingredientsQuery = useMemoFirebase(() => collection(firestore, 'ingredients'), [firestore]);
+  const { data: inventory } = useCollection(ingredientsQuery);
 
   const checkStockAvailability = (newItem: MenuItem, currentCart: any[]) => {
-    const currentInv = JSON.parse(localStorage.getItem('uni_inventory') || JSON.stringify(INGREDIENTS));
-    const requirements: Record<string, number> = {};
+    if (!inventory) return false;
     
+    const requirements: Record<string, number> = {};
     [...currentCart, newItem].forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
@@ -87,8 +65,8 @@ export default function ClientMenu() {
     });
 
     return Object.entries(requirements).every(([ingId, qty]) => {
-      const ing = currentInv.find((i: any) => i.id === ingId);
-      return ing && ing.stock >= qty;
+      const ing = inventory.find((i: any) => i.id === ingId);
+      return ing && ing.currentStock >= qty;
     });
   };
 
@@ -105,7 +83,6 @@ export default function ClientMenu() {
         currentPromotions: ["Refresco gratis en la compra de 2 hamburguesas"]
       });
       
-      // Mapear nombres de vuelta a objetos MENU_ITEMS
       const items = result.recommendations
         .map(rec => {
           const match = MENU_ITEMS.find(m => m.name === rec.item);
@@ -138,53 +115,52 @@ export default function ClientMenu() {
     }
   };
 
-  const clearCart = () => {
-    setCart([]);
-    setPaymentMethod(null);
-    setShowPayment(false);
-  };
-
   const handlePayment = () => {
-    if (cart.length === 0) return;
+    if (!user || cart.length === 0 || !paymentMethod) return;
+    
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
-    const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
-    setCurrentOrderId(orderId);
+    const orderId = `${Math.floor(100 + Math.random() * 900)}`;
+    setCurrentOrderId(`#${orderId}`);
 
-    const currentInv = JSON.parse(localStorage.getItem('uni_inventory') || '[]');
-    const newInventory = [...currentInv];
-
-    cart.forEach(cartItem => {
-      cartItem.recipe.forEach((r: any) => {
-        const idx = newInventory.findIndex((i: any) => i.id === r.ingredientId);
-        if (idx !== -1) newInventory[idx].stock -= r.quantity;
-      });
-    });
-
-    localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
-
-    const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
-    kitchenOrders.push({
+    // 1. Crear la orden en Firestore
+    const orderRef = doc(firestore, 'orders', orderId);
+    const orderData = {
       id: orderId,
+      userId: user.uid,
+      user: user.displayName || 'Comunidad UNI',
+      totalAmount,
+      status: 'Pending',
+      method: paymentMethod,
+      orderDate: new Date().toISOString(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       items: cart.reduce((acc: any[], item) => {
         const ex = acc.find(i => i.name === item.name);
-        if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1 });
+        if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1, price: item.price });
         return acc;
-      }, []),
-      status: 'pending', user: userName, timestamp: new Date().toISOString()
-    });
-    localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
+      }, [])
+    };
 
-    const pending = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
-    pending.push({
-      id: orderId, user: userName, total: totalAmount, method: paymentMethod,
-      items: cart.map(i => ({ name: i.name, price: i.price })), timestamp: new Date().toISOString()
+    addDocumentNonBlocking(collection(firestore, 'orders'), orderData);
+
+    // 2. Descontar inventario en Firestore
+    cart.forEach(cartItem => {
+      cartItem.recipe.forEach((r: any) => {
+        const ing = inventory?.find(i => i.id === r.ingredientId);
+        if (ing) {
+          const ingRef = doc(firestore, 'ingredients', ing.id);
+          updateDocumentNonBlocking(ingRef, {
+            currentStock: ing.currentStock - r.quantity,
+            updatedAt: serverTimestamp()
+          });
+        }
+      });
     });
-    localStorage.setItem('pending_verifications', JSON.stringify(pending));
 
     setCart([]);
     setShowPayment(false);
     setOrderStatus('preparing');
+    toast({ className: "uni-toast-success", title: "PEDIDO REALIZADO", description: `Orden #${orderId} enviada a cocina.` });
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
@@ -198,7 +174,7 @@ export default function ClientMenu() {
           </Button>
           <div className="flex flex-col">
             <span className="text-xl font-black tracking-tighter text-primary">UniEats</span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">{userName}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Cargando...'}</span>
           </div>
         </div>
         <Button variant="outline" className="rounded-xl h-10 px-4 font-black gap-2 border-2 text-xs" onClick={() => router.push('/queue')}>
@@ -276,7 +252,7 @@ export default function ClientMenu() {
 
       {cart.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-2xl z-50 flex gap-3">
-          <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full shadow-2xl shrink-0 border-4 border-white" onClick={clearCart}>
+          <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full shadow-2xl shrink-0 border-4 border-white" onClick={() => setCart([])}>
             <Trash2 size={24} />
           </Button>
           <Button className="flex-1 h-16 rounded-2xl shadow-2xl text-lg font-black flex justify-between px-8 mcd-gradient" onClick={() => setShowPayment(true)}>
@@ -300,7 +276,7 @@ export default function ClientMenu() {
             {upsellRecommendations.map((rec: any) => (
               <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 border-muted hover:border-primary/20 transition-all group">
                 <div className="w-20 h-20 relative rounded-2xl overflow-hidden shrink-0">
-                  <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" />
+                  <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" sizes="80px" />
                 </div>
                 <div className="flex-1">
                   <p className="font-black text-sm">{rec.name}</p>

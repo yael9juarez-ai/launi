@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow for generating smart menu recommendations based on user preferences, popular items, and promotions.
@@ -105,7 +104,7 @@ const smartMenuRecommendationFlow = ai.defineFlow(
     outputSchema: SmartMenuRecommendationOutputSchema,
   },
   async (input) => {
-    const { output } = smartMenuRecommendationPrompt(input);
+    const { output } = await smartMenuRecommendationPrompt(input);
     return output!;
   }
 );
