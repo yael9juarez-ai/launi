@@ -14,12 +14,6 @@
       "imageHint": "hamburger cheese"
     },
     {
-      "id": "papas",
-      "description": "Papas a la francesa crujientes",
-      "imageUrl": "https://picsum.photos/seed/french-fries/400/300",
-      "imageHint": "french fries"
-    },
-    {
       "id": "aguas-sabor",
       "description": "Agua fresca de sabor frutal",
       "imageUrl": "https://picsum.photos/seed/fresh-water/400/300",
@@ -60,12 +54,6 @@
       "description": "Hot cakes esponjosos",
       "imageUrl": "https://picsum.photos/seed/hotcakes/400/300",
       "imageHint": "pancakes breakfast"
-    },
-    {
-      "id": "popcorn",
-      "description": "Palomitas de maíz con mantequilla",
-      "imageUrl": "https://picsum.photos/seed/popcorn/400/300",
-      "imageHint": "popcorn butter"
     },
     {
       "id": "sweetbread",

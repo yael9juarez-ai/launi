@@ -53,12 +53,9 @@ export default function ClientMenu() {
   const { toast } = useToast();
   const router = useRouter();
 
-  useEffect(() => {
-    // Inicialización de inventario con los nuevos ingredientes (vainilla, azúcar, etc)
+  const syncInventory = () => {
     const savedInv = localStorage.getItem('uni_inventory');
     const parsedInv = savedInv ? JSON.parse(savedInv) : [];
-    
-    // Verificamos si i33 (vainilla) existe para asegurar que es el inventario actualizado
     const needsUpdate = !parsedInv.find((i: any) => i.id === 'i33');
 
     if (!savedInv || needsUpdate) {
@@ -67,24 +64,48 @@ export default function ClientMenu() {
     } else {
       setInventory(parsedInv);
     }
+  };
+
+  useEffect(() => {
+    syncInventory();
+    
+    // Sincronización entre ventanas/tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'uni_inventory') syncInventory();
+    };
+    window.addEventListener('storage', handleStorageChange);
 
     const savedUser = localStorage.getItem('unieats_user');
     if (savedUser) setUserName(JSON.parse(savedUser).name);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const checkStockAvailability = (item: MenuItem, currentCart: any[] = cart) => {
-    // Jalamos el inventario más fresco de localStorage para evitar errores de desfase
+  const checkStockAvailability = (newItem: MenuItem, currentCart: any[]) => {
     const savedInv = localStorage.getItem('uni_inventory');
-    const currentInventory = savedInv ? JSON.parse(savedInv) : inventory;
+    const currentInv = savedInv ? JSON.parse(savedInv) : inventory;
     
-    if (currentInventory.length === 0) return false;
+    if (currentInv.length === 0) return false;
+
+    // Calcular requerimientos totales sumando el carrito actual + el nuevo item
+    const requirements: Record<string, number> = {};
     
-    // Contar cuántos de este item ya hay en el carrito para validación acumulada
-    const itemCountInCart = currentCart.filter(i => i.id === item.id).length;
-    
-    return item.recipe.every(r => {
-      const ing = currentInventory.find((i: any) => i.id === r.ingredientId);
-      return ing && ing.stock >= (r.quantity * (itemCountInCart + 1));
+    // Sumar lo que ya está en el carrito
+    currentCart.forEach(cartItem => {
+      cartItem.recipe.forEach((r: any) => {
+        requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
+      });
+    });
+
+    // Sumar el nuevo item
+    newItem.recipe.forEach((r: any) => {
+      requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
+    });
+
+    // Validar contra el stock actual
+    return Object.entries(requirements).every(([ingId, qty]) => {
+      const ing = currentInv.find((i: any) => i.id === ingId);
+      return ing && ing.stock >= qty;
     });
   };
 
@@ -98,11 +119,11 @@ export default function ClientMenu() {
   const sweetUpsells = useMemo(() => MENU_ITEMS.filter(item => item.category === "Golosinas").slice(0, 4), []);
 
   const addToCart = (item: any) => {
-    if (!checkStockAvailability(item)) {
+    if (!checkStockAvailability(item, cart)) {
       toast({
         variant: "destructive",
-        title: "🚫 AGOTADO",
-        description: `Lo sentimos, ya no tenemos insumos para ${item.name}.`,
+        title: "🚫 INSUMOS AGOTADOS",
+        description: `No hay suficientes ingredientes para preparar este pedido.`,
       });
       return;
     }
@@ -115,8 +136,8 @@ export default function ClientMenu() {
 
     toast({
       className: "uni-toast-info",
-      title: "🍔 AÑADIDO",
-      description: `${item.name} en el carrito.`,
+      title: "AÑADIDO AL CARRITO",
+      description: `${item.name} listo para ordenar.`,
     });
   };
 
@@ -133,31 +154,34 @@ export default function ClientMenu() {
   };
 
   const handlePayment = () => {
+    if (cart.length === 0) return;
+
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    // Obtener inventario actual para descontar
+    // Obtener inventario actual para descontar de forma atómica
     const savedInv = localStorage.getItem('uni_inventory');
     const currentInv = savedInv ? JSON.parse(savedInv) : [...inventory];
-    
     const newInventory = currentInv.map((ing: any) => ({ ...ing }));
 
+    // Descontar cada ingrediente de cada receta en el carrito
     cart.forEach(cartItem => {
-        if (cartItem.recipe) {
-            cartItem.recipe.forEach((r: any) => {
-                const ingIndex = newInventory.findIndex((i: any) => i.id === r.ingredientId);
-                if (ingIndex !== -1) {
-                    newInventory[ingIndex].stock -= r.quantity;
-                }
-            });
+      cartItem.recipe.forEach((r: any) => {
+        const ingIndex = newInventory.findIndex((i: any) => i.id === r.ingredientId);
+        if (ingIndex !== -1) {
+          newInventory[ingIndex].stock -= r.quantity;
         }
+      });
     });
 
+    // Guardar y notificar
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
     setInventory(newInventory);
+    
+    // Forzar evento manual para otras pestañas que no son 'storage' en la misma ventana
+    window.dispatchEvent(new Event('storage'));
 
-    // Registrar en cocina
     const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
     kitchenOrders.push({
       id: orderId,
@@ -174,7 +198,6 @@ export default function ClientMenu() {
     });
     localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
-    // Registrar para verificación de admin
     const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
     pendingVerifications.push({
       id: orderId,
@@ -188,8 +211,8 @@ export default function ClientMenu() {
 
     toast({
       className: "uni-toast-info",
-      title: `ORDEN ${orderId}`,
-      description: "Tu pedido ha sido enviado a cocina e insumos descontados.",
+      title: `ORDEN ${orderId} ENVIADA`,
+      description: "Insumos descontados. Pasa a ventanilla con tu pago.",
     });
 
     setShowPayment(false);
@@ -287,7 +310,7 @@ export default function ClientMenu() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
           {filteredItems.map((item) => {
-            const available = checkStockAvailability(item);
+            const available = checkStockAvailability(item, cart);
             return (
               <Card key={item.id} className={cn("group border-none shadow-xl rounded-[3rem] overflow-hidden bg-white", !available && "opacity-50 grayscale")}>
                 <div className="aspect-[4/3] relative overflow-hidden">
@@ -334,7 +357,7 @@ export default function ClientMenu() {
             </DialogHeader>
             <div className="grid grid-cols-2 gap-6 mt-8">
               {(upsellStep === 'drink' ? drinkUpsells : sweetUpsells).map(item => {
-                const available = checkStockAvailability(item);
+                const available = checkStockAvailability(item, cart);
                 return (
                   <Card key={item.id} className={cn("border-2 transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer", !available && "opacity-40 grayscale pointer-events-none")} 
                         onClick={() => { setCart([...cart, item]); nextUpsell(); }}>

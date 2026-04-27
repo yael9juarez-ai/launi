@@ -31,14 +31,32 @@ export default function POSPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  useEffect(() => {
+  const syncInventory = () => {
     const saved = localStorage.getItem('uni_inventory');
     if (saved) {
-      setInventory(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      // Validar si es el inventario nuevo
+      if (!parsed.find((i: any) => i.id === 'i33')) {
+        setInventory(INGREDIENTS);
+        localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
+      } else {
+        setInventory(parsed);
+      }
     } else {
       setInventory(INGREDIENTS);
       localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
     }
+  };
+
+  useEffect(() => {
+    syncInventory();
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'uni_inventory') syncInventory();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const checkStockAvailability = (item: MenuItem, quantity: number = 1) => {
@@ -95,18 +113,23 @@ export default function POSPage() {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     
-    const newInventory = [...inventory];
+    // Deducción atómica
+    const savedInv = localStorage.getItem('uni_inventory');
+    const freshInv = savedInv ? JSON.parse(savedInv) : [...inventory];
+    const newInventory = freshInv.map((ing: any) => ({ ...ing }));
+
     cart.forEach(cartItem => {
-        cartItem.recipe.forEach((r: any) => {
-            const ingIndex = newInventory.findIndex(i => i.id === r.ingredientId);
-            if (ingIndex !== -1) {
-                newInventory[ingIndex].stock -= (r.quantity * cartItem.quantity);
-            }
-        });
+      cartItem.recipe.forEach((r: any) => {
+        const ingIndex = newInventory.findIndex((i: any) => i.id === r.ingredientId);
+        if (ingIndex !== -1) {
+          newInventory[ingIndex].stock -= (r.quantity * cartItem.quantity);
+        }
+      });
     });
     
     setInventory(newInventory);
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
+    window.dispatchEvent(new Event('storage')); // Sincronizar otras pestañas
 
     const currentTotal = parseFloat(localStorage.getItem('confirmed_sales_total') || '0');
     localStorage.setItem('confirmed_sales_total', (currentTotal + total).toString());
