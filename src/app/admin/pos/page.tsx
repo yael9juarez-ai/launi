@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { MENU_ITEMS, CATEGORIES } from '@/lib/data';
+import { MENU_ITEMS, CATEGORIES, INGREDIENTS, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,8 @@ import {
   ArrowLeft,
   Banknote,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  Database
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -29,18 +30,27 @@ export default function POSPage() {
   const [cart, setCart] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todas');
+  const [inventory, setInventory] = useState(INGREDIENTS);
   const { toast } = useToast();
   const router = useRouter();
 
-  const addToCart = (item: any) => {
-    if (item.stock <= 0) {
+  const checkStockAvailability = (item: MenuItem) => {
+    return item.recipe.every(r => {
+      const ing = inventory.find(i => i.id === r.ingredientId);
+      return ing && ing.stock >= r.quantity;
+    });
+  };
+
+  const addToCart = (item: MenuItem) => {
+    if (!checkStockAvailability(item)) {
       toast({
         variant: "destructive",
-        title: "Stock Insuficiente",
-        description: "El producto seleccionado está agotado.",
+        title: "Insumos Insuficientes",
+        description: `No hay ingredientes suficientes para preparar ${item.name}.`,
       });
       return;
     }
+    
     const existing = cart.find(i => i.id === item.id);
     if (existing) {
       setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
@@ -54,9 +64,22 @@ export default function POSPage() {
   };
 
   const updateQuantity = (id: string, delta: number) => {
+    const item = MENU_ITEMS.find(m => m.id === id);
+    if (!item) return;
+
     setCart(cart.map(i => {
       if (i.id === id) {
         const newQty = Math.max(1, i.quantity + delta);
+        // Validar si hay stock para la nueva cantidad
+        const hasStock = item.recipe.every(r => {
+            const ing = inventory.find(inv => inv.id === r.ingredientId);
+            return ing && ing.stock >= (r.quantity * newQty);
+        });
+
+        if (!hasStock && delta > 0) {
+            toast({ variant: "destructive", title: "Límite de Insumos", description: "No hay más ingredientes disponibles." });
+            return i;
+        }
         return { ...i, quantity: newQty };
       }
       return i;
@@ -68,25 +91,28 @@ export default function POSPage() {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     
+    // DEDUCIR INGREDIENTES DEL INVENTARIO REAL
+    const newInventory = [...inventory];
+    cart.forEach(cartItem => {
+        cartItem.recipe.forEach((r: any) => {
+            const ingIndex = newInventory.findIndex(i => i.id === r.ingredientId);
+            if (ingIndex !== -1) {
+                newInventory[ingIndex].stock -= (r.quantity * cartItem.quantity);
+            }
+        });
+    });
+    
+    setInventory(newInventory);
     const finalTotal = total.toFixed(2);
     
     toast({
       className: "uni-toast-success",
       title: "✅ Venta Exitosa",
-      description: (
-        <div className="flex flex-col gap-1">
-          <p className="font-bold text-emerald-700">¡Pedido registrado correctamente!</p>
-          <p className="text-sm">Total cobrado: $ {finalTotal} MXN</p>
-        </div>
-      ),
+      description: `Pedido registrado. Insumos descontados del inventario. Total: $ ${finalTotal}`,
       action: (
         <ToastAction 
           altText="Imprimir" 
-          onClick={() => toast({ 
-            title: "🖨️ Imprimiendo...", 
-            description: `Generando ticket por $ ${finalTotal} MXN`,
-            className: "uni-toast-info"
-          })}
+          onClick={() => {}}
           className="bg-emerald-600 text-white hover:bg-emerald-700 border-none rounded-xl font-bold"
         >
           Imprimir Ticket
@@ -109,7 +135,7 @@ export default function POSPage() {
         <div className="mb-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" className="rounded-full hover:bg-primary hover:text-white transition-colors" onClick={() => router.push('/admin/dashboard')}>
+              <Button variant="outline" size="icon" className="rounded-full" onClick={() => router.push('/admin/dashboard')}>
                 <ArrowLeft size={20} />
               </Button>
               <div className="flex items-center gap-2">
@@ -146,37 +172,35 @@ export default function POSPage() {
 
         <ScrollArea className="flex-1">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pr-4">
-            {filteredItems.map((item) => (
-              <Card 
-                key={item.id} 
-                className={cn(
-                  "group cursor-pointer border-2 transition-all rounded-2xl overflow-hidden shadow-sm hover:shadow-lg bg-white",
-                  item.stock > 0 ? "hover:border-primary" : "opacity-60 grayscale-[0.3]"
-                )}
-                onClick={() => addToCart(item)}
-              >
-                <div className="aspect-video bg-muted relative overflow-hidden">
-                  <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300" />
-                  {item.stock <= 0 && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Badge variant="destructive" className="font-black">AGOTADO</Badge>
-                    </div>
+            {filteredItems.map((item) => {
+              const available = checkStockAvailability(item);
+              return (
+                <Card 
+                  key={item.id} 
+                  className={cn(
+                    "group cursor-pointer border-2 transition-all rounded-2xl overflow-hidden shadow-sm hover:shadow-lg bg-white",
+                    available ? "hover:border-primary" : "opacity-60 grayscale-[0.3]"
                   )}
-                </div>
-                <CardContent className="p-3">
-                  <p className="font-black text-sm line-clamp-1">{item.name}</p>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-primary font-black">$ {item.price.toFixed(2)}</p>
-                    <p className={cn(
-                      "text-[10px] font-bold flex items-center gap-0.5",
-                      item.stock < 10 ? "text-primary animate-pulse" : "text-muted-foreground"
-                    )}>
-                      <AlertCircle size={10} /> {item.stock}
-                    </p>
+                  onClick={() => addToCart(item)}
+                >
+                  <div className="aspect-video bg-muted relative overflow-hidden">
+                    <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300" />
+                    {!available && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Badge variant="destructive" className="font-black">SIN INSUMOS</Badge>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardContent className="p-3">
+                    <p className="font-black text-sm line-clamp-1">{item.name}</p>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-primary font-black">$ {item.price.toFixed(2)}</p>
+                      <Database size={14} className={available ? "text-emerald-500" : "text-destructive"} />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </ScrollArea>
       </div>
@@ -224,26 +248,9 @@ export default function POSPage() {
         </ScrollArea>
 
         <div className="p-8 bg-muted/30 border-t space-y-4">
-          <div className="flex justify-between text-base font-bold">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>$ {(total * 0.84).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-xs font-bold text-muted-foreground">
-            <span>IVA (16%)</span>
-            <span>$ {(total * 0.16).toFixed(2)}</span>
-          </div>
           <div className="flex justify-between text-3xl font-black border-t-2 border-primary/20 pt-4">
             <span>Total</span>
             <span className="text-primary">$ {total.toFixed(2)}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-4">
-            <Button variant="outline" className="rounded-2xl h-14 gap-2 font-bold border-2 border-primary/10 hover:border-primary/40">
-              <Banknote size={20} className="text-emerald-600" /> Efectivo
-            </Button>
-            <Button variant="outline" className="rounded-2xl h-14 gap-2 font-bold border-2 border-primary/10 hover:border-primary/40">
-              <CreditCard size={20} className="text-blue-600" /> Tarjeta
-            </Button>
           </div>
 
           <Button className="w-full h-16 rounded-[1.5rem] text-xl font-black shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={handleCheckout} disabled={cart.length === 0}>
