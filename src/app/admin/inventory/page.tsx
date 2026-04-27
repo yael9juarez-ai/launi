@@ -12,16 +12,12 @@ import {
   ArrowLeft, 
   Save, 
   Search, 
-  Database, 
   Box, 
-  TrendingDown, 
-  PlusCircle, 
   RotateCcw,
   Scale,
   Droplets,
   Package,
-  AlertTriangle,
-  Flame
+  PlusCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -37,8 +33,8 @@ export default function InventoryPage() {
     const saved = localStorage.getItem('uni_inventory');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Forzamos actualización si detectamos que faltan las botellas nuevas o tienen unidad incorrecta
-      const isOutdated = !parsed.find((i: any) => i.id === 'i14' && i.unit === 'pzas');
+      // Forzamos actualización si detectamos que el agua purificada sigue en ml o faltan nuevos campos
+      const isOutdated = parsed.find((i: any) => i.id === 'i9' && i.unit === 'ml');
       
       if (isOutdated) {
         setItems(INITIAL_INGREDIENTS);
@@ -113,8 +109,6 @@ export default function InventoryPage() {
     return `${amount} ${unit}`;
   };
 
-  const criticalCount = items.filter(i => i.stock <= i.minStock).length;
-
   return (
     <div className="min-h-screen bg-[#FDFDFD] p-4 md:p-8">
       <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -144,7 +138,7 @@ export default function InventoryPage() {
               <CardTitle className="text-2xl md:text-3xl font-black flex items-center gap-3">
                 <Box className="text-primary" /> Inventario Técnico
               </CardTitle>
-              <CardDescription className="font-bold">Las botellas se controlan por pieza, los polvos por Kg y líquidos por Litro.</CardDescription>
+              <CardDescription className="font-bold">Aguas Bonafont y sabores se cuentan por pieza (botella).</CardDescription>
             </div>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-4 top-3 h-5 w-5 text-muted-foreground" />

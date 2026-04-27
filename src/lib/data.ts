@@ -40,9 +40,8 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i6", name: "Tortilla de Maíz", stock: 500, unit: "pzas", minStock: 100 },
   { id: "i7", name: "Sopa Maruchan (Vaso)", stock: 80, unit: "pzas", minStock: 15 },
   { id: "i8", name: "Refresco 600ml (Botella)", stock: 120, unit: "pzas", minStock: 24 },
-  { id: "i9", name: "Agua Purificada", stock: 500000, unit: "ml", minStock: 50000 },
+  { id: "i9", name: "Agua Bonafont (600ml)", stock: 150, unit: "pzas", minStock: 24 },
   { id: "i13", name: "Gomitas Varias (Stock)", stock: 50000, unit: "gr", minStock: 5000 },
-  // Aguas de sabores como PIEZAS (Botellas)
   { id: "i14", name: "Botella Agua Jamaica", stock: 60, unit: "pzas", minStock: 12 },
   { id: "i15", name: "Botella Agua Horchata", stock: 60, unit: "pzas", minStock: 12 },
   { id: "i16", name: "Botella Agua Limón", stock: 60, unit: "pzas", minStock: 12 },
@@ -51,7 +50,6 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i20", name: "Tomate Rojo", stock: 8000, unit: "gr", minStock: 1000 },
   { id: "i21", name: "Cebolla Blanca", stock: 5000, unit: "gr", minStock: 1000 },
   { id: "i23", name: "Sal Refinada", stock: 5000, unit: "gr", minStock: 500 },
-  // Ingredientes para Hot Cakes Caseros
   { id: "i24", name: "Harina de Trigo", stock: 25000, unit: "gr", minStock: 2000 },
   { id: "i25", name: "Leche Entera", stock: 30000, unit: "ml", minStock: 3000 },
   { id: "i26", name: "Huevo Fresco", stock: 300, unit: "pzas", minStock: 24 },
@@ -59,7 +57,6 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i31", name: "Azúcar Blanca", stock: 15000, unit: "gr", minStock: 1000 },
   { id: "i32", name: "Polvo para Hornear", stock: 2000, unit: "gr", minStock: 100 },
   { id: "i33", name: "Extracto de Vainilla", stock: 2000, unit: "ml", minStock: 50 },
-  { id: "i29", name: "Miel de Abeja", stock: 5000, unit: "ml", minStock: 500 },
   { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 150, unit: "pzas", minStock: 10 },
 ];
 
@@ -73,7 +70,7 @@ export const MENU_ITEMS: MenuItem[] = [
     imageUrl: "https://picsum.photos/seed/maruchan/400/300",
     recipe: [
       { ingredientId: "i7", quantity: 1 },
-      { ingredientId: "i9", quantity: 350 }
+      { ingredientId: "i9", quantity: 1 }
     ],
     nutrition: { calories: 300, protein: 5, fat: 12, carbs: 45 }
   },
@@ -147,7 +144,7 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: "g3",
     name: "Gomitas Mango Fuego (150g)",
-    description: "Gomitas de mango con el toque picosito del campus.",
+    description: "Gomitas de mango con el toque picosito.",
     price: 30.00,
     category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/g-mango/400/300",
@@ -165,15 +162,23 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
   },
   {
+    id: "b1",
+    name: "Agua Bonafont (600ml)",
+    description: "Botella fría de agua natural purificada.",
+    price: 20.00,
+    category: "Bebidas",
+    imageUrl: "https://picsum.photos/seed/water-bottle/400/300",
+    recipe: [{ ingredientId: "i9", quantity: 1 }],
+    nutrition: { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  },
+  {
     id: "b5",
     name: "Agua de Jamaica (Botella)",
     description: "Botella de agua fresca de jamaica.",
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/jamaica/400/300",
-    recipe: [
-      { ingredientId: "i14", quantity: 1 }
-    ],
+    recipe: [{ ingredientId: "i14", quantity: 1 }],
     nutrition: { calories: 180, protein: 0, fat: 0, carbs: 45 }
   },
   {
@@ -183,9 +188,7 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/horchata/400/300",
-    recipe: [
-      { ingredientId: "i15", quantity: 1 }
-    ],
+    recipe: [{ ingredientId: "i15", quantity: 1 }],
     nutrition: { calories: 250, protein: 2, fat: 4, carbs: 55 }
   },
   {
@@ -195,9 +198,7 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 35.00,
     category: "Bebidas",
     imageUrl: "https://picsum.photos/seed/lemonade/400/300",
-    recipe: [
-      { ingredientId: "i16", quantity: 1 }
-    ],
+    recipe: [{ ingredientId: "i16", quantity: 1 }],
     nutrition: { calories: 160, protein: 0, fat: 0, carbs: 40 }
   },
   {
