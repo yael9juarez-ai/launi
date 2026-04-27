@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -17,7 +18,8 @@ import {
   Plus,
   Sparkles,
   Trash2,
-  Tv
+  Tv,
+  Loader2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -31,8 +33,8 @@ import {
 import { cn } from '@/lib/utils';
 import { smartMenuRecommendation } from '@/ai/flows/smart-menu-recommendation-flow';
 import { useFirestore, useCollection, useUser, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -45,17 +47,21 @@ export default function ClientMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
-  // Suscribirse al inventario en tiempo real
-  const ingredientsQuery = useMemoFirebase(() => collection(firestore, 'ingredients'), [firestore]);
-  const { data: inventory } = useCollection(ingredientsQuery);
+  // Suscribirse al inventario global solo si hay usuario
+  const ingredientsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'ingredients');
+  }, [firestore, user]);
+  
+  const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
   const checkStockAvailability = (newItem: MenuItem, currentCart: any[]) => {
-    if (!inventory) return false;
+    if (!inventory) return true; // Si no hay inventario cargado, permitimos añadir (se validará en backend)
     
     const requirements: Record<string, number> = {};
     [...currentCart, newItem].forEach(cartItem => {
@@ -66,7 +72,7 @@ export default function ClientMenu() {
 
     return Object.entries(requirements).every(([ingId, qty]) => {
       const ing = inventory.find((i: any) => i.id === ingId);
-      return ing && ing.currentStock >= qty;
+      return !ing || ing.currentStock >= qty;
     });
   };
 
@@ -79,8 +85,7 @@ export default function ClientMenu() {
           price: m.price, 
           category: m.category 
         })),
-        customerOrderHistory: [item.name],
-        currentPromotions: ["Refresco gratis en la compra de 2 hamburguesas"]
+        customerOrderHistory: [item.name]
       });
       
       const items = result.recommendations
@@ -94,7 +99,7 @@ export default function ClientMenu() {
       setUpsellRecommendations(items);
       setShowUpsell(true);
     } catch (error) {
-      console.error("Error fetching AI recommendations:", error);
+      console.error("Error AI Recommendations:", error);
     }
   };
 
@@ -115,19 +120,19 @@ export default function ClientMenu() {
     }
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!user || cart.length === 0 || !paymentMethod) return;
     
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
-    const orderId = `${Math.floor(100 + Math.random() * 900)}`;
+    const orderId = `${Math.floor(100 + Math.random() * 899)}`;
     setCurrentOrderId(`#${orderId}`);
 
-    // 1. Crear la orden en Firestore
+    // Crear orden en Firestore
     const orderRef = doc(firestore, 'orders', orderId);
-    const orderData = {
+    await setDoc(orderRef, {
       id: orderId,
       userId: user.uid,
-      user: user.displayName || 'Comunidad UNI',
+      user: user.displayName || 'Estudiante',
       totalAmount,
       status: 'Pending',
       method: paymentMethod,
@@ -139,11 +144,9 @@ export default function ClientMenu() {
         if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1, price: item.price });
         return acc;
       }, [])
-    };
+    });
 
-    addDocumentNonBlocking(collection(firestore, 'orders'), orderData);
-
-    // 2. Descontar inventario en Firestore
+    // Descontar inventario global
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -165,6 +168,14 @@ export default function ClientMenu() {
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
+  if (isUserLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] pb-32">
       <header className="bg-white border-b-2 sticky top-0 z-40 px-4 md:px-6 h-20 flex items-center justify-between shadow-sm">
@@ -174,10 +185,10 @@ export default function ClientMenu() {
           </Button>
           <div className="flex flex-col">
             <span className="text-xl font-black tracking-tighter text-primary">UniEats</span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Cargando...'}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Invitado'}</span>
           </div>
         </div>
-        <Button variant="outline" className="rounded-xl h-10 px-4 font-black gap-2 border-2 text-xs" onClick={() => router.push('/queue')}>
+        <Button variant="outline" className="rounded-xl h-10 px-4 font-black gap-2 border-2 text-xs" onClick={() => window.open('/queue', '_blank')}>
           <Tv size={16} className="text-primary" /> TURNOS
         </Button>
       </header>
@@ -195,7 +206,7 @@ export default function ClientMenu() {
               </div>
             </div>
             <Button variant="outline" className="mt-4 md:mt-0 bg-white/10 text-white border-2 rounded-xl h-14 px-8 font-black" onClick={() => setOrderStatus('idle')}>
-              ENTENDIDO
+              CERRAR
             </Button>
           </div>
         )}
@@ -205,7 +216,7 @@ export default function ClientMenu() {
             <Search className="absolute left-5 top-5 h-6 w-6 text-muted-foreground" />
             <Input 
               placeholder="Busca tu comida favorita..." 
-              className="pl-16 h-16 bg-white border-2 rounded-2xl text-xl font-medium shadow-sm"
+              className="pl-16 h-16 bg-white border-2 rounded-2xl text-xl font-medium"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -262,13 +273,9 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* RECOMENDACIONES DE IA (UPSELL) */}
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg mx-4">
           <div className="bg-secondary p-8 text-black relative">
-            <div className="absolute top-0 right-0 p-4">
-               <Sparkles className="w-12 h-12 text-black/20 animate-pulse" />
-            </div>
             <h2 className="text-3xl font-black leading-tight">¿Te gustaría algo más?</h2>
             <p className="font-bold opacity-70">Sugerencias inteligentes para acompañar tu {lastAddedItem?.name}.</p>
           </div>
@@ -297,7 +304,6 @@ export default function ClientMenu() {
         </DialogContent>
       </Dialog>
 
-      {/* VENTANA DE PAGO */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md mx-4">
           <div className="bg-primary p-8 text-white">
@@ -313,7 +319,7 @@ export default function ClientMenu() {
             <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-4 mt-4">
               <span>Total</span> <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
-            <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient shadow-lg" onClick={handlePayment} disabled={!paymentMethod}>
+            <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient" onClick={handlePayment} disabled={!paymentMethod}>
               Confirmar Pedido
             </Button>
           </div>

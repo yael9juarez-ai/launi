@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -19,17 +20,13 @@ import {
   Tv,
   CheckCircle2,
   CreditCard,
-  Banknote
+  Banknote,
+  Loader2
 } from 'lucide-react';
-import { 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area 
-} from 'recharts';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -45,9 +42,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp, query, where } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  AreaChart, Area 
+} from 'recharts';
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
@@ -61,10 +62,16 @@ const chartData = [
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const ordersQuery = useMemoFirebase(() => collection(firestore, 'orders'), [firestore]);
-  const { data: allOrders } = useCollection(ordersQuery);
+  // Solo realizar la consulta si el usuario está autenticado
+  const ordersQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'orders');
+  }, [firestore, user]);
+
+  const { data: allOrders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
 
   const pendingOrders = allOrders?.filter(o => o.status === 'Pending') || [];
   const confirmedOrders = allOrders?.filter(o => o.status !== 'Pending') || [];
@@ -91,14 +98,14 @@ export default function AdminDashboard() {
   const handleLiberatePayment = (orderId: string) => {
     const orderRef = doc(firestore, 'orders', orderId);
     updateDocumentNonBlocking(orderRef, {
-      status: 'Preparing', // Al liberar el pago, pasa a cocina
+      status: 'Preparing',
       updatedAt: serverTimestamp()
     });
 
     toast({
       className: "uni-toast-success",
       title: "✅ PAGO LIBERADO",
-      description: `Pedido #${orderId} enviado a cocina y sumado al corte.`,
+      description: `Pedido #${orderId} enviado a cocina.`,
     });
   };
 
@@ -123,9 +130,18 @@ export default function AdminDashboard() {
     monthly: calculateReportData(20),
   }), [confirmedSalesTotal, confirmedItemsStats, confirmedOrders]);
 
-  const openQueueMonitor = () => {
-    window.open('/queue', '_blank');
-  };
+  if (isUserLoading || isOrdersLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-[#FDFDFD]">
@@ -149,9 +165,6 @@ export default function AdminDashboard() {
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/inventory')}>
             <Package size={20} /> Inventario
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={openQueueMonitor}>
-            <Monitor size={20} /> Monitor de Turnos
-          </Button>
         </nav>
         <div className="p-4 border-t">
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-destructive hover:bg-destructive/10" onClick={() => router.push('/login')}>
@@ -167,13 +180,13 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground font-medium">Verificación de ingresos (Sincronizado Cloud).</p>
           </div>
           <div className="flex gap-4">
-            <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={openQueueMonitor}>
+            <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={() => window.open('/queue', '_blank')}>
               <Tv size={20} /> Monitor Público
             </Button>
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="rounded-xl h-12 px-6 font-bold shadow-lg shadow-primary/20 gap-2">
-                  <FileText size={20} /> Reportes de Ventas
+                  <FileText size={20} /> Reportes
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
@@ -185,11 +198,10 @@ export default function AdminDashboard() {
                 
                 <Tabs defaultValue="daily" className="p-8">
                   <TabsList className="grid w-full grid-cols-3 h-14 bg-muted/50 rounded-2xl p-1 mb-8">
-                    <TabsTrigger value="daily" className="rounded-xl font-black data-[state=active]:bg-primary data-[state=active]:text-white">DIARIO</TabsTrigger>
-                    <TabsTrigger value="weekly" className="rounded-xl font-black data-[state=active]:bg-primary data-[state=active]:text-white">SEMANAL</TabsTrigger>
-                    <TabsTrigger value="monthly" className="rounded-xl font-black data-[state=active]:bg-primary data-[state=active]:text-white">MENSUAL</TabsTrigger>
+                    <TabsTrigger value="daily" className="rounded-xl font-black">DIARIO</TabsTrigger>
+                    <TabsTrigger value="weekly" className="rounded-xl font-black">SEMANAL</TabsTrigger>
+                    <TabsTrigger value="monthly" className="rounded-xl font-black">MENSUAL</TabsTrigger>
                   </TabsList>
-
                   {['daily', 'weekly', 'monthly'].map((period) => (
                     <TabsContent key={period} value={period} className="mt-0">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -202,7 +214,6 @@ export default function AdminDashboard() {
                           <p className="text-3xl font-black">{reportData[period as keyof typeof reportData].totalTransactions}</p>
                         </div>
                       </div>
-
                       <h3 className="text-xl font-black mb-4 flex items-center gap-2">
                         <Receipt className="text-primary" /> DESGLOSE POR PRODUCTO
                       </h3>
@@ -234,19 +245,18 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* Verificaciones Pendientes */}
         <Card className="border-none shadow-xl rounded-[2.5rem] bg-white mb-8 border-l-[1rem] border-l-secondary">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="text-2xl font-black flex items-center gap-2">
               <Clock className="text-secondary" /> PAGOS POR LIBERAR (CLOUD)
             </CardTitle>
-            <CardDescription className="font-bold">Valida el pago del alumno para permitir la preparación.</CardDescription>
+            <CardDescription className="font-bold">Valida el pago para permitir la preparación.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
             {pendingOrders.length === 0 ? (
               <div className="py-10 text-center opacity-40">
                 <CheckCircle2 size={48} className="mx-auto mb-2" />
-                <p className="font-black">Todo al día. No hay pagos pendientes.</p>
+                <p className="font-black">Sin pagos pendientes.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -282,13 +292,12 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Ventas Liberadas */}
         <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-2">
           <CardHeader className="p-8 pb-2">
-            <CardTitle className="text-2xl font-black">Histórico de Ventas Confirmadas</CardTitle>
+            <CardTitle className="text-2xl font-black">Histórico de Ventas</CardTitle>
           </CardHeader>
           <CardContent className="p-8 pt-0">
-            <div className="h-[400px]">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData}>
                   <defs>
@@ -298,12 +307,9 @@ export default function AdminDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#999', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#999', fontSize: 12}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value) => [`$ ${value}`, "Liberado"]}
-                  />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <Tooltip />
                   <Area type="monotone" dataKey="sales" stroke="#E30613" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
                 </AreaChart>
               </ResponsiveContainer>
