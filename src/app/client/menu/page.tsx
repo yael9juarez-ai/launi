@@ -22,7 +22,8 @@ import {
   XCircle,
   Trash2,
   RotateCcw,
-  Database
+  LayoutDashboard,
+  Tv
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -168,27 +169,48 @@ export default function ClientMenu() {
     setShowPayment(false);
     setCart([]);
     setOrderStatus('preparing');
+  };
+
+  const handleCancelOrder = () => {
+    if (!currentOrderId) return;
     
-    setTimeout(() => {
-      setOrderStatus('ready');
-    }, 12000);
+    // Eliminar de cocina
+    const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
+    const updatedKitchen = kitchenOrders.filter((o: any) => o.id !== currentOrderId);
+    localStorage.setItem('kitchen_orders', JSON.stringify(updatedKitchen));
+
+    // Eliminar de verificaciones pendientes
+    const pending = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
+    const updatedPending = pending.filter((o: any) => o.id !== currentOrderId);
+    localStorage.setItem('pending_verifications', JSON.stringify(updatedPending));
+
+    setOrderStatus('idle');
+    setCurrentOrderId(null);
+    toast({
+      variant: "destructive",
+      title: "🚫 PEDIDO CANCELADO",
+      description: "Tu orden ha sido eliminada del sistema.",
+    });
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] pb-32">
-      <header className="bg-white border-b-2 sticky top-0 z-40 px-6 h-20 flex items-center justify-between">
+      <header className="bg-white border-b-2 sticky top-0 z-40 px-6 h-20 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-primary/10" onClick={() => router.push('/login')}>
             <ArrowLeft size={24} />
           </Button>
           <div className="flex flex-col">
             <span className="text-2xl font-black tracking-tighter text-primary">UniEats</span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Premium Campus Food</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Campus Selection</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="rounded-2xl h-12 px-5 font-black gap-2 border-2 hidden md:flex" onClick={() => router.push('/queue')}>
+            <Tv size={20} className="text-primary" /> VER TURNOS
+          </Button>
           <Button variant="ghost" size="icon" className="relative h-14 w-14 rounded-2xl bg-muted/50">
             <ShoppingCart size={28} />
             {cart.length > 0 && (
@@ -203,10 +225,10 @@ export default function ClientMenu() {
       <main className="container mx-auto px-6 py-10">
         {orderStatus !== 'idle' && (
           <div className={cn(
-            "mb-10 p-8 rounded-[3rem] flex items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
+            "mb-10 p-8 rounded-[3rem] flex flex-col md:flex-row items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
             orderStatus === 'ready' && "bg-emerald-500 bg-none"
           )}>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 mb-4 md:mb-0">
               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center">
                 {orderStatus === 'preparing' ? <Clock className="w-10 h-10 animate-spin" /> : <CheckCircle2 className="w-10 h-10" />}
               </div>
@@ -217,17 +239,28 @@ export default function ClientMenu() {
                 </p>
               </div>
             </div>
-            {orderStatus === 'ready' && (
-              <Button 
-                className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-16 px-8 font-black text-xl gap-2"
-                onClick={() => {
-                  setOrderStatus('idle');
-                  setCurrentOrderId(null);
-                }}
-              >
-                <RotateCcw size={24} /> NUEVO PEDIDO
-              </Button>
-            )}
+            <div className="flex gap-4">
+              {orderStatus === 'preparing' && (
+                <Button 
+                  variant="outline" 
+                  className="bg-white/10 hover:bg-white/20 text-white border-2 border-white/50 rounded-2xl h-16 px-8 font-black text-xl gap-2"
+                  onClick={handleCancelOrder}
+                >
+                  <XCircle size={24} /> CANCELAR
+                </Button>
+              )}
+              {orderStatus === 'ready' && (
+                <Button 
+                  className="bg-white text-emerald-600 hover:bg-white/90 rounded-2xl h-16 px-8 font-black text-xl gap-2 shadow-xl"
+                  onClick={() => {
+                    setOrderStatus('idle');
+                    setCurrentOrderId(null);
+                  }}
+                >
+                  <RotateCcw size={24} /> NUEVO PEDIDO
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -439,6 +472,14 @@ export default function ClientMenu() {
               disabled={!paymentMethod}
             >
               Confirmar Pedido
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              className="w-full text-muted-foreground font-bold"
+              onClick={clearCart}
+            >
+              Descartar todo y empezar de nuevo
             </Button>
           </div>
         </DialogContent>
