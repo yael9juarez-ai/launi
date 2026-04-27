@@ -63,15 +63,15 @@
     },
     {
       "id": "popcorn",
-      "description": "Palomitas de maíz",
+      "description": "Palomitas de maíz con mantequilla",
       "imageUrl": "https://picsum.photos/seed/popcorn/400/300",
-      "imageHint": "popcorn bag"
+      "imageHint": "popcorn butter"
     },
     {
       "id": "sweetbread",
       "description": "Pan dulce variado",
       "imageUrl": "https://picsum.photos/seed/sweetbread/400/300",
-      "imageHint": "mexican sweet bread"
+      "imageHint": "mexican pan dulce"
     }
   ]
 }

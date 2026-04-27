@@ -90,36 +90,6 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 580, protein: 28, fat: 32, carbs: 42 }
   },
   {
-    id: "m4",
-    name: "Sincronizadas GIGANTE",
-    description: "Doble tortilla de harina con jamón y queso fundido.",
-    price: 75.00,
-    category: "Comida",
-    imageUrl: "https://picsum.photos/seed/quesadilla/400/300",
-    recipe: [
-      { ingredientId: "i5", quantity: 2 },
-      { ingredientId: "i4", quantity: 2 },
-      { ingredientId: "i3", quantity: 2 },
-      { ingredientId: "i18", quantity: 8 }
-    ],
-    nutrition: { calories: 490, protein: 20, fat: 24, carbs: 38 }
-  },
-  {
-    id: "m5",
-    name: "Tacos de la Casa (3)",
-    description: "Tres deliciosos tacos con carne de res y cebollitas.",
-    price: 85.00,
-    category: "Comida",
-    imageUrl: "https://picsum.photos/seed/mexican-tacos/400/300",
-    recipe: [
-      { ingredientId: "i6", quantity: 3 },
-      { ingredientId: "i2", quantity: 150 },
-      { ingredientId: "i21", quantity: 30 },
-      { ingredientId: "i18", quantity: 12 }
-    ],
-    nutrition: { calories: 520, protein: 24, fat: 20, carbs: 48 }
-  },
-  {
     id: "m6",
     name: "Papas a la Francesa",
     description: "Papas crujientes con un toque de sal marina.",
@@ -151,18 +121,18 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "m8",
-    name: "Palomitas de Mantequilla",
-    description: "Bolsa grande de palomitas recién hechas.",
-    price: 40.00,
+    name: "Palomitas Mantequilla",
+    description: "Bolsa grande de palomitas recién hechas con extra mantequilla.",
+    price: 45.00,
     category: "Golosinas",
     imageUrl: "https://picsum.photos/seed/popcorn/400/300",
     recipe: [
       { ingredientId: "i28", quantity: 100 },
       { ingredientId: "i18", quantity: 20 },
-      { ingredientId: "i27", quantity: 15 },
+      { ingredientId: "i27", quantity: 25 },
       { ingredientId: "i23", quantity: 2 }
     ],
-    nutrition: { calories: 380, protein: 6, fat: 22, carbs: 42 }
+    nutrition: { calories: 420, protein: 6, fat: 28, carbs: 42 }
   },
   {
     id: "m9",
@@ -175,6 +145,36 @@ export const MENU_ITEMS: MenuItem[] = [
       { ingredientId: "i30", quantity: 1 }
     ],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
+  },
+  {
+    id: "m4",
+    name: "Sincronizadas GIGANTE",
+    description: "Doble tortilla de harina con jamón y queso fundido.",
+    price: 75.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/quesadilla/400/300",
+    recipe: [
+      { ingredientId: "i5", quantity: 2 },
+      { ingredientId: "i4", quantity: 2 },
+      { ingredientId: "i3", quantity: 2 },
+      { ingredientId: "i18", quantity: 8 }
+    ],
+    nutrition: { calories: 490, protein: 20, fat: 24, carbs: 38 }
+  },
+  {
+    id: "m5",
+    name: "Tacos de la Casa (3)",
+    description: "Tres deliciosos tacos con carne de res y cebollitas.",
+    price: 85.00,
+    category: "Comida",
+    imageUrl: "https://picsum.photos/seed/mexican-tacos/400/300",
+    recipe: [
+      { ingredientId: "i6", quantity: 3 },
+      { ingredientId: "i2", quantity: 150 },
+      { ingredientId: "i21", quantity: 30 },
+      { ingredientId: "i18", quantity: 12 }
+    ],
+    nutrition: { calories: 520, protein: 24, fat: 20, carbs: 48 }
   },
   {
     id: "d1",
