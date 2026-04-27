@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -7,25 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { 
   UtensilsCrossed, 
-  Users, 
   DollarSign, 
   Package, 
-  AlertCircle, 
   BarChart3, 
   Clock, 
   Monitor,
   LogOut,
-  ArrowLeft,
   FileText,
   TrendingUp,
   Receipt,
   ChefHat,
   Tv,
-  Wallet,
   CheckCircle2,
-  CalendarDays,
-  CalendarRange,
-  CalendarClock,
   CreditCard,
   Banknote
 } from 'lucide-react';
@@ -33,8 +25,6 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area 
 } from 'recharts';
-import { SALES_RECORDS } from '@/lib/data';
-import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -55,6 +45,9 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp, query, where } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
@@ -66,68 +59,60 @@ const chartData = [
 ];
 
 export default function AdminDashboard() {
-  const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
-  const [confirmedSalesTotal, setConfirmedSalesTotal] = useState<number>(0);
-  const [confirmedItemsStats, setConfirmedItemsStats] = useState<Record<string, any>>({});
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    // Cargar verificaciones pendientes de pago (Efectivo y Transferencia)
-    const pending = localStorage.getItem('pending_verifications');
-    if (pending) setPendingVerifications(JSON.parse(pending));
-    
-    // Cargar acumulado de ventas confirmadas
-    const confirmedTotal = localStorage.getItem('confirmed_sales_total');
-    if (confirmedTotal) setConfirmedSalesTotal(parseFloat(confirmedTotal));
+  const ordersQuery = useMemoFirebase(() => collection(firestore, 'orders'), [firestore]);
+  const { data: allOrders } = useCollection(ordersQuery);
 
-    // Cargar desglose de items confirmados
-    const itemsStats = localStorage.getItem('confirmed_items_breakdown');
-    if (itemsStats) setConfirmedItemsStats(JSON.parse(itemsStats));
-  }, []);
+  const pendingOrders = allOrders?.filter(o => o.status === 'Pending') || [];
+  const confirmedOrders = allOrders?.filter(o => o.status !== 'Pending') || [];
 
-  const handleLiberatePayment = (order: any) => {
-    // 1. Eliminar de pendientes
-    const updatedPending = pendingVerifications.filter(o => o.id !== order.id);
-    setPendingVerifications(updatedPending);
-    localStorage.setItem('pending_verifications', JSON.stringify(updatedPending));
+  const confirmedSalesTotal = useMemo(() => {
+    return confirmedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  }, [confirmedOrders]);
 
-    // 2. Sumar al total financiero
-    const newTotal = confirmedSalesTotal + order.total;
-    setConfirmedSalesTotal(newTotal);
-    localStorage.setItem('confirmed_sales_total', newTotal.toString());
-
-    // 3. Actualizar estadísticas de productos
-    const newStats = { ...confirmedItemsStats };
-    order.items.forEach((item: any) => {
-      if (!newStats[item.id]) {
-        newStats[item.id] = { name: item.name, qty: 0, total: 0 };
-      }
-      newStats[item.id].qty += 1;
-      newStats[item.id].total += item.price;
+  const confirmedItemsStats = useMemo(() => {
+    const stats: Record<string, any> = {};
+    confirmedOrders.forEach(order => {
+      order.items?.forEach((item: any) => {
+        const key = item.name || 'Desconocido';
+        if (!stats[key]) {
+          stats[key] = { name: key, qty: 0, total: 0 };
+        }
+        stats[key].qty += item.qty || 1;
+        stats[key].total += (item.price || 0) * (item.qty || 1);
+      });
     });
-    setConfirmedItemsStats(newStats);
-    localStorage.setItem('confirmed_items_breakdown', JSON.stringify(newStats));
+    return stats;
+  }, [confirmedOrders]);
+
+  const handleLiberatePayment = (orderId: string) => {
+    const orderRef = doc(firestore, 'orders', orderId);
+    updateDocumentNonBlocking(orderRef, {
+      status: 'Preparing', // Al liberar el pago, pasa a cocina
+      updatedAt: serverTimestamp()
+    });
 
     toast({
       className: "uni-toast-success",
       title: "✅ PAGO LIBERADO",
-      description: `Pedido ${order.id} sumado al corte financiero.`,
+      description: `Pedido #${orderId} enviado a cocina y sumado al corte.`,
     });
   };
 
   const calculateReportData = (periodFactor: number) => {
-    const totalSales = (confirmedSalesTotal + SALES_RECORDS[0].totalAmount) * periodFactor;
+    const totalSales = confirmedSalesTotal * periodFactor;
     const items = Object.values(confirmedItemsStats).map(item => ({
       ...item,
-      qty: item.qty * periodFactor,
+      qty: Math.ceil(item.qty * periodFactor),
       total: item.total * periodFactor
     }));
 
     return {
       totalSales,
-      totalTransactions: Math.ceil(totalSales / 60),
-      averageTicket: 60,
+      totalTransactions: Math.ceil(confirmedOrders.length * periodFactor),
       items: items.sort((a, b) => b.total - a.total)
     };
   };
@@ -136,7 +121,7 @@ export default function AdminDashboard() {
     daily: calculateReportData(1),
     weekly: calculateReportData(5),
     monthly: calculateReportData(20),
-  }), [confirmedSalesTotal, confirmedItemsStats]);
+  }), [confirmedSalesTotal, confirmedItemsStats, confirmedOrders]);
 
   const openQueueMonitor = () => {
     window.open('/queue', '_blank');
@@ -179,11 +164,11 @@ export default function AdminDashboard() {
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel Administrativo</h1>
-            <p className="text-muted-foreground font-medium">Verificación de ingresos y flujo de caja.</p>
+            <p className="text-muted-foreground font-medium">Verificación de ingresos (Sincronizado Cloud).</p>
           </div>
           <div className="flex gap-4">
             <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={openQueueMonitor}>
-              <Tv size={20} /> Abrir Pantalla Pública
+              <Tv size={20} /> Monitor Público
             </Button>
             <Dialog>
               <DialogTrigger asChild>
@@ -196,27 +181,24 @@ export default function AdminDashboard() {
                   <DialogTitle className="text-3xl font-black flex items-center gap-3">
                     <TrendingUp size={32} /> DESGLOSE FINANCIERO
                   </DialogTitle>
-                  <DialogDescription className="text-white/80 font-medium text-lg">
-                    Reporte de productos vendidos y liberados en el sistema.
-                  </DialogDescription>
                 </DialogHeader>
                 
                 <Tabs defaultValue="daily" className="p-8">
                   <TabsList className="grid w-full grid-cols-3 h-14 bg-muted/50 rounded-2xl p-1 mb-8">
-                    <TabsTrigger value="daily" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">DIARIO</TabsTrigger>
-                    <TabsTrigger value="weekly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">SEMANAL</TabsTrigger>
-                    <TabsTrigger value="monthly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">MENSUAL</TabsTrigger>
+                    <TabsTrigger value="daily" className="rounded-xl font-black data-[state=active]:bg-primary data-[state=active]:text-white">DIARIO</TabsTrigger>
+                    <TabsTrigger value="weekly" className="rounded-xl font-black data-[state=active]:bg-primary data-[state=active]:text-white">SEMANAL</TabsTrigger>
+                    <TabsTrigger value="monthly" className="rounded-xl font-black data-[state=active]:bg-primary data-[state=active]:text-white">MENSUAL</TabsTrigger>
                   </TabsList>
 
                   {['daily', 'weekly', 'monthly'].map((period) => (
                     <TabsContent key={period} value={period} className="mt-0">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
                           <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Ventas Totales</p>
                           <p className="text-3xl font-black text-primary">$ {reportData[period as keyof typeof reportData].totalSales.toFixed(2)}</p>
                         </div>
                         <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
-                          <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Cobros Realizados</p>
+                          <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Transacciones</p>
                           <p className="text-3xl font-black">{reportData[period as keyof typeof reportData].totalTransactions}</p>
                         </div>
                       </div>
@@ -228,9 +210,9 @@ export default function AdminDashboard() {
                         <Table>
                           <TableHeader>
                             <TableRow className="border-b-2">
-                              <TableHead className="font-black text-xs uppercase tracking-widest">Producto</TableHead>
-                              <TableHead className="font-black text-xs uppercase tracking-widest text-center">Cant.</TableHead>
-                              <TableHead className="font-black text-xs uppercase tracking-widest text-right">Total Liberado</TableHead>
+                              <TableHead className="font-black">Producto</TableHead>
+                              <TableHead className="font-black text-center">Cant.</TableHead>
+                              <TableHead className="font-black text-right">Total</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -256,39 +238,41 @@ export default function AdminDashboard() {
         <Card className="border-none shadow-xl rounded-[2.5rem] bg-white mb-8 border-l-[1rem] border-l-secondary">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="text-2xl font-black flex items-center gap-2">
-              <Clock className="text-secondary" /> PAGOS PENDIENTES DE LIBERACIÓN
+              <Clock className="text-secondary" /> PAGOS POR LIBERAR (CLOUD)
             </CardTitle>
-            <CardDescription className="font-bold">Verifica el comprobante o el efectivo para sumar al corte financiero.</CardDescription>
+            <CardDescription className="font-bold">Valida el pago del alumno para permitir la preparación.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
-            {pendingVerifications.length === 0 ? (
+            {pendingOrders.length === 0 ? (
               <div className="py-10 text-center opacity-40">
                 <CheckCircle2 size={48} className="mx-auto mb-2" />
-                <p className="font-black">No hay pagos pendientes de verificar.</p>
+                <p className="font-black">Todo al día. No hay pagos pendientes.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingVerifications.map((order, i) => (
-                  <div key={i} className="bg-muted/30 p-6 rounded-[2rem] border-2 border-secondary/20 flex flex-col justify-between hover:border-secondary transition-all">
+                {pendingOrders.map((order) => (
+                  <div key={order.id} className="bg-muted/30 p-6 rounded-[2rem] border-2 border-secondary/20 flex flex-col justify-between hover:border-secondary transition-all">
                     <div>
                       <div className="flex justify-between items-start mb-4">
-                        <span className="text-3xl font-black text-secondary">{order.id}</span>
+                        <span className="text-3xl font-black text-secondary">#{order.id}</span>
                         <Badge variant="outline" className="rounded-full font-black gap-2">
                           {order.method === 'transfer' ? <CreditCard size={12} /> : <Banknote size={12} />}
                           {order.method === 'transfer' ? 'TRANS' : 'CASH'}
                         </Badge>
                       </div>
                       <p className="font-black text-lg">{order.user}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-1">{order.items.map((it: any) => it.name).join(', ')}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-1">
+                        {order.items?.map((it: any) => it.name).join(', ')}
+                      </p>
                     </div>
                     <div className="mt-6 flex items-center justify-between border-t pt-4">
-                      <p className="text-2xl font-black text-primary">$ {order.total.toFixed(2)}</p>
+                      <p className="text-2xl font-black text-primary">$ {order.totalAmount?.toFixed(2)}</p>
                       <Button 
                         size="sm" 
                         className="rounded-xl font-black bg-secondary text-black hover:bg-secondary/80"
-                        onClick={() => handleLiberatePayment(order)}
+                        onClick={() => handleLiberatePayment(order.id)}
                       >
-                        LIBERAR COBRO
+                        LIBERAR
                       </Button>
                     </div>
                   </div>
@@ -330,4 +314,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-    

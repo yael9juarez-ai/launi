@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useState, useEffect } from 'react';
-import { UtensilsCrossed, Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { UtensilsCrossed, Clock, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -15,11 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
-
-interface Order {
-  id: string;
-  status: 'pending' | 'preparing' | 'ready';
-}
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function QueueDisplayPage() {
   const router = useRouter();
@@ -27,32 +23,26 @@ export default function QueueDisplayPage() {
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [orders, setOrders] = useState<Order[]>([]);
-
-  const loadData = () => {
-    const saved = localStorage.getItem('kitchen_orders');
-    if (saved) {
-      setOrders(JSON.parse(saved));
-    }
-  };
+  
+  const firestore = useFirestore();
+  const ordersQuery = useMemoFirebase(() => collection(firestore, 'orders'), [firestore]);
+  const { data: allOrders } = useCollection(ordersQuery);
 
   useEffect(() => {
-    loadData();
     setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    
-    // Polling cada 2 segundos para sincronización entre monitores
     const interval = setInterval(() => {
       setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      loadData();
-    }, 2000);
-    
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // "Quién sigue" = Pendientes o Preparando
-  const preparing = orders.filter(o => o.status === 'pending' || o.status === 'preparing');
-  // "En turno" = Listos
-  const ready = orders.filter(o => o.status === 'ready');
+  const preparing = useMemo(() => 
+    allOrders?.filter(o => o.status === 'Preparing') || []
+  , [allOrders]);
+
+  const ready = useMemo(() => 
+    allOrders?.filter(o => o.status === 'Ready for Pickup') || []
+  , [allOrders]);
 
   const handleBackWithPin = () => {
     if (pinInput === "1234") {
@@ -65,16 +55,11 @@ export default function QueueDisplayPage() {
 
   return (
     <div className="h-screen bg-[#0A0A0A] overflow-hidden flex flex-col text-white">
-      {/* Header Estilo TV Corporativa */}
       <header className="bg-white px-12 py-6 flex items-center justify-between shadow-[0_10px_50px_rgba(0,0,0,0.5)] z-10 border-b-[10px] border-primary">
         <div className="flex items-center gap-10">
           <div 
             className="w-24 h-24 mcd-gradient rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl cursor-pointer"
-            onClick={() => {
-              setPinInput("");
-              setPinError(false);
-              setShowPinDialog(true);
-            }}
+            onClick={() => setShowPinDialog(true)}
           >
             <UtensilsCrossed size={56} />
           </div>
@@ -91,7 +76,6 @@ export default function QueueDisplayPage() {
       </header>
 
       <div className="flex-1 flex overflow-hidden p-12 gap-12">
-        {/* COLUMNA IZQUIERDA: PREPARANDO (QUIÉN SIGUE) */}
         <section className="flex-[0.4] flex flex-col gap-8 bg-white/5 p-12 rounded-[5rem] border-4 border-white/5 relative">
           <div className="flex items-center gap-6 pb-8 border-b-4 border-white/10">
             <div className="w-24 h-24 bg-primary/20 rounded-[2rem] flex items-center justify-center text-primary">
@@ -121,7 +105,6 @@ export default function QueueDisplayPage() {
           </div>
         </section>
 
-        {/* COLUMNA DERECHA: LISTOS (EN TURNO) */}
         <section className="flex-[0.6] flex flex-col gap-8 bg-emerald-500/10 p-12 rounded-[5rem] border-4 border-emerald-500/20 shadow-[0_0_150px_rgba(16,185,129,0.1)]">
           <div className="flex items-center gap-6 pb-8 border-b-4 border-emerald-500/20">
             <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-[0_0_50px_rgba(16,185,129,0.5)]">
@@ -152,78 +135,44 @@ export default function QueueDisplayPage() {
         </section>
       </div>
 
-      {/* Footer Informativo */}
       <footer className="h-20 bg-primary flex items-center justify-center px-12 overflow-hidden">
         <div className="flex items-center gap-12 whitespace-nowrap animate-marquee">
-          <p className="text-2xl font-black text-white">¡RECUERDA MOSTRAR TU COMPROBANTE DE PAGO EN VENTANILLA!</p>
+          <p className="text-2xl font-black text-white">¡MUESTRA TU COMPROBANTE DE PAGO EN VENTANILLA!</p>
           <p className="text-2xl font-black text-white">★</p>
-          <p className="text-2xl font-black text-white">DISFRUTA DE TU COMIDA EN UNIEATS</p>
+          <p className="text-2xl font-black text-white">UNIEATS - CAFETERÍA UNI</p>
           <p className="text-2xl font-black text-white">★</p>
-          <p className="text-2xl font-black text-white">NUEVOS DULCES Y BEBIDAS DISPONIBLES</p>
-          <p className="text-2xl font-black text-white">★</p>
-          <p className="text-2xl font-black text-white">¡RECUERDA MOSTRAR TU COMPROBANTE DE PAGO EN VENTANILLA!</p>
+          <p className="text-2xl font-black text-white">BUEN PROVECHO</p>
         </div>
       </footer>
 
-      {/* PIN Dialog para salir de pantalla completa */}
       <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
         <DialogContent className="rounded-[4rem] p-16 max-w-md border-none bg-white shadow-2xl text-black">
           <DialogHeader className="text-center">
             <DialogTitle className="text-4xl font-black tracking-tighter">ADMINISTRACIÓN</DialogTitle>
-            <DialogDescription className="text-xl font-medium mt-4 text-muted-foreground">
-              Ingresa el PIN para volver al panel.
-            </DialogDescription>
           </DialogHeader>
-          <div className="py-12 space-y-8">
+          <div className="py-12">
             <Input 
               type="password" 
               placeholder="••••" 
-              className={cn(
-                "text-center text-7xl h-32 font-black tracking-[0.5em] rounded-[2.5rem] bg-muted border-none transition-all",
-                pinError && "bg-destructive/10 text-destructive animate-shake"
-              )}
+              className={cn("text-center text-7xl h-32 font-black rounded-[2.5rem] bg-muted border-none", pinError && "animate-bounce")}
               maxLength={4}
               value={pinInput}
-              onChange={(e) => {
-                setPinInput(e.target.value);
-                setPinError(false);
-              }}
+              onChange={(e) => {setPinInput(e.target.value); setPinError(false);}}
             />
           </div>
-          <Button className="w-full h-24 text-3xl font-black rounded-[2rem] mcd-gradient shadow-2xl shadow-primary/20" onClick={handleBackWithPin}>
-            SALIR DE TV
+          <Button className="w-full h-24 text-3xl font-black rounded-[2rem] mcd-gradient" onClick={handleBackWithPin}>
+            SALIR DEL MONITOR
           </Button>
         </DialogContent>
       </Dialog>
 
       <style jsx global>{`
-        @keyframes marquee {
-          0% { transform: translateX(50%); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 20s linear infinite;
-        }
-        .animate-spin-slow {
-          animation: spin 8s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-10px); }
-          75% { transform: translateX(10px); }
-        }
-        .animate-shake {
-          animation: shake 0.2s ease-in-out infinite;
-        }
+        @keyframes marquee { 0% { transform: translateX(50%); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: marquee 20s linear infinite; }
+        .animate-spin-slow { animation: spin 8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
 }
-    
