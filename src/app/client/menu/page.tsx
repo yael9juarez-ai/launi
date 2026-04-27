@@ -19,7 +19,8 @@ import {
   Wallet,
   Star,
   Plus,
-  ThumbsUp
+  ThumbsUp,
+  Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -53,13 +54,19 @@ export default function ClientMenu() {
     return matchesCategory && matchesSearch;
   });
 
+  // Sugerencias mixtas: Bebidas y Dulces
   const upsellItems = useMemo(() => {
-    return MENU_ITEMS.filter(item => item.category === "Bebidas").slice(0, 2);
+    const drinks = MENU_ITEMS.filter(item => item.category === "Bebidas").slice(0, 2);
+    const sweets = MENU_ITEMS.filter(item => item.category === "Dulces").slice(0, 2);
+    return [...drinks, ...sweets];
   }, []);
 
   const addToCart = (item: any) => {
     setCart([...cart, item]);
-    setShowUpsell(true);
+    // Solo mostramos upsell si el item añadido no es ya un dulce o bebida (para no ser invasivos)
+    if (item.category === "Comida") {
+      setShowUpsell(true);
+    }
     toast({
       className: "uni-toast-info",
       title: "🍔 ¡Excelente elección!",
@@ -72,7 +79,6 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
 
     if (paymentMethod === 'cash') {
-      // Guardar pedido pendiente en localStorage para el Admin
       const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
       pendingOrders.push({
         id: orderId,
@@ -100,7 +106,6 @@ export default function ClientMenu() {
     setCart([]);
     setOrderStatus('preparing');
     
-    // Simular que el pedido está listo
     setTimeout(() => {
       setOrderStatus('ready');
       toast({
@@ -138,7 +143,6 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-6 py-10">
-        {/* Banner de Estado */}
         {orderStatus !== 'idle' && (
           <div className={cn(
             "mb-10 p-8 rounded-[2.5rem] flex items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
@@ -167,7 +171,6 @@ export default function ClientMenu() {
           </div>
         )}
 
-        {/* Buscador y Categorías */}
         <div className="flex flex-col gap-8 mb-12">
           <div className="relative group">
             <Search className="absolute left-6 top-5 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -195,7 +198,6 @@ export default function ClientMenu() {
           </div>
         </div>
 
-        {/* Grid de Productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
           {filteredItems.map((item) => (
             <Card key={item.id} className="group border-none shadow-xl rounded-[3rem] overflow-hidden bg-white mcd-card-hover">
@@ -228,7 +230,6 @@ export default function ClientMenu() {
         </div>
       </main>
 
-      {/* Barra de Checkout Flotante */}
       {cart.length > 0 && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-50">
           <Button 
@@ -246,29 +247,34 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* Upsell Dialog */}
+      {/* Upsell Dialog con Dulces y Bebidas */}
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[3rem] p-10 max-w-2xl border-none">
           <div className="text-center space-y-6">
             <div className="w-24 h-24 bg-secondary/20 rounded-full flex items-center justify-center mx-auto text-secondary mb-4">
-              <Star size={50} fill="currentColor" />
+              <Sparkles size={50} fill="currentColor" />
             </div>
             <DialogHeader>
-              <DialogTitle className="text-4xl font-black">¿Quieres complementar tu orden?</DialogTitle>
-              <DialogDescription className="text-xl font-medium">¡Nuestros favoritos de hoy te encantarán!</DialogDescription>
+              <DialogTitle className="text-4xl font-black">¿Deseas algo más?</DialogTitle>
+              <DialogDescription className="text-xl font-medium">¡Añade un postre o una bebida para completar tu combo!</DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-6 mt-8">
               {upsellItems.map(item => (
-                <Card key={item.id} className="border-2 border-muted hover:border-secondary transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer" onClick={() => {
+                <Card key={item.id} className="border-2 border-muted hover:border-secondary transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer flex flex-col" onClick={() => {
                   setCart([...cart, item]);
                   setShowUpsell(false);
                 }}>
                   <div className="aspect-video relative">
                     <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                    <Badge className="absolute top-2 right-2 bg-primary/90 text-white font-black">
+                      {item.category === 'Dulces' ? 'DULCE' : 'BEBIDA'}
+                    </Badge>
                   </div>
-                  <div className="p-4 text-center">
-                    <p className="font-black text-lg">{item.name}</p>
-                    <p className="text-secondary font-black text-xl">$ {item.price.toFixed(2)}</p>
+                  <div className="p-4 text-center flex-1 flex flex-col justify-between">
+                    <div>
+                      <p className="font-black text-lg line-clamp-1">{item.name}</p>
+                      <p className="text-secondary font-black text-xl">$ {item.price.toFixed(2)}</p>
+                    </div>
                     <Button variant="secondary" className="w-full mt-3 rounded-xl font-black gap-2">
                       <Plus size={18} /> AÑADIR
                     </Button>
@@ -277,7 +283,7 @@ export default function ClientMenu() {
               ))}
             </div>
             <Button variant="ghost" className="text-muted-foreground font-black text-lg" onClick={() => setShowUpsell(false)}>
-              No, gracias. Continuar con mi orden.
+              Continuar con mi orden.
             </Button>
           </div>
         </DialogContent>
