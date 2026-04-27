@@ -22,7 +22,10 @@ import {
   Receipt,
   ChefHat,
   Wallet,
-  CheckCircle2
+  CheckCircle2,
+  CalendarDays,
+  CalendarRange,
+  CalendarClock
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -49,6 +52,7 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
@@ -67,22 +71,18 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Cargar pedidos pendientes de localStorage
     const saved = localStorage.getItem('pending_cash_orders');
     if (saved) setPendingOrders(JSON.parse(saved));
     
-    // Cargar ventas confirmadas de la sesión
     const confirmed = localStorage.getItem('session_confirmed_sales');
     if (confirmed) setExtraSales(parseFloat(confirmed));
   }, []);
 
   const handleConfirmPayment = (order: any) => {
-    // 1. Eliminar de pendientes
     const updatedPending = pendingOrders.filter(o => o.id !== order.id);
     setPendingOrders(updatedPending);
     localStorage.setItem('pending_cash_orders', JSON.stringify(updatedPending));
 
-    // 2. Sumar al corte
     const newExtra = extraSales + order.total;
     setExtraSales(newExtra);
     localStorage.setItem('session_confirmed_sales', newExtra.toString());
@@ -94,16 +94,15 @@ export default function AdminDashboard() {
     });
   };
 
-  const reportStats = useMemo(() => {
-    const baseSales = SALES_RECORDS.reduce((acc, curr) => acc + curr.totalAmount, 0);
-    const totalSales = baseSales + extraSales;
-    const totalTransactions = SALES_RECORDS.length + (extraSales > 0 ? 1 : 0); // Simplificado para el demo
+  const calculatePeriodStats = (records: any[], extra: number) => {
+    const totalSales = records.reduce((acc, curr) => acc + curr.totalAmount, 0) + extra;
+    const totalTransactions = records.length + (extra > 0 ? 1 : 0);
     const averageTicket = totalTransactions > 0 ? totalSales / totalTransactions : 0;
     
     const itemsAggregation: Record<string, { name: string, qty: number, total: number }> = {};
     
-    SALES_RECORDS.forEach(record => {
-      record.items.forEach(item => {
+    records.forEach(record => {
+      record.items.forEach((item: any) => {
         if (!itemsAggregation[item.itemId]) {
           itemsAggregation[item.itemId] = { name: item.itemName, qty: 0, total: 0 };
         }
@@ -117,6 +116,14 @@ export default function AdminDashboard() {
       totalTransactions,
       averageTicket,
       items: Object.values(itemsAggregation).sort((a, b) => b.total - a.total)
+    };
+  };
+
+  const reportStats = useMemo(() => {
+    return {
+      daily: calculatePeriodStats(SALES_RECORDS, extraSales),
+      weekly: calculatePeriodStats([...SALES_RECORDS, ...SALES_RECORDS, ...SALES_RECORDS], extraSales * 5),
+      monthly: calculatePeriodStats([...SALES_RECORDS, ...SALES_RECORDS, ...SALES_RECORDS, ...SALES_RECORDS], extraSales * 20),
     };
   }, [extraSales]);
 
@@ -189,55 +196,72 @@ export default function AdminDashboard() {
                   <FileText size={20} /> Generar Reporte
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+              <DialogContent className="max-w-4xl rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
                 <DialogHeader className="bg-primary p-8 text-white">
                   <DialogTitle className="text-3xl font-black flex items-center gap-3">
-                    <TrendingUp size={32} /> REPORTE DE CIERRE DIARIO
+                    <TrendingUp size={32} /> REPORTES FINANCIEROS
                   </DialogTitle>
                   <DialogDescription className="text-white/80 font-medium text-lg">
-                    Resumen consolidado de ventas al día de hoy.
+                    Consolidado de ventas por periodos de tiempo.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
-                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Ingresos Totales</p>
-                      <p className="text-3xl font-black text-primary">$ {reportStats.totalSales.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
-                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Transacciones</p>
-                      <p className="text-3xl font-black">{reportStats.totalTransactions}</p>
-                    </div>
-                    <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
-                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Ticket Promedio</p>
-                      <p className="text-3xl font-black">$ {reportStats.averageTicket.toFixed(2)}</p>
-                    </div>
-                  </div>
+                
+                <Tabs defaultValue="daily" className="p-8">
+                  <TabsList className="grid w-full grid-cols-3 h-14 bg-muted/50 rounded-2xl p-1 mb-8">
+                    <TabsTrigger value="daily" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <CalendarDays size={18} /> DIARIO
+                    </TabsTrigger>
+                    <TabsTrigger value="weekly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <CalendarClock size={18} /> SEMANAL
+                    </TabsTrigger>
+                    <TabsTrigger value="monthly" className="rounded-xl font-black gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <CalendarRange size={18} /> MENSUAL
+                    </TabsTrigger>
+                  </TabsList>
 
-                  <h3 className="text-xl font-black mb-4 flex items-center gap-2">
-                    <Receipt className="text-primary" /> DESGLOSE DE PRODUCTOS VENDIDOS
-                  </h3>
-                  <ScrollArea className="h-[300px] border-2 rounded-2xl p-2">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b-2">
-                          <TableHead className="font-black text-xs uppercase tracking-widest">Producto</TableHead>
-                          <TableHead className="font-black text-xs uppercase tracking-widest text-center">Cantidad</TableHead>
-                          <TableHead className="font-black text-xs uppercase tracking-widest text-right">Total (MXN)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {reportStats.items.map((item, idx) => (
-                          <TableRow key={idx} className="hover:bg-muted/20">
-                            <TableCell className="font-bold">{item.name}</TableCell>
-                            <TableCell className="text-center font-black text-primary">{item.qty}</TableCell>
-                            <TableCell className="text-right font-black">$ {item.total.toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </div>
+                  {['daily', 'weekly', 'monthly'].map((period) => (
+                    <TabsContent key={period} value={period} className="mt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Ingresos {period === 'daily' ? 'Hoy' : period === 'weekly' ? 'Semana' : 'Mes'}</p>
+                          <p className="text-3xl font-black text-primary">$ {reportStats[period as keyof typeof reportStats].totalSales.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Transacciones</p>
+                          <p className="text-3xl font-black">{reportStats[period as keyof typeof reportStats].totalTransactions}</p>
+                        </div>
+                        <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
+                          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Ticket Promedio</p>
+                          <p className="text-3xl font-black">$ {reportStats[period as keyof typeof reportStats].averageTicket.toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl font-black mb-4 flex items-center gap-2">
+                        <Receipt className="text-primary" /> PRODUCTOS VENDIDOS EN EL PERIODO
+                      </h3>
+                      <ScrollArea className="h-[300px] border-2 rounded-2xl p-2">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-b-2">
+                              <TableHead className="font-black text-xs uppercase tracking-widest">Producto</TableHead>
+                              <TableHead className="font-black text-xs uppercase tracking-widest text-center">Cantidad</TableHead>
+                              <TableHead className="font-black text-xs uppercase tracking-widest text-right">Total (MXN)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {reportStats[period as keyof typeof reportStats].items.map((item, idx) => (
+                              <TableRow key={idx} className="hover:bg-muted/20">
+                                <TableCell className="font-bold">{item.name}</TableCell>
+                                <TableCell className="text-center font-black text-primary">{item.qty}</TableCell>
+                                <TableCell className="text-right font-black">$ {item.total.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    </TabsContent>
+                  ))}
+                </Tabs>
               </DialogContent>
             </Dialog>
           </div>
@@ -245,7 +269,7 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: "Ventas Hoy", value: `$ ${reportStats.totalSales.toFixed(2)}`, icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
+            { label: "Ventas Hoy", value: `$ ${reportStats.daily.totalSales.toFixed(2)}`, icon: <DollarSign />, trend: "+12%", color: "text-emerald-500" },
             { label: "Pedidos Activos", value: "24", icon: <Clock />, trend: "8 preparados", color: "text-blue-500" },
             { label: "Usuarios Nuevos", value: "142", icon: <Users />, trend: "+5% esta sem", color: "text-purple-500" },
             { label: "Stock Bajo", value: "3 items", icon: <AlertCircle />, trend: "Revisar ahora", color: "text-primary" },
@@ -267,7 +291,6 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Pendientes de Pago Sección */}
         {pendingOrders.length > 0 && (
           <Card className="border-none shadow-xl rounded-[2.5rem] bg-white mb-8 border-l-[1rem] border-l-secondary animate-in slide-in-from-right duration-500">
             <CardHeader className="p-8 pb-4">
