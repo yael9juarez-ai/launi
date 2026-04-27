@@ -20,10 +20,16 @@
       "imageHint": "french fries"
     },
     {
-      "id": "aguas",
-      "description": "Aguas frescas de sabor",
+      "id": "aguas-sabor",
+      "description": "Agua fresca de sabor frutal",
       "imageUrl": "https://picsum.photos/seed/fresh-water/400/300",
       "imageHint": "fruit water"
+    },
+    {
+      "id": "gomitas",
+      "description": "Bolsa de gomitas de colores",
+      "imageUrl": "https://picsum.photos/seed/gummies/400/300",
+      "imageHint": "gummy candies"
     },
     {
       "id": "coca",
@@ -48,18 +54,6 @@
       "description": "Tacos de guisado mexicanos",
       "imageUrl": "https://picsum.photos/seed/mexican-tacos/400/300",
       "imageHint": "mexican tacos"
-    },
-    {
-      "id": "sushi",
-      "description": "Rollos de sushi variados",
-      "imageUrl": "https://picsum.photos/seed/sushi-rolls/400/300",
-      "imageHint": "sushi rolls"
-    },
-    {
-      "id": "leche-choco",
-      "description": "Leche de chocolate en envase",
-      "imageUrl": "https://picsum.photos/seed/chocolate-milk/400/300",
-      "imageHint": "chocolate milk"
     }
   ]
 }
