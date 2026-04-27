@@ -20,7 +20,8 @@ import {
   Plus,
   ThumbsUp,
   Sparkles,
-  Utensils
+  Utensils,
+  XCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +45,7 @@ export default function ClientMenu() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   
   const { toast } = useToast();
@@ -83,6 +85,7 @@ export default function ClientMenu() {
   const handlePayment = () => {
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
+    setCurrentOrderId(orderId);
 
     if (paymentMethod === 'cash') {
       const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
@@ -112,7 +115,8 @@ export default function ClientMenu() {
     setCart([]);
     setOrderStatus('preparing');
     
-    setTimeout(() => {
+    // Simulate order becoming ready
+    const readyTimer = setTimeout(() => {
       setOrderStatus('ready');
       toast({
         className: "uni-toast-success",
@@ -120,6 +124,25 @@ export default function ClientMenu() {
         description: "Pasa a ventanilla por tu orden.",
       });
     }, 8000);
+
+    return () => clearTimeout(readyTimer);
+  };
+
+  const cancelOrder = () => {
+    if (currentOrderId) {
+      // If it was a cash order, remove it from pending in admin view
+      const pendingOrders = JSON.parse(localStorage.getItem('pending_cash_orders') || '[]');
+      const updatedOrders = pendingOrders.filter((o: any) => o.id !== currentOrderId);
+      localStorage.setItem('pending_cash_orders', JSON.stringify(updatedOrders));
+    }
+
+    setOrderStatus('idle');
+    setCurrentOrderId(null);
+    toast({
+      variant: "destructive",
+      title: "🚫 PEDIDO CANCELADO",
+      description: "Tu orden ha sido eliminada del sistema.",
+    });
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
@@ -159,21 +182,32 @@ export default function ClientMenu() {
                 {orderStatus === 'preparing' ? <Clock className="w-10 h-10 animate-spin" /> : <CheckCircle2 className="w-10 h-10" />}
               </div>
               <div>
-                <p className="text-sm font-black uppercase tracking-widest opacity-80">Estado de tu Orden</p>
+                <p className="text-sm font-black uppercase tracking-widest opacity-80">Estado de tu Orden {currentOrderId}</p>
                 <p className="text-4xl font-black">
                   {orderStatus === 'preparing' ? '¡Estamos cocinando!' : '¡TU ORDEN ESTÁ LISTA!'}
                 </p>
               </div>
             </div>
-            {orderStatus === 'ready' && (
-              <Button 
-                variant="outline" 
-                className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black gap-2"
-                onClick={() => setShowFeedback(true)}
-              >
-                <ThumbsUp size={20} /> CALIFICAR SERVICIO
-              </Button>
-            )}
+            <div className="flex gap-4">
+              {orderStatus === 'preparing' && (
+                <Button 
+                  variant="destructive"
+                  className="rounded-2xl h-14 px-8 font-black gap-2 bg-white text-primary hover:bg-white/90"
+                  onClick={cancelOrder}
+                >
+                  <XCircle size={20} /> CANCELAR PEDIDO
+                </Button>
+              )}
+              {orderStatus === 'ready' && (
+                <Button 
+                  variant="outline" 
+                  className="text-white border-white/40 hover:bg-white/10 rounded-2xl h-14 px-8 font-black gap-2"
+                  onClick={() => setShowFeedback(true)}
+                >
+                  <ThumbsUp size={20} /> CALIFICAR SERVICIO
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -377,6 +411,7 @@ export default function ClientMenu() {
             <CheckCircle2 size={60} />
           </div>
           <DialogHeader>
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
             <DialogTitle className="text-4xl font-black text-center">¡Disfruta tu comida!</DialogTitle>
             <DialogDescription className="text-xl font-medium mt-4">
               ¿Qué tal te pareció el servicio de hoy?
