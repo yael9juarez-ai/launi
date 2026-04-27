@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +10,12 @@ import {
   CheckCircle2, 
   Flame, 
   ArrowLeft,
-  RefreshCw
+  Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -22,9 +23,14 @@ export default function KitchenPage() {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
 
-  const ordersQuery = useMemoFirebase(() => collection(firestore, 'orders'), [firestore]);
-  const { data: orders, isLoading } = useCollection(ordersQuery);
+  const ordersQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'orders');
+  }, [firestore, user]);
+
+  const { data: orders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
 
   const updateStatus = (id: string, newStatus: 'Preparing' | 'Ready for Pickup') => {
     const orderRef = doc(firestore, 'orders', id);
@@ -41,6 +47,19 @@ export default function KitchenPage() {
       });
     }
   };
+
+  if (isUserLoading || (user && isOrdersLoading)) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   const pendingOrders = orders?.filter(o => o.status === 'Pending') || [];
   const preparingOrders = orders?.filter(o => o.status === 'Preparing') || [];
@@ -65,7 +84,6 @@ export default function KitchenPage() {
       </header>
 
       <main className="flex-1 p-10 grid grid-cols-1 lg:grid-cols-2 gap-12 overflow-hidden bg-muted/20">
-        {/* Columna: Nuevos Pedidos */}
         <section className="flex flex-col gap-8">
           <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm">
             <h2 className="text-3xl font-black flex items-center gap-4">
@@ -88,7 +106,7 @@ export default function KitchenPage() {
                       </div>
                     </div>
                     <div className="space-y-3 mb-8">
-                      {order.items.map((item: any, i: number) => (
+                      {order.items?.map((item: any, i: number) => (
                         <div key={i} className="flex justify-between items-center bg-muted/50 p-4 rounded-2xl border-2">
                           <span className="text-2xl font-black">{item.name}</span>
                           <span className="text-2xl font-black bg-primary text-white h-12 w-12 flex items-center justify-center rounded-full">
@@ -110,7 +128,6 @@ export default function KitchenPage() {
           </ScrollArea>
         </section>
 
-        {/* Columna: En Preparación */}
         <section className="flex flex-col gap-8">
           <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm">
             <h2 className="text-3xl font-black flex items-center gap-4">
@@ -133,7 +150,7 @@ export default function KitchenPage() {
                       </div>
                     </div>
                     <div className="space-y-3 mb-8">
-                      {order.items.map((item: any, i: number) => (
+                      {order.items?.map((item: any, i: number) => (
                         <div key={i} className="flex justify-between items-center bg-secondary/5 p-4 rounded-2xl border-2 border-secondary/20">
                           <span className="text-2xl font-black">{item.name}</span>
                           <span className="text-2xl font-black bg-secondary text-black h-12 w-12 flex items-center justify-center rounded-full">

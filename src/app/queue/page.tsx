@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { UtensilsCrossed, Clock, CheckCircle2 } from 'lucide-react';
+import { UtensilsCrossed, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
 export default function QueueDisplayPage() {
   const router = useRouter();
@@ -24,9 +24,23 @@ export default function QueueDisplayPage() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
   
+  const auth = useAuth();
   const firestore = useFirestore();
-  const ordersQuery = useMemoFirebase(() => collection(firestore, 'orders'), [firestore]);
-  const { data: allOrders } = useCollection(ordersQuery);
+  const { user, isUserLoading } = useUser();
+
+  // Auto-login anónimo para el monitor si no hay usuario
+  useEffect(() => {
+    if (!user && !isUserLoading) {
+      signInAnonymously(auth).catch(console.error);
+    }
+  }, [user, isUserLoading, auth]);
+
+  const ordersQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'orders');
+  }, [firestore, user]);
+
+  const { data: allOrders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
 
   useEffect(() => {
     setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -52,6 +66,14 @@ export default function QueueDisplayPage() {
       setPinInput("");
     }
   };
+
+  if (isUserLoading || (user && isOrdersLoading)) {
+    return (
+      <div className="h-screen bg-[#0A0A0A] flex items-center justify-center text-white">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-[#0A0A0A] overflow-hidden flex flex-col text-white">
