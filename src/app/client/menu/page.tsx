@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient } from '@/lib/data';
+import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient, INGREDIENTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -54,15 +54,25 @@ export default function ClientMenu() {
   const router = useRouter();
 
   useEffect(() => {
+    // Cargar inventario con fallback a datos iniciales
     const savedInv = localStorage.getItem('uni_inventory');
-    if (savedInv) setInventory(JSON.parse(savedInv));
+    if (savedInv) {
+      setInventory(JSON.parse(savedInv));
+    } else {
+      setInventory(INGREDIENTS);
+      localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
+    }
 
     const savedUser = localStorage.getItem('unieats_user');
     if (savedUser) setUserName(JSON.parse(savedUser).name);
   }, []);
 
   const checkStockAvailability = (item: MenuItem, currentCart: any[] = cart) => {
+    if (inventory.length === 0) return false;
+    
+    // Contar cuántos de este item ya hay en el carrito para la validación acumulada
     const itemCountInCart = currentCart.filter(i => i.id === item.id).length;
+    
     return item.recipe.every(r => {
       const ing = inventory.find(i => i.id === r.ingredientId);
       return ing && ing.stock >= (r.quantity * (itemCountInCart + 1));
@@ -118,6 +128,7 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
+    // Actualizar inventario local y persistente
     const newInventory = [...inventory];
     cart.forEach(cartItem => {
         cartItem.recipe.forEach((r: any) => {
@@ -128,6 +139,7 @@ export default function ClientMenu() {
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
     setInventory(newInventory);
 
+    // Registrar en cocina
     const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
     kitchenOrders.push({
       id: orderId,
@@ -144,6 +156,7 @@ export default function ClientMenu() {
     });
     localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
+    // Registrar para verificación de admin
     const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
     pendingVerifications.push({
       id: orderId,

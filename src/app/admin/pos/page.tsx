@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient } from '@/lib/data';
+import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient, INGREDIENTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,10 +33,16 @@ export default function POSPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('uni_inventory');
-    if (saved) setInventory(JSON.parse(saved));
+    if (saved) {
+      setInventory(JSON.parse(saved));
+    } else {
+      setInventory(INGREDIENTS);
+      localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
+    }
   }, []);
 
   const checkStockAvailability = (item: MenuItem, quantity: number = 1) => {
+    if (inventory.length === 0) return false;
     return item.recipe.every(r => {
       const ing = inventory.find(i => i.id === r.ingredientId);
       return ing && ing.stock >= (r.quantity * quantity);
@@ -102,11 +108,9 @@ export default function POSPage() {
     setInventory(newInventory);
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
 
-    // Sumar al total financiero directamente ya que es venta de caja (POS)
     const currentTotal = parseFloat(localStorage.getItem('confirmed_sales_total') || '0');
     localStorage.setItem('confirmed_sales_total', (currentTotal + total).toString());
 
-    // Actualizar estadísticas de productos
     const currentStats = JSON.parse(localStorage.getItem('confirmed_items_breakdown') || '{}');
     cart.forEach(item => {
       if (!currentStats[item.id]) {
