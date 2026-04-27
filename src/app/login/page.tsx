@@ -38,76 +38,79 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     
-    // Simulación de delay de proceso
     setTimeout(async () => {
       let targetPath = '';
       let userRoleName = '';
-      let userEmail = email;
+      let displayName = '';
 
       if (mode === 'login') {
-        // PERFILES MAESTROS (SIN CONSECUENCIA)
+        // PERFILES MAESTROS
         if (email === 'admin' && password === 'admin') {
           targetPath = '/admin/dashboard';
-          userRoleName = 'Administrador';
+          userRoleName = 'Admin';
+          displayName = 'Administrador General';
         } else if (email === 'alumno' && password === 'alumno') {
           targetPath = '/client/menu';
-          userRoleName = 'Estudiante/Profesor';
+          userRoleName = 'Alumno/Profesor';
+          displayName = 'Estudiante UNI';
         } else if (email === 'cocinero' && password === 'cocinero') {
           targetPath = '/admin/kitchen';
           userRoleName = 'Personal de Cocina';
+          displayName = 'Chef de Turno';
         } else {
-          // Fallback por rol seleccionado
-          if (role === 'community') {
-            targetPath = '/client/menu';
-            userRoleName = 'Comunidad UNI';
+          // Fallback por selección manual
+          if (role === 'admin') {
+            targetPath = '/admin/dashboard';
+            userRoleName = 'Admin';
+            displayName = email;
           } else if (role === 'staff') {
             targetPath = '/admin/kitchen';
-            userRoleName = 'Personal de Staff';
+            userRoleName = 'Personal de Cocina';
+            displayName = email;
           } else {
-            targetPath = '/admin/dashboard';
-            userRoleName = 'Administrador';
+            targetPath = '/client/menu';
+            userRoleName = 'Alumno/Profesor';
+            displayName = email;
           }
         }
       } else {
-        // MODO REGISTRO (Solo para comunidad Alumnos/Profesores)
+        // REGISTRO
         targetPath = '/client/menu';
-        userRoleName = 'Alumno/Profesor (Nuevo)';
-        userEmail = email;
+        userRoleName = 'Alumno/Profesor';
+        displayName = name;
         
         toast({
           className: "uni-toast-success",
           title: "🎉 ¡REGISTRO EXITOSO!",
-          description: `Bienvenido a UniEats, ${name}. Tu cuenta está lista.`,
+          description: `Bienvenido a UniEats, ${name}.`,
         });
       }
 
-      // Disparar confirmación por "correo" vía IA (Genkit)
+      // Guardar sesión local para los otros monitores
+      localStorage.setItem('unieats_user', JSON.stringify({
+        name: displayName,
+        role: userRoleName,
+        email: email
+      }));
+
       try {
         const emailResult = await sendLoginConfirmationEmail({ 
-          email: userEmail || name, 
+          email: email || name, 
           role: userRoleName 
         });
 
         toast({
           className: "uni-toast-info",
           title: `📧 GMAIL: ${emailResult.subject}`,
-          description: `Mensaje enviado a ${userEmail}. ¡Revisa tu bandeja!`,
+          description: `Confirmación enviada a ${email || name}.`,
         });
       } catch (e) {
-        console.error("Error al generar confirmación:", e);
+        console.error("IA Email Error:", e);
       }
 
       setLoading(false);
       router.push(targetPath);
-      
-      if (mode === 'login') {
-        toast({
-          className: "uni-toast-success",
-          title: `✅ ¡Hola de nuevo!`,
-          description: `Sesión iniciada correctamente.`,
-        });
-      }
-    }, 1200);
+    }, 1000);
   };
 
   return (
@@ -145,32 +148,21 @@ export default function LoginPage() {
             <CardTitle className="text-3xl font-black tracking-tight">
               {mode === 'login' ? 'Acceso UniEats' : 'Registro Comunidad'}
             </CardTitle>
-            <CardDescription className="text-base font-medium">
-              {mode === 'login' ? 'Accede a tu cuenta de cafetería' : 'Exclusivo para Alumnos y Profesores'}
-            </CardDescription>
           </CardHeader>
           <CardContent className="pt-10 px-10">
-            {error && (
-              <Alert variant="destructive" className="mb-6 rounded-2xl border-2">
-                <AlertCircle className="h-5 w-5" />
-                <AlertTitle className="font-bold">Error</AlertTitle>
-                <AlertDescription className="font-medium">{error}</AlertDescription>
-              </Alert>
-            )}
-
             <form onSubmit={handleAuth} className="space-y-6">
               {mode === 'login' ? (
                 <>
                   <div className="space-y-2">
-                    <Label className="font-black text-xs uppercase tracking-widest text-muted-foreground">Soy Parte de:</Label>
+                    <Label className="font-black text-xs uppercase tracking-widest text-muted-foreground">Tipo de Usuario</Label>
                     <Select value={role} onValueChange={setRole}>
                       <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all">
-                        <SelectValue placeholder="Selecciona tu tipo de usuario" />
+                        <SelectValue placeholder="Selecciona tu perfil" />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl">
-                        <SelectItem value="community">Comunidad UNI (Estudiantes/Profesores)</SelectItem>
-                        <SelectItem value="staff">Personal de Cocina / Staff</SelectItem>
-                        <SelectItem value="admin">Administrador del Sistema</SelectItem>
+                        <SelectItem value="community">Estudiante / Profesor</SelectItem>
+                        <SelectItem value="staff">Personal de Cocina</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -193,12 +185,12 @@ export default function LoginPage() {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Nombre y Apellido</Label>
+                    <Label htmlFor="name" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Nombre Completo</Label>
                     <div className="relative">
                       <User className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                       <Input 
                         id="name" 
-                        placeholder="Escribe tu nombre completo" 
+                        placeholder="Escribe tu nombre" 
                         className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -207,13 +199,13 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email-reg" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Correo Gmail / Institucional</Label>
+                    <Label htmlFor="email-reg" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Correo Institucional</Label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                       <Input 
                         id="email-reg" 
                         type="email"
-                        placeholder="ejemplo@gmail.com" 
+                        placeholder="ejemplo@uni.edu" 
                         className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -239,24 +231,13 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : mode === 'login' ? 'Iniciar Sesión' : 'Registrarme en UniEats'}
+              <Button type="submit" className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/30" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : mode === 'login' ? 'Iniciar Sesión' : 'Registrarme'}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4 py-8 bg-muted/20 text-center text-xs text-muted-foreground">
-            {mode === 'login' ? (
-              <div className="space-y-1">
-                <p className="font-medium text-[10px] uppercase tracking-tighter opacity-70">Cuentas Directas:</p>
-                <div className="flex justify-center gap-4">
-                  <span className="font-black text-foreground">alumno / admin / cocinero</span>
-                </div>
-              </div>
-            ) : (
-              <p className="font-bold px-6">
-                Registro exclusivo para la comunidad UNI. Los datos serán validados institucionalmente.
-              </p>
-            )}
+          <CardFooter className="py-8 bg-muted/20 text-center text-xs text-muted-foreground flex flex-col gap-2">
+            <p className="font-bold opacity-60">Acceso Universitario Seguro</p>
           </CardFooter>
         </Card>
       </div>
