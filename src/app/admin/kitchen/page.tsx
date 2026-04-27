@@ -133,7 +133,7 @@ export default function KitchenPage() {
         <section className="flex flex-col gap-8">
           <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm">
             <h2 className="text-3xl font-black flex items-center gap-4">
-              <Flame className="text-secondary" /> EN FOGONES 
+              <Flame className="text-secondary" /> ¡ESTA DE FUEGO! 
             </h2>
             <Badge className="h-12 px-6 rounded-full bg-secondary text-black text-2xl font-black">
               {orders.filter(o => o.status === 'preparing').length}
