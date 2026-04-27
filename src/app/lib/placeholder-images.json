@@ -54,6 +54,24 @@
       "description": "Tacos de guisado mexicanos",
       "imageUrl": "https://picsum.photos/seed/mexican-tacos/400/300",
       "imageHint": "mexican tacos"
+    },
+    {
+      "id": "hotcakes",
+      "description": "Hot cakes esponjosos",
+      "imageUrl": "https://picsum.photos/seed/hotcakes/400/300",
+      "imageHint": "pancakes breakfast"
+    },
+    {
+      "id": "popcorn",
+      "description": "Palomitas de maíz",
+      "imageUrl": "https://picsum.photos/seed/popcorn/400/300",
+      "imageHint": "popcorn bag"
+    },
+    {
+      "id": "sweetbread",
+      "description": "Pan dulce variado",
+      "imageUrl": "https://picsum.photos/seed/sweetbread/400/300",
+      "imageHint": "mexican sweet bread"
     }
   ]
 }
