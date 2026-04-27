@@ -56,7 +56,6 @@ export default function ClientMenu() {
   const syncInventory = () => {
     const savedInv = localStorage.getItem('uni_inventory');
     const parsedInv = savedInv ? JSON.parse(savedInv) : [];
-    // Validar si es el inventario completo (incluyendo vainilla i33)
     const needsUpdate = !parsedInv.find((i: any) => i.id === 'i33');
 
     if (!savedInv || needsUpdate) {
@@ -70,7 +69,6 @@ export default function ClientMenu() {
   useEffect(() => {
     syncInventory();
     
-    // Escuchar cambios de otras ventanas o de la Caja (POS)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'uni_inventory') syncInventory();
     };
@@ -88,22 +86,18 @@ export default function ClientMenu() {
     
     if (currentInv.length === 0) return false;
 
-    // Calcular requerimientos totales sumando el carrito actual + el nuevo item
     const requirements: Record<string, number> = {};
     
-    // Sumar lo que ya está en el carrito
     currentCart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
       });
     });
 
-    // Sumar el nuevo item
     newItem.recipe.forEach((r: any) => {
       requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
     });
 
-    // Validar contra el stock actual
     return Object.entries(requirements).every(([ingId, qty]) => {
       const ing = currentInv.find((i: any) => i.id === ingId);
       return ing && ing.stock >= qty;
@@ -161,7 +155,6 @@ export default function ClientMenu() {
     const orderId = `#${Math.floor(100 + Math.random() * 900)}`;
     setCurrentOrderId(orderId);
 
-    // DEDUCCIÓN REAL DE INVENTARIO
     const savedInv = localStorage.getItem('uni_inventory');
     const currentInv = savedInv ? JSON.parse(savedInv) : [...inventory];
     const newInventory = currentInv.map((ing: any) => ({ ...ing }));
@@ -178,10 +171,8 @@ export default function ClientMenu() {
     localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
     setInventory(newInventory);
     
-    // Notificar a otras pestañas (Inventario y Caja)
     window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
 
-    // Registrar pedido para cocina
     const kitchenOrders = JSON.parse(localStorage.getItem('kitchen_orders') || '[]');
     kitchenOrders.push({
       id: orderId,
@@ -198,7 +189,6 @@ export default function ClientMenu() {
     });
     localStorage.setItem('kitchen_orders', JSON.stringify(kitchenOrders));
 
-    // Registrar para liberación en dashboard admin
     const pendingVerifications = JSON.parse(localStorage.getItem('pending_verifications') || '[]');
     pendingVerifications.push({
       id: orderId,
@@ -236,48 +226,48 @@ export default function ClientMenu() {
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] pb-32">
-      <header className="bg-white border-b-2 sticky top-0 z-40 px-6 h-20 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" onClick={() => router.push('/login')}>
-            <ArrowLeft size={24} />
+      <header className="bg-white border-b-2 sticky top-0 z-40 px-4 md:px-6 h-20 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3 md:gap-4">
+          <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 md:h-12 md:w-12" onClick={() => router.push('/login')}>
+            <ArrowLeft size={20} md:size={24} />
           </Button>
           <div className="flex flex-col">
-            <span className="text-2xl font-black tracking-tighter text-primary">UniEats</span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">{userName}</span>
+            <span className="text-xl md:text-2xl font-black tracking-tighter text-primary">UniEats</span>
+            <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase">{userName}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-2xl h-12 px-5 font-black gap-2 border-2" onClick={() => router.push('/queue')}>
-            <Tv size={20} className="text-primary" /> VER TURNOS
+          <Button variant="outline" className="rounded-xl md:rounded-2xl h-10 md:h-12 px-3 md:px-5 font-black gap-1 md:gap-2 border-2 text-xs md:text-sm" onClick={() => router.push('/queue')}>
+            <Tv size={16} md:size={20} className="text-primary" /> <span className="hidden xs:inline">TURNOS</span>
           </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-10">
+      <main className="container mx-auto px-4 md:px-6 py-8 md:py-10">
         {orderStatus !== 'idle' && (
           <div className={cn(
-            "mb-10 p-8 rounded-[3rem] flex flex-col md:flex-row items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
+            "mb-8 md:mb-10 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] flex flex-col md:flex-row items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top duration-500",
             orderStatus === 'ready' && "bg-emerald-500 bg-none"
           )}>
-            <div className="flex items-center gap-6 mb-4 md:mb-0">
-              <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center">
-                {orderStatus === 'preparing' ? <Clock className="w-10 h-10 animate-spin" /> : <CheckCircle2 className="w-10 h-10" />}
+            <div className="flex items-center gap-4 md:gap-6 mb-4 md:mb-0">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl md:rounded-3xl flex items-center justify-center">
+                {orderStatus === 'preparing' ? <Clock className="w-8 h-8 md:w-10 md:h-10 animate-spin" /> : <CheckCircle2 className="w-8 h-8 md:w-10 md:h-10" />}
               </div>
               <div>
-                <p className="text-sm font-black uppercase opacity-80">ORDEN {currentOrderId}</p>
-                <p className="text-4xl font-black">
+                <p className="text-[10px] md:text-sm font-black uppercase opacity-80">ORDEN {currentOrderId}</p>
+                <p className="text-2xl md:text-4xl font-black">
                   {orderStatus === 'preparing' ? '¡PREPARANDO!' : '¡LISTO PARA RECOGER!'}
                 </p>
               </div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-3 md:gap-4 w-full md:w-auto">
               {orderStatus === 'preparing' && (
-                <Button variant="outline" className="bg-white/10 text-white border-2 rounded-2xl h-16 px-8 font-black text-xl" onClick={handleCancelOrder}>
+                <Button variant="outline" className="flex-1 md:flex-none bg-white/10 text-white border-2 rounded-xl md:rounded-2xl h-14 md:h-16 px-6 md:px-8 font-black text-lg md:text-xl" onClick={handleCancelOrder}>
                   CANCELAR
                 </Button>
               )}
               {orderStatus === 'ready' && (
-                <Button className="bg-white text-emerald-600 rounded-2xl h-16 px-8 font-black text-xl" onClick={() => { setOrderStatus('idle'); setCurrentOrderId(null); }}>
+                <Button className="flex-1 md:flex-none bg-white text-emerald-600 rounded-xl md:rounded-2xl h-14 md:h-16 px-6 md:px-8 font-black text-lg md:text-xl" onClick={() => { setOrderStatus('idle'); setCurrentOrderId(null); }}>
                   NUEVO PEDIDO
                 </Button>
               )}
@@ -285,23 +275,23 @@ export default function ClientMenu() {
           </div>
         )}
 
-        <div className="flex flex-col gap-8 mb-12">
+        <div className="flex flex-col gap-6 md:gap-8 mb-10 md:mb-12">
           <div className="relative">
-            <Search className="absolute left-6 top-5 h-6 w-6 text-muted-foreground" />
+            <Search className="absolute left-5 md:left-6 top-4 md:top-5 h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
             <Input 
               placeholder="¿Qué vas a comer hoy?" 
-              className="pl-16 h-16 bg-white border-2 rounded-[2rem] text-xl font-medium shadow-sm"
+              className="pl-14 md:pl-16 h-14 md:h-16 bg-white border-2 rounded-2xl md:rounded-[2rem] text-lg md:text-xl font-medium shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {["Todas", ...CATEGORIES].map(cat => (
               <Button 
                 key={cat}
                 variant={selectedCategory === cat ? "default" : "secondary"}
                 onClick={() => setSelectedCategory(cat)}
-                className="rounded-full h-14 px-10 font-black text-lg whitespace-nowrap"
+                className="rounded-full h-12 md:h-14 px-6 md:px-10 font-black text-sm md:text-lg whitespace-nowrap"
               >
                 {cat}
               </Button>
@@ -309,23 +299,30 @@ export default function ClientMenu() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-10">
           {filteredItems.map((item) => {
             const available = checkStockAvailability(item, cart);
             return (
-              <Card key={item.id} className={cn("group border-none shadow-xl rounded-[3rem] overflow-hidden bg-white", !available && "opacity-50 grayscale")}>
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                  <div className="absolute top-6 right-6 bg-secondary text-black h-12 px-6 rounded-full text-xl font-black flex items-center justify-center shadow-xl">
+              <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-white flex flex-col", !available && "opacity-50 grayscale")}>
+                <div className="aspect-video md:aspect-[4/3] relative overflow-hidden shrink-0">
+                  <Image 
+                    src={item.imageUrl} 
+                    alt={item.name} 
+                    fill 
+                    className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                  <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-secondary text-black h-10 md:h-12 px-4 md:px-6 rounded-full text-lg md:text-xl font-black flex items-center justify-center shadow-xl">
                     $ {item.price.toFixed(2)}
                   </div>
                 </div>
-                <CardHeader className="p-8">
-                  <p className="text-xs font-black text-primary uppercase mb-2">{item.category}</p>
-                  <CardTitle className="text-2xl font-black">{item.name}</CardTitle>
+                <CardHeader className="p-6 md:p-8 flex-1">
+                  <p className="text-[10px] md:text-xs font-black text-primary uppercase mb-1 md:mb-2">{item.category}</p>
+                  <CardTitle className="text-xl md:text-2xl font-black line-clamp-1">{item.name}</CardTitle>
+                  <CardDescription className="line-clamp-2 font-medium mt-1 md:mt-2 text-xs md:text-sm">{item.description}</CardDescription>
                 </CardHeader>
-                <CardFooter className="p-8 pt-0">
-                  <Button className="w-full h-16 rounded-2xl font-black text-xl" onClick={() => addToCart(item)} disabled={!available}>
+                <CardFooter className="p-6 md:p-8 pt-0 mt-auto">
+                  <Button className="w-full h-14 md:h-16 rounded-xl md:rounded-2xl font-black text-lg md:text-xl" onClick={() => addToCart(item)} disabled={!available}>
                     {available ? 'Añadir' : 'Agotado'}
                   </Button>
                 </CardFooter>
@@ -336,44 +333,50 @@ export default function ClientMenu() {
       </main>
 
       {cart.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl z-50 flex gap-4">
-          <Button variant="destructive" size="icon" className="h-20 w-20 rounded-full shadow-2xl shrink-0 border-4 border-white" onClick={clearCart}>
-            <Trash2 size={32} />
+        <div className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 w-[92%] max-w-2xl z-50 flex gap-3 md:gap-4">
+          <Button variant="destructive" size="icon" className="h-16 w-16 md:h-20 md:w-20 rounded-full shadow-2xl shrink-0 border-4 border-white" onClick={clearCart}>
+            <Trash2 size={24} md:size={32} />
           </Button>
-          <Button className="flex-1 h-20 rounded-[2.5rem] shadow-2xl text-2xl font-black flex justify-between px-10 mcd-gradient" onClick={() => setShowPayment(true)}>
-            <span>{cart.length} productos</span>
-            <span className="flex items-center gap-2">PAGAR $ {total.toFixed(2)} <ChevronRight size={28} /></span>
+          <Button className="flex-1 h-16 md:h-20 rounded-2xl md:rounded-[2.5rem] shadow-2xl text-lg md:text-2xl font-black flex justify-between px-6 md:px-10 mcd-gradient" onClick={() => setShowPayment(true)}>
+            <span>{cart.length} items</span>
+            <span className="flex items-center gap-1 md:gap-2">PAGAR $ {total.toFixed(2)} <ChevronRight size={24} md:size={28} /></span>
           </Button>
         </div>
       )}
 
       {/* Sugerencias de Upsell */}
       <Dialog open={upsellStep !== 'none'} onOpenChange={(open) => !open && setUpsellStep('none')}>
-        <DialogContent className="rounded-[3rem] p-10 max-w-2xl border-none">
-          <div className="text-center space-y-6">
+        <DialogContent className="rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 max-w-2xl border-none">
+          <div className="text-center space-y-4 md:space-y-6">
             <DialogHeader>
-              <DialogTitle className="text-4xl font-black text-center">
+              <DialogTitle className="text-2xl md:text-4xl font-black text-center leading-tight">
                 {upsellStep === 'drink' ? '¿Quieres agregar una bebida?' : '¿Deseas agregar una golosina?'}
               </DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-6 mt-8">
+            <div className="grid grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-8">
               {(upsellStep === 'drink' ? drinkUpsells : sweetUpsells).map(item => {
                 const available = checkStockAvailability(item, cart);
                 return (
-                  <Card key={item.id} className={cn("border-2 transition-all rounded-3xl overflow-hidden p-0 group cursor-pointer", !available && "opacity-40 grayscale pointer-events-none")} 
+                  <Card key={item.id} className={cn("border-2 transition-all rounded-2xl md:rounded-3xl overflow-hidden p-0 group cursor-pointer flex flex-col", !available && "opacity-40 grayscale pointer-events-none")} 
                         onClick={() => { setCart([...cart, item]); nextUpsell(); }}>
-                    <div className="aspect-video relative">
-                      <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                    <div className="aspect-video relative shrink-0">
+                      <Image 
+                        src={item.imageUrl} 
+                        alt={item.name} 
+                        fill 
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 30vw"
+                      />
                     </div>
-                    <div className="p-4">
-                      <p className="font-black text-lg">{item.name}</p>
-                      <p className="text-secondary font-black text-xl">$ {item.price.toFixed(2)}</p>
+                    <div className="p-3 md:p-4 text-left">
+                      <p className="font-black text-sm md:text-lg line-clamp-1">{item.name}</p>
+                      <p className="text-secondary font-black text-lg md:text-xl">$ {item.price.toFixed(2)}</p>
                     </div>
                   </Card>
                 );
               })}
             </div>
-            <Button variant="ghost" className="text-muted-foreground font-black text-lg" onClick={nextUpsell}>
+            <Button variant="ghost" className="text-muted-foreground font-black text-base md:text-lg mt-2" onClick={nextUpsell}>
               Continuar con mi orden
             </Button>
           </div>
@@ -382,33 +385,33 @@ export default function ClientMenu() {
 
       {/* Ventana de Pago */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
-          <div className="bg-primary p-10 text-white">
-            <h2 className="text-4xl font-black">Pagar</h2>
+        <DialogContent className="rounded-[2.5rem] md:rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md mx-4">
+          <div className="bg-primary p-8 md:p-10 text-white">
+            <h2 className="text-3xl md:text-4xl font-black">Pagar</h2>
           </div>
-          <div className="p-10 space-y-6">
-            <Button variant="outline" className={cn("h-24 w-full rounded-3xl flex items-center justify-start gap-6 px-8 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")}
+          <div className="p-8 md:p-10 space-y-4 md:space-y-6">
+            <Button variant="outline" className={cn("h-20 md:h-24 w-full rounded-2xl md:rounded-3xl flex items-center justify-start gap-4 md:gap-6 px-6 md:px-8 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")}
                     onClick={() => setPaymentMethod('transfer')}>
-              <CreditCard size={32} />
+              <CreditCard size={24} md:size={32} />
               <div className="text-left">
-                <p className="font-black text-xl">Transferencia</p>
+                <p className="font-black text-lg md:text-xl">Transferencia</p>
               </div>
             </Button>
-            <Button variant="outline" className={cn("h-24 w-full rounded-3xl flex items-center justify-start gap-6 px-8 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")}
+            <Button variant="outline" className={cn("h-20 md:h-24 w-full rounded-2xl md:rounded-3xl flex items-center justify-start gap-4 md:gap-6 px-6 md:px-8 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")}
                     onClick={() => setPaymentMethod('cash')}>
-              <Wallet size={32} />
+              <Wallet size={24} md:size={32} />
               <div className="text-left">
-                <p className="font-black text-xl">Efectivo en Caja</p>
+                <p className="font-black text-lg md:text-xl">Efectivo en Caja</p>
               </div>
             </Button>
-            <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-6">
+            <div className="flex justify-between items-center text-2xl md:text-3xl font-black border-t-4 pt-4 md:pt-6 mt-4">
               <span>Total</span>
               <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
-            <Button className="w-full h-16 rounded-2xl text-2xl font-black mcd-gradient" onClick={handlePayment} disabled={!paymentMethod}>
+            <Button className="w-full h-14 md:h-16 rounded-xl md:rounded-2xl text-xl md:text-2xl font-black mcd-gradient shadow-lg" onClick={handlePayment} disabled={!paymentMethod}>
               Confirmar Pedido
             </Button>
-            <Button variant="ghost" className="w-full text-muted-foreground font-bold" onClick={clearCart}>
+            <Button variant="ghost" className="w-full text-muted-foreground font-bold text-sm" onClick={clearCart}>
               Descartar todo
             </Button>
           </div>
