@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,24 +14,38 @@ import {
   Scale,
   Droplets,
   Package,
-  PlusCircle
+  PlusCircle,
+  Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { INGREDIENTS as INITIAL_INGREDIENTS } from '@/lib/data';
 
 export default function InventoryPage() {
   const [search, setSearch] = useState("");
+  const [isInitializing, setIsInitializing] = useState(false);
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
 
-  const ingredientsQuery = useMemoFirebase(() => collection(firestore, 'ingredients'), [firestore]);
-  const { data: items } = useCollection(ingredientsQuery);
+  // Protección de ruta
+  useEffect(() => {
+    if (!isUserLoading && (!user || user.displayName !== 'admin')) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  const ingredientsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'ingredients');
+  }, [firestore, user]);
+
+  const { data: items, isLoading: isDataLoading } = useCollection(ingredientsQuery);
 
   const handleStockChange = (id: string, newStock: number) => {
     const itemRef = doc(firestore, 'ingredients', id);
@@ -42,25 +56,39 @@ export default function InventoryPage() {
   };
 
   const resetToDefault = async () => {
-    const batch = writeBatch(firestore);
-    INITIAL_INGREDIENTS.forEach((ing) => {
-      const docRef = doc(firestore, 'ingredients', ing.id);
-      batch.set(docRef, {
-        id: ing.id,
-        name: ing.name,
-        unitOfMeasure: ing.unit,
-        currentStock: ing.stock,
-        minStockLevel: ing.minStock,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+    if (!user) return;
+    
+    setIsInitializing(true);
+    try {
+      const batch = writeBatch(firestore);
+      INITIAL_INGREDIENTS.forEach((ing) => {
+        const docRef = doc(firestore, 'ingredients', ing.id);
+        batch.set(docRef, {
+          id: ing.id,
+          name: ing.name,
+          unitOfMeasure: ing.unit,
+          currentStock: ing.stock,
+          minStockLevel: ing.minStock,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
       });
-    });
-    await batch.commit();
-    toast({
-      className: "uni-toast-success",
-      title: "🔄 REESTABLECIDO",
-      description: "Inventario reiniciado a valores base en la nube.",
-    });
+      await batch.commit();
+      toast({
+        className: "uni-toast-success",
+        title: "🔄 REESTABLECIDO",
+        description: "Inventario reiniciado a valores base en la nube.",
+      });
+    } catch (error) {
+      console.error("Error al inicializar:", error);
+      toast({
+        variant: "destructive",
+        title: "❌ ERROR",
+        description: "No se pudo inicializar el inventario. Revisa tus permisos.",
+      });
+    } finally {
+      setIsInitializing(false);
+    }
   };
 
   const filteredItems = items?.filter(i => 
@@ -76,7 +104,7 @@ export default function InventoryPage() {
 
   const formatHumanStock = (amount: number, unit: string) => {
     if (unit === 'ml') {
-      if (amount >= 1000) return `${(amount / 1000).toFixed(2)} Litros`;
+      if (amount >= 1000) return `${(amount / 1000).toFixed(2)} L`;
       return `${amount} ml`;
     }
     if (unit === 'gr') {
@@ -85,6 +113,18 @@ export default function InventoryPage() {
     }
     return `${amount} ${unit}`;
   };
+
+  if (isUserLoading || (user && isDataLoading)) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || user.displayName !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] p-4 md:p-8">
@@ -95,12 +135,18 @@ export default function InventoryPage() {
           </Button>
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-foreground">Almacén Central (Cloud)</h1>
-            <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Sincronizado en todos los dispositivos</p>
+            <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Sincronizado en tiempo real</p>
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <Button variant="outline" className="flex-1 md:flex-none rounded-xl h-12 px-6 font-bold gap-2" onClick={resetToDefault}>
-            <RotateCcw size={20} /> Inicializar Almacén
+          <Button 
+            variant="outline" 
+            className="flex-1 md:flex-none rounded-xl h-12 px-6 font-bold gap-2" 
+            onClick={resetToDefault}
+            disabled={isInitializing}
+          >
+            {isInitializing ? <Loader2 className="animate-spin" /> : <RotateCcw size={20} />}
+            Inicializar Almacén
           </Button>
         </div>
       </header>
@@ -112,12 +158,12 @@ export default function InventoryPage() {
               <CardTitle className="text-2xl md:text-3xl font-black flex items-center gap-3">
                 <Box className="text-primary" /> Inventario Técnico
               </CardTitle>
-              <CardDescription className="font-bold">Aguas Bonafont y sabores se cuentan por pieza (botella).</CardDescription>
+              <CardDescription className="font-bold">Control de insumos críticos para la operación.</CardDescription>
             </div>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-4 top-3 h-5 w-5 text-muted-foreground" />
               <Input 
-                placeholder="Buscar..." 
+                placeholder="Buscar insumo..." 
                 className="pl-12 h-11 rounded-xl bg-muted/20 border-2"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -129,7 +175,7 @@ export default function InventoryPage() {
           <div className="grid grid-cols-1 gap-4">
             {filteredItems.map((item) => {
               const status = getStockStatus(item);
-              const progressValue = Math.min(100, (item.currentStock / (item.minStockLevel * 4)) * 100);
+              const progressValue = Math.min(100, (item.currentStock / (item.minStockLevel * 3)) * 100);
               
               return (
                 <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-2 border-muted hover:border-primary/20 transition-all bg-muted/5">
