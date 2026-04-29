@@ -23,9 +23,7 @@ import {
   Clock,
   CheckCircle2,
   Flame,
-  FileText,
-  Printer,
-  Download
+  Printer
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -360,6 +358,9 @@ export default function ClientMenu() {
       {/* VIRTUAL TICKET DIALOG */}
       <Dialog open={showTicket} onOpenChange={setShowTicket}>
         <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-sm">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Ticket de Compra - UniEats</DialogTitle>
+          </DialogHeader>
           <div className="bg-white p-8 relative">
             {/* Ticket Simulation Header */}
             <div className="text-center space-y-2 mb-6 border-b-2 border-dashed pb-6">
