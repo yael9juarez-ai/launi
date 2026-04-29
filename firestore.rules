@@ -35,22 +35,19 @@ service cloud.firestore {
     }
 
     match /ingredients/{ingredientId} {
-      // Todos los alumnos necesitan ver los ingredientes para saber si hay stock
+      // Todos los usuarios necesitan leer para ver stock
       allow read: if isSignedIn();
-      // Permitir actualización de stock a todos los logueados para que el alumno descuente al comprar
+      // Permitir actualización a todos los logueados para que el alumno descuente stock al pedir
       allow update: if isSignedIn();
       // Solo el staff puede crear o borrar insumos
       allow create, delete: if isStaff();
     }
 
     match /orders/{orderId} {
-      // Todos los usuarios autenticados pueden ver órdenes
       allow read: if isSignedIn();
-      // Cualquier alumno puede crear órdenes
       allow create: if isSignedIn();
-      // El staff actualiza estados, el alumno puede actualizar su propia orden
+      // Permitir actualización de estados (admin, cocinero o el propio alumno para cancelar)
       allow update: if isSignedIn();
-      // Solo admins pueden borrar registros históricos
       allow delete: if isAdmin();
     }
 

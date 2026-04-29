@@ -159,7 +159,7 @@ export default function AdminDashboard() {
           <div className="w-9 h-9 mcd-gradient rounded-xl flex items-center justify-center text-white shadow-md">
             <UtensilsCrossed size={20} />
           </div>
-          <span className="text-xl font-black tracking-tighter">UniEats <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full align-middle ml-1">ADMIN</span></span>
+          <span className="text-xl font-black tracking-tighter text-foreground">UniEats <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full align-middle ml-1">ADMIN</span></span>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <Button variant="ghost" className="w-full justify-start gap-3 text-primary bg-primary/5 font-bold rounded-xl">

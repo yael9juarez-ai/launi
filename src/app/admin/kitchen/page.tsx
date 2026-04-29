@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -39,7 +38,6 @@ export default function KitchenPage() {
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    // Permitir tanto a cocineros como a admins entrar a esta vista operativa
     if (!isUserLoading && (!user || (user.displayName !== 'cocinero' && user.displayName !== 'admin'))) {
       router.push('/login');
     }
@@ -58,23 +56,33 @@ export default function KitchenPage() {
   const { data: orders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
   const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
-  const updateOrderStatus = (id: string, newStatus: string) => {
+  const updateOrderStatus = (id: string, newStatus: string, currentStatus?: string) => {
     const orderRef = doc(firestore, 'orders', id);
     updateDocumentNonBlocking(orderRef, {
       status: newStatus,
       updatedAt: serverTimestamp()
     });
     
-    const messages: Record<string, string> = {
-      'Preparing': "👨‍🍳 PREPARACIÓN INICIADA",
-      'Ready for Pickup': "✅ PEDIDO LISTO EN BARRA",
-      'Picked Up': "📦 PEDIDO ENTREGADO",
-    };
+    let title = "ACTUALIZADO";
+    let description = `Pedido #${id} actualizado en la nube.`;
+
+    if (newStatus === 'Preparing') {
+      title = "👨‍🍳 PREPARACIÓN INICIADA";
+      if (currentStatus === 'Pending') {
+        description = `Pedido #${id} iniciado. Pago liberado automáticamente.`;
+      }
+    } else if (newStatus === 'Ready for Pickup') {
+      title = "✅ PEDIDO LISTO EN BARRA";
+      description = `El alumno ya puede ver que su pedido #${id} está listo.`;
+    } else if (newStatus === 'Picked Up') {
+      title = "📦 PEDIDO ENTREGADO";
+      description = `Pedido #${id} finalizado con éxito.`;
+    }
 
     toast({
       className: newStatus === 'Ready for Pickup' ? "uni-toast-success" : "uni-toast-info",
-      title: messages[newStatus] || "ACTUALIZADO",
-      description: `Pedido #${id} actualizado en la nube.`,
+      title,
+      description,
     });
   };
 
@@ -105,10 +113,9 @@ export default function KitchenPage() {
 
   const isAdmin = user.displayName === 'admin';
 
-  // Filtrado de órdenes por estado para las 3 columnas
-  const incomingOrders = orders?.filter(o => o.status === 'Pending' || o.status === 'Confirmed').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
-  const preparingOrders = orders?.filter(o => o.status === 'Preparing').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
-  const readyOrders = orders?.filter(o => o.status === 'Ready for Pickup').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
+  const incomingOrders = orders?.filter(o => o.status === 'Pending' || o.status === 'Confirmed').sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)) || [];
+  const preparingOrders = orders?.filter(o => o.status === 'Preparing').sort((a, b) => (a.updatedAt?.seconds || 0) - (b.updatedAt?.seconds || 0)) || [];
+  const readyOrders = orders?.filter(o => o.status === 'Ready for Pickup').sort((a, b) => (a.updatedAt?.seconds || 0) - (b.updatedAt?.seconds || 0)) || [];
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col">
@@ -118,8 +125,8 @@ export default function KitchenPage() {
             <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase">Gestión de Cocina</h1>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Personal de Producción e Insumos</p>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase">Panel del Cocinero</h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Gestión de Producción y Pagos Automáticos</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -155,12 +162,11 @@ export default function KitchenPage() {
           <TabsContent value="orders" className="m-0 h-full">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* COLUMNA 1: NUEVOS PEDIDOS */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-primary/10">
                   <div className="flex items-center gap-3">
                     <Clock size={24} className="text-primary animate-pulse" />
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Nuevos</h2>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Entrantes</h2>
                   </div>
                   <Badge className="bg-primary text-white font-black text-xl px-4 py-1 rounded-xl">{incomingOrders.length}</Badge>
                 </div>
@@ -172,7 +178,9 @@ export default function KitchenPage() {
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start mb-4">
                             <span className="text-3xl font-black text-primary">#{order.id}</span>
-                            <Badge variant="secondary" className="font-bold text-[10px] uppercase">{order.method === 'transfer' ? 'QR' : 'CASH'}</Badge>
+                            <Badge variant="secondary" className="font-bold text-[10px] uppercase">
+                              {order.status === 'Pending' ? 'POR LIBERAR' : 'PAGADO'}
+                            </Badge>
                           </div>
                           <div className="space-y-2 mb-6">
                             {order.items?.map((item: any, i: number) => (
@@ -184,7 +192,7 @@ export default function KitchenPage() {
                           </div>
                           <Button 
                             className="w-full h-14 rounded-2xl font-black mcd-gradient shadow-lg gap-2 text-sm"
-                            onClick={() => updateOrderStatus(order.id, 'Preparing')}
+                            onClick={() => updateOrderStatus(order.id, 'Preparing', order.status)}
                           >
                             <Flame size={18} /> EMPEZAR COCINA
                           </Button>
@@ -195,7 +203,6 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* COLUMNA 2: EN PREPARACIÓN */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-secondary/20">
                   <div className="flex items-center gap-3">
@@ -232,12 +239,11 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* COLUMNA 3: LISTOS PARA ENTREGA */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-emerald-500/20">
                   <div className="flex items-center gap-3">
                     <BellRing size={24} className="text-emerald-500" />
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Por Entregar</h2>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">¡Listos!</h2>
                   </div>
                   <Badge className="bg-emerald-500 text-white font-black text-xl px-4 py-1 rounded-xl">{readyOrders.length}</Badge>
                 </div>
@@ -304,19 +310,16 @@ export default function KitchenPage() {
                           <div className="flex gap-2">
                             <Button 
                               variant="outline" size="icon" className="h-10 w-10 rounded-xl"
-                              onClick={() => updateStock(item.id, item.currentStock - 1)}
+                              onClick={() => updateStock(item.id, item.currentStock - (item.unitOfMeasure === 'ml' || item.unitOfMeasure === 'gr' ? 100 : 1))}
                             >
                               <Minus size={16} />
                             </Button>
                             <Button 
                               variant="outline" size="icon" className="h-10 w-10 rounded-xl"
-                              onClick={() => updateStock(item.id, item.currentStock + 1)}
+                              onClick={() => updateStock(item.id, item.currentStock + (item.unitOfMeasure === 'ml' || item.unitOfMeasure === 'gr' ? 100 : 1))}
                             >
                               <Plus size={16} />
                             </Button>
-                            <div className="flex-1 bg-muted/30 rounded-xl flex items-center justify-center font-black text-[9px] uppercase">
-                              Ajustar
-                            </div>
                           </div>
                         </div>
                       );
