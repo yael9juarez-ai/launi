@@ -9,17 +9,13 @@ import { Input } from '@/components/ui/input';
 import { 
   ShoppingCart, 
   Search, 
-  Clock, 
   ChevronRight,
-  ArrowLeft,
-  CreditCard,
-  Wallet,
   Plus,
   Trash2,
-  Tv,
   Loader2,
-  Sparkles,
-  UtensilsCrossed
+  UtensilsCrossed,
+  CreditCard,
+  Wallet
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -31,9 +27,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useUser, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useUser, useMemoFirebase, useAuth } from '@/firebase';
 import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { signOut } from 'firebase/auth';
 
 export default function ClientMenu() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -45,6 +42,7 @@ export default function ClientMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -101,6 +99,11 @@ export default function ClientMenu() {
     } else {
       setShowUpsell(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
   };
 
   const handlePayment = async () => {
@@ -164,7 +167,7 @@ export default function ClientMenu() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Alumno'}</span>
           </div>
         </div>
-        <Button variant="outline" className="rounded-xl h-10 font-black gap-2 border-2 text-xs" onClick={() => router.push('/login')}>SALIR</Button>
+        <Button variant="outline" className="rounded-xl h-10 font-black gap-2 border-2 text-xs" onClick={handleLogout}>SALIR</Button>
       </header>
 
       <main className="container mx-auto px-4 py-8">

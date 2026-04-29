@@ -1,7 +1,7 @@
 
-"use client";
+'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import {
   Package, 
   BarChart3, 
   Clock, 
-  Monitor,
   LogOut,
   FileText,
   TrendingUp,
@@ -42,13 +41,14 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area 
 } from 'recharts';
+import { signOut } from 'firebase/auth';
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
@@ -63,9 +63,9 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
 
-  // Solo realizar la consulta si el usuario está autenticado
   const ordersQuery = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'orders');
@@ -94,6 +94,11 @@ export default function AdminDashboard() {
     });
     return stats;
   }, [confirmedOrders]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
 
   const handleLiberatePayment = (orderId: string) => {
     const orderRef = doc(firestore, 'orders', orderId);
@@ -138,7 +143,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!user) {
+  if (!user || user.displayName !== 'admin') {
     router.push('/login');
     return null;
   }
@@ -167,7 +172,7 @@ export default function AdminDashboard() {
           </Button>
         </nav>
         <div className="p-4 border-t">
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-destructive hover:bg-destructive/10" onClick={() => router.push('/login')}>
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-destructive hover:bg-destructive/10" onClick={handleLogout}>
             <LogOut size={20} /> Cerrar Sesión
           </Button>
         </div>

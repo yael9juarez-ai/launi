@@ -7,55 +7,51 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { UtensilsCrossed, Mail, Lock, Loader2, UserPlus, LogIn, User } from 'lucide-react';
+import { UtensilsCrossed, Lock, Loader2, User, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser } from '@/firebase';
-import { signInAnonymously, updateProfile } from 'firebase/auth';
-import { cn } from '@/lib/utils';
+import { signInAnonymously, updateProfile, signOut } from 'firebase/auth';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('community');
   const auth = useAuth();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      if (user.displayName === 'admin') router.push('/admin/dashboard');
-      else if (user.displayName === 'cocinero') router.push('/admin/kitchen');
+    if (user && !loading) {
+      const name = user.displayName?.toLowerCase();
+      if (name === 'admin') router.push('/admin/dashboard');
+      else if (name === 'cocinero') router.push('/admin/kitchen');
       else router.push('/client/menu');
     }
-  }, [user, router]);
+  }, [user, router, loading]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
+      // Primero nos aseguramos de cerrar cualquier sesión previa
+      await signOut(auth);
+      
       const userCredential = await signInAnonymously(auth);
       await updateProfile(userCredential.user, {
-        displayName: email.toLowerCase()
+        displayName: email.trim().toLowerCase()
       });
 
+      const name = email.trim().toLowerCase();
       let targetPath = '/client/menu';
-      if (email.toLowerCase() === 'admin') targetPath = '/admin/dashboard';
-      else if (email.toLowerCase() === 'cocinero') targetPath = '/admin/kitchen';
+      if (name === 'admin') targetPath = '/admin/dashboard';
+      else if (name === 'cocinero') targetPath = '/admin/kitchen';
 
       toast({
         className: "uni-toast-success",
         title: "¡BIENVENIDO!",
-        description: `Accediendo como ${email}...`,
+        description: `Accediendo como ${name}...`,
       });
 
       router.push(targetPath);
@@ -63,12 +59,20 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "ERROR DE CONEXIÓN",
-        description: "Revisa tu conexión a internet e intenta de nuevo.",
+        description: "No se pudo iniciar sesión. Revisa tu conexión.",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F5F5]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F7F5F5] p-4">
@@ -96,7 +100,7 @@ export default function LoginPage() {
                   <User className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="email" 
-                    placeholder="admin, cocinero, nombre..." 
+                    placeholder="admin, cocinero, tu nombre..." 
                     className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -127,7 +131,7 @@ export default function LoginPage() {
             </form>
           </CardContent>
           <CardFooter className="py-8 bg-muted/20 text-center">
-            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase">Sistema UNI de Gestión Cafetería</p>
+            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase">Sistema UNI - Gestión Cafetería</p>
           </CardFooter>
         </Card>
       </div>

@@ -11,26 +11,25 @@ import {
   Clock, 
   CheckCircle2, 
   Flame, 
-  ArrowLeft,
   Loader2,
   Box,
-  AlertTriangle,
   Plus,
-  Minus,
-  LayoutDashboard
+  Minus
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from '@/lib/utils';
+import { signOut } from 'firebase/auth';
 
 export default function KitchenPage() {
   const router = useRouter();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
@@ -69,6 +68,11 @@ export default function KitchenPage() {
     });
   };
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
   if (isUserLoading || (user && (isOrdersLoading || isInvLoading))) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -77,7 +81,7 @@ export default function KitchenPage() {
     );
   }
 
-  // Redirigir si no es cocinero para evitar que alumnos vean esto
+  // Redirigir si no es cocinero
   if (!user || user.displayName !== 'cocinero') {
     router.push('/login');
     return null;
@@ -99,7 +103,7 @@ export default function KitchenPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl font-black border-2 h-12 px-4 md:px-6" onClick={() => router.push('/login')}>
+          <Button variant="outline" className="rounded-xl font-black border-2 h-12 px-4 md:px-6" onClick={handleLogout}>
              CERRAR SESIÓN
           </Button>
         </div>
