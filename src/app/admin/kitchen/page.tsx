@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +13,8 @@ import {
   Box,
   Plus,
   Minus,
-  LogOut
+  LogOut,
+  UtensilsCrossed
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,7 @@ export default function KitchenPage() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
+  // Redirección si no es cocinero
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
       router.push('/login');
@@ -91,8 +92,9 @@ export default function KitchenPage() {
     return null;
   }
 
-  const pendingOrders = orders?.filter(o => o.status === 'Pending') || [];
-  const preparingOrders = orders?.filter(o => o.status === 'Preparing') || [];
+  // Filtrar órdenes por estado
+  const pendingOrders = orders?.filter(o => o.status === 'Pending').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
+  const preparingOrders = orders?.filter(o => o.status === 'Preparing').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col">
@@ -103,7 +105,7 @@ export default function KitchenPage() {
           </div>
           <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter">Cocina UniEats</h1>
-            <p className="hidden md:block text-[10px] font-black text-muted-foreground uppercase tracking-widest">Producción e Insumos</p>
+            <p className="hidden md:block text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel Operativo de Producción</p>
           </div>
         </div>
         <Button variant="outline" className="rounded-xl font-black border-2 h-12 gap-2" onClick={handleLogout}>
@@ -115,7 +117,7 @@ export default function KitchenPage() {
         <Tabs defaultValue="orders" className="h-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto h-14 bg-white rounded-2xl p-1 shadow-md mb-8">
             <TabsTrigger value="orders" className="rounded-xl font-black text-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-              PEDIDOS ({pendingOrders.length + preparingOrders.length})
+              ÓRDENES ({pendingOrders.length + preparingOrders.length})
             </TabsTrigger>
             <TabsTrigger value="inventory" className="rounded-xl font-black text-lg data-[state=active]:bg-secondary data-[state=active]:text-black">
               ALMACÉN
@@ -124,6 +126,7 @@ export default function KitchenPage() {
 
           <TabsContent value="orders" className="m-0 h-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* ÓRDENES PENDIENTES */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-primary/10">
                   <h2 className="text-2xl font-black flex items-center gap-3">
@@ -135,7 +138,7 @@ export default function KitchenPage() {
                   <div className="space-y-6 pr-2">
                     {pendingOrders.length === 0 ? (
                       <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-4 border-dashed">
-                        <p className="font-black text-muted-foreground opacity-30">SIN ÓRDENES NUEVAS</p>
+                        <p className="font-black text-muted-foreground opacity-30 italic">SIN ÓRDENES NUEVAS</p>
                       </div>
                     ) : (
                       pendingOrders.map(order => (
@@ -143,7 +146,7 @@ export default function KitchenPage() {
                           <CardHeader className="p-8 pb-4">
                             <div className="flex justify-between items-start">
                               <span className="text-4xl font-black text-primary">#{order.id}</span>
-                              <Badge variant="outline" className="font-black">{order.method?.toUpperCase()}</Badge>
+                              <Badge variant="outline" className="font-black uppercase">{order.method || 'CASH'}</Badge>
                             </div>
                             <p className="font-bold text-muted-foreground uppercase text-xs">CLIENTE: {order.user}</p>
                           </CardHeader>
@@ -172,6 +175,7 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
+              {/* ÓRDENES EN PREPARACIÓN */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-secondary/20">
                   <h2 className="text-2xl font-black flex items-center gap-3">
@@ -183,7 +187,7 @@ export default function KitchenPage() {
                   <div className="space-y-6 pr-2">
                     {preparingOrders.length === 0 ? (
                       <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-4 border-dashed">
-                        <p className="font-black text-muted-foreground opacity-30">ESTUFA VACÍA</p>
+                        <p className="font-black text-muted-foreground opacity-30 italic">ESTUFA VACÍA</p>
                       </div>
                     ) : (
                       preparingOrders.map(order => (
@@ -221,10 +225,13 @@ export default function KitchenPage() {
 
           <TabsContent value="inventory" className="m-0 h-full">
             <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden">
-              <CardHeader className="p-10 border-b">
-                <CardTitle className="text-3xl font-black flex items-center gap-4">
-                  <Box className="text-secondary w-10 h-10" /> CONTROL DE INSUMOS
-                </CardTitle>
+              <CardHeader className="p-10 border-b flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-3xl font-black flex items-center gap-4">
+                    <Box className="text-secondary w-10 h-10" /> CONTROL DE INSUMOS
+                  </CardTitle>
+                  <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest mt-1">Sincronización Cloud Real-Time</p>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-350px)]">
@@ -234,13 +241,13 @@ export default function KitchenPage() {
                       return (
                         <div key={item.id} className={cn(
                           "p-6 rounded-[2rem] border-4 transition-all flex flex-col justify-between",
-                          isLow ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent"
+                          isLow ? "bg-primary/5 border-primary/20 shadow-[0_0_15px_rgba(227,6,19,0.1)]" : "bg-muted/10 border-transparent"
                         )}>
                           <div className="flex justify-between items-start mb-4">
                             <div>
                               <h3 className="text-xl font-black leading-tight">{item.name}</h3>
-                              <Badge className={cn("mt-1 rounded-full font-black text-[10px]", isLow ? "bg-primary" : "bg-secondary text-black")}>
-                                {isLow ? "CRÍTICO" : "NORMAL"}
+                              <Badge className={cn("mt-1 rounded-full font-black text-[10px]", isLow ? "bg-primary text-white" : "bg-secondary text-black")}>
+                                {isLow ? "REBASTECER" : "DISPONIBLE"}
                               </Badge>
                             </div>
                             <div className="text-right">
@@ -251,9 +258,9 @@ export default function KitchenPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, item.currentStock - 1)}><Minus /></Button>
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, item.currentStock + 1)}><Plus /></Button>
-                            <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black uppercase text-[10px]">Ajuste Manual</div>
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-2" onClick={() => updateStock(item.id, item.currentStock - 1)}><Minus /></Button>
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-2" onClick={() => updateStock(item.id, item.currentStock + 1)}><Plus /></Button>
+                            <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black uppercase text-[10px] text-muted-foreground">Manual</div>
                           </div>
                         </div>
                       );

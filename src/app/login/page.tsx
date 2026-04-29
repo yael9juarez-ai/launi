@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,6 +22,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  // Lógica de redirección por perfil
   useEffect(() => {
     if (user && !loading) {
       const name = user.displayName?.toLowerCase();
@@ -37,17 +37,19 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
+      // Forzar cierre de sesión previo para limpiar cache de perfiles
       await signOut(auth);
       
       const userCredential = await signInAnonymously(auth);
       const name = email.trim().toLowerCase();
       const uid = userCredential.user.uid;
       
+      // Actualizar el perfil del usuario de Firebase Auth
       await updateProfile(userCredential.user, {
         displayName: name
       });
 
-      // Crear documento de usuario y rol en Firestore para habilitar Security Rules
+      // Registrar el usuario y su rol en Firestore para Security Rules
       await setDoc(doc(firestore, 'users', uid), {
         id: uid,
         displayName: name,
@@ -55,10 +57,11 @@ export default function LoginPage() {
         updatedAt: serverTimestamp()
       });
 
+      // Crear documentos de DBAC (Database Access Control)
       if (name === 'admin') {
-        await setDoc(doc(firestore, 'roles_admin', uid), { active: true });
+        await setDoc(doc(firestore, 'roles_admin', uid), { active: true, updatedAt: serverTimestamp() });
       } else if (name === 'cocinero') {
-        await setDoc(doc(firestore, 'roles_kitchenstaff', uid), { active: true });
+        await setDoc(doc(firestore, 'roles_kitchenstaff', uid), { active: true, updatedAt: serverTimestamp() });
       }
 
       toast({
@@ -67,7 +70,6 @@ export default function LoginPage() {
         description: `Accediendo como ${name}...`,
       });
 
-      // La redirección ocurrirá vía useEffect
     } catch (error: any) {
       console.error(error);
       toast({
@@ -104,7 +106,7 @@ export default function LoginPage() {
 
         <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
           <CardHeader className="space-y-2 pb-8 text-center border-b">
-            <CardTitle className="text-3xl font-black tracking-tight">Acceso Institucional</CardTitle>
+            <CardTitle className="text-3xl font-black tracking-tight text-foreground">Acceso Institucional</CardTitle>
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Campus Universidad UNI</p>
           </CardHeader>
           <CardContent className="pt-10 px-10">
@@ -146,7 +148,7 @@ export default function LoginPage() {
             </form>
           </CardContent>
           <CardFooter className="py-8 bg-muted/20 text-center">
-            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase">Sistema de Gestión UNI - Cafetería</p>
+            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase italic">Sistema de Gestión UNI - Cafetería</p>
           </CardFooter>
         </Card>
       </div>
