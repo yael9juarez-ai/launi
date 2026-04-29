@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,7 +16,9 @@ import {
   Minus,
   LogOut,
   UtensilsCrossed,
-  ArrowRight
+  ArrowRight,
+  Send,
+  BellRing
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -60,14 +63,15 @@ export default function KitchenPage() {
       updatedAt: serverTimestamp()
     });
     
-    const messages = {
-      'Preparing': "👨‍🍳 COMENZANDO PREPARACIÓN",
-      'Ready for Pickup': "✅ ¡ORDEN LISTA PARA ENTREGA!",
+    const messages: Record<string, string> = {
+      'Preparing': "👨‍🍳 PREPARACIÓN INICIADA",
+      'Ready for Pickup': "✅ PEDIDO LISTO EN BARRA",
+      'Picked Up': "📦 PEDIDO ENTREGADO",
     };
 
     toast({
       className: newStatus === 'Ready for Pickup' ? "uni-toast-success" : "uni-toast-info",
-      title: messages[newStatus as keyof typeof messages] || "ACTUALIZADO",
+      title: messages[newStatus] || "ACTUALIZADO",
       description: `Pedido #${id} actualizado en la nube.`,
     });
   };
@@ -97,151 +101,156 @@ export default function KitchenPage() {
     return null;
   }
 
+  // Filtrado de órdenes por estado para las 3 columnas
   const incomingOrders = orders?.filter(o => o.status === 'Pending' || o.status === 'Confirmed').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
   const preparingOrders = orders?.filter(o => o.status === 'Preparing').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
+  const readyOrders = orders?.filter(o => o.status === 'Ready for Pickup').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col">
-      <header className="bg-white border-b-4 px-6 md:px-10 h-24 flex items-center justify-between shadow-xl z-20">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 mcd-gradient rounded-3xl flex items-center justify-center text-white shadow-lg">
-            <ChefHat className="w-10 h-10" />
+      <header className="bg-white border-b-4 px-6 md:px-10 h-20 flex items-center justify-between shadow-xl z-20">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 mcd-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
+            <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">OPERACIONES COCINA</h1>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel de Control de Producción</p>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter">SISTEMA DE COCINA</h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel de Producción e Insumos</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant="outline" className="h-10 px-4 rounded-xl font-black border-2 hidden md:flex">PERSONAL: {user.displayName?.toUpperCase()}</Badge>
-          <Button variant="outline" className="rounded-xl font-black border-2 h-12 gap-2 text-destructive hover:bg-destructive/10" onClick={handleLogout}>
-            <LogOut size={18} /> SALIR
+          <Badge variant="outline" className="h-9 px-4 rounded-xl font-black border-2 hidden md:flex uppercase">OPERADOR: {user.displayName}</Badge>
+          <Button variant="outline" className="rounded-xl font-black border-2 h-10 gap-2 text-destructive hover:bg-destructive/10" onClick={handleLogout}>
+            <LogOut size={16} /> SALIR
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-8 bg-muted/20">
+      <main className="flex-1 p-4 md:p-6 bg-muted/10">
         <Tabs defaultValue="orders" className="h-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-xl mx-auto h-16 bg-white rounded-2xl p-1 shadow-lg mb-8 border-2">
-            <TabsTrigger value="orders" className="rounded-xl font-black text-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto h-14 bg-white rounded-2xl p-1 shadow-md mb-6 border-2">
+            <TabsTrigger value="orders" className="rounded-xl font-black text-sm data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
               GESTIÓN DE PEDIDOS
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="rounded-xl font-black text-xl data-[state=active]:bg-secondary data-[state=active]:text-black transition-all">
-              ALMACÉN DE INSUMOS
+            <TabsTrigger value="inventory" className="rounded-xl font-black text-sm data-[state=active]:bg-secondary data-[state=active]:text-black transition-all">
+              STOCK DE INSUMOS
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="m-0 h-full">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-primary/10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                      <Clock size={32} className="animate-pulse" />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-black tracking-tighter uppercase">Nuevos Pedidos</h2>
-                      <p className="text-xs font-bold text-muted-foreground">Esperando confirmación</p>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* COLUMNA 1: NUEVOS PEDIDOS */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-primary/10">
+                  <div className="flex items-center gap-3">
+                    <Clock size={24} className="text-primary animate-pulse" />
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Nuevos</h2>
                   </div>
-                  <Badge className="bg-primary text-white font-black text-4xl px-6 py-2 rounded-2xl shadow-lg">{incomingOrders.length}</Badge>
+                  <Badge className="bg-primary text-white font-black text-xl px-4 py-1 rounded-xl">{incomingOrders.length}</Badge>
                 </div>
 
-                <ScrollArea className="h-[calc(100vh-350px)]">
-                  <div className="space-y-6 pr-4">
-                    {incomingOrders.length === 0 ? (
-                      <div className="bg-white/50 p-16 rounded-[3rem] text-center border-4 border-dashed">
-                        <UtensilsCrossed size={64} className="mx-auto mb-4 opacity-10" />
-                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">COCINA LIMPIA</p>
-                      </div>
-                    ) : (
-                      incomingOrders.map(order => (
-                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-primary overflow-hidden">
-                          <CardHeader className="p-8 pb-4">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="text-5xl font-black text-primary leading-none">#{order.id}</span>
-                                <p className="font-black text-muted-foreground uppercase text-sm mt-2">USUARIO: {order.user}</p>
+                <ScrollArea className="h-[calc(100vh-280px)]">
+                  <div className="space-y-4 pr-3">
+                    {incomingOrders.map(order => (
+                      <Card key={order.id} className="border-none shadow-md rounded-[2rem] bg-white border-l-8 border-l-primary overflow-hidden">
+                        <CardContent className="p-6">
+                          <div className="flex justify-between items-start mb-4">
+                            <span className="text-3xl font-black text-primary">#{order.id}</span>
+                            <Badge variant="secondary" className="font-bold text-[10px] uppercase">{order.method === 'transfer' ? 'QR' : 'CASH'}</Badge>
+                          </div>
+                          <div className="space-y-2 mb-6">
+                            {order.items?.map((item: any, i: number) => (
+                              <div key={i} className="flex justify-between items-center text-sm">
+                                <span className="font-bold">{item.name}</span>
+                                <span className="font-black bg-muted px-2 py-1 rounded-lg">x{item.qty}</span>
                               </div>
-                              <Badge variant="secondary" className="font-black h-10 px-4 rounded-full text-lg uppercase">
-                                {order.method === 'transfer' ? 'PAGADO QR' : 'EFECTIVO'}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="p-8 pt-0">
-                            <div className="space-y-3 mb-8">
-                              {order.items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center bg-muted/30 p-5 rounded-2xl border-2">
-                                  <span className="font-black text-2xl">{item.name}</span>
-                                  <span className="bg-primary text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-md">
-                                    {item.qty}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                            <Button 
-                              className="w-full h-20 rounded-[2rem] text-2xl font-black mcd-gradient shadow-xl hover:scale-[1.02] transition-transform gap-4"
-                              onClick={() => updateOrderStatus(order.id, 'Preparing')}
-                            >
-                              <Flame className="w-8 h-8" /> EMPEZAR A COCINAR <ArrowRight />
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                            ))}
+                          </div>
+                          <Button 
+                            className="w-full h-14 rounded-2xl font-black mcd-gradient shadow-lg gap-2 text-sm"
+                            onClick={() => updateOrderStatus(order.id, 'Preparing')}
+                          >
+                            <Flame size={18} /> EMPEZAR COCINA
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </ScrollArea>
               </div>
 
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-secondary/20">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center text-secondary">
-                      <Flame size={32} />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-black tracking-tighter uppercase">En Preparación</h2>
-                      <p className="text-xs font-bold text-muted-foreground">Cocinando ahora</p>
-                    </div>
+              {/* COLUMNA 2: EN PREPARACIÓN */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-secondary/20">
+                  <div className="flex items-center gap-3">
+                    <Flame size={24} className="text-secondary" />
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Cocinando</h2>
                   </div>
-                  <Badge className="bg-secondary text-black font-black text-4xl px-6 py-2 rounded-2xl shadow-lg">{preparingOrders.length}</Badge>
+                  <Badge className="bg-secondary text-black font-black text-xl px-4 py-1 rounded-xl">{preparingOrders.length}</Badge>
                 </div>
 
-                <ScrollArea className="h-[calc(100vh-350px)]">
-                  <div className="space-y-6 pr-4">
-                    {preparingOrders.length === 0 ? (
-                      <div className="bg-white/50 p-16 rounded-[3rem] text-center border-4 border-dashed">
-                        <Flame size={64} className="mx-auto mb-4 opacity-10" />
-                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">DISPONIBLE</p>
-                      </div>
-                    ) : (
-                      preparingOrders.map(order => (
-                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-secondary overflow-hidden">
-                          <CardHeader className="p-8 pb-4">
-                            <span className="text-5xl font-black text-secondary">#{order.id}</span>
-                            <p className="font-black text-muted-foreground uppercase text-sm mt-2">USUARIO: {order.user}</p>
-                          </CardHeader>
-                          <CardContent className="p-8 pt-0">
-                            <div className="space-y-3 mb-8">
-                              {order.items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center bg-secondary/5 p-5 rounded-2xl border-2 border-secondary/20">
-                                  <span className="font-black text-2xl">{item.name}</span>
-                                  <span className="bg-secondary text-black w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl">
-                                    {item.qty}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                            <Button 
-                              className="w-full h-20 rounded-[2rem] text-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl hover:scale-[1.02] transition-transform gap-4"
-                              onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
-                            >
-                              <CheckCircle2 className="w-8 h-8" /> MARCAR LISTO / AUTORIZAR
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                <ScrollArea className="h-[calc(100vh-280px)]">
+                  <div className="space-y-4 pr-3">
+                    {preparingOrders.map(order => (
+                      <Card key={order.id} className="border-none shadow-md rounded-[2rem] bg-white border-l-8 border-l-secondary overflow-hidden">
+                        <CardContent className="p-6">
+                          <span className="text-3xl font-black text-secondary">#{order.id}</span>
+                          <div className="space-y-2 my-4">
+                            {order.items?.map((item: any, i: number) => (
+                              <div key={i} className="flex justify-between items-center text-sm">
+                                <span className="font-bold">{item.name}</span>
+                                <span className="font-black bg-secondary/10 px-2 py-1 rounded-lg">x{item.qty}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <Button 
+                            className="w-full h-14 rounded-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg gap-2 text-sm"
+                            onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
+                          >
+                            <CheckCircle2 size={18} /> MARCAR LISTO
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              {/* COLUMNA 3: LISTOS PARA ENTREGA (EL "SEGUNDO CLIC") */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-emerald-500/20">
+                  <div className="flex items-center gap-3">
+                    <BellRing size={24} className="text-emerald-500" />
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Por Entregar</h2>
+                  </div>
+                  <Badge className="bg-emerald-500 text-white font-black text-xl px-4 py-1 rounded-xl">{readyOrders.length}</Badge>
+                </div>
+
+                <ScrollArea className="h-[calc(100vh-280px)]">
+                  <div className="space-y-4 pr-3">
+                    {readyOrders.map(order => (
+                      <Card key={order.id} className="border-none shadow-md rounded-[2rem] bg-white border-l-8 border-l-emerald-500 overflow-hidden">
+                        <CardContent className="p-6">
+                          <span className="text-3xl font-black text-emerald-500">#{order.id}</span>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase mt-1">CLIENTE: {order.user}</p>
+                          <div className="space-y-2 my-4">
+                            {order.items?.map((item: any, i: number) => (
+                              <div key={i} className="flex justify-between items-center text-sm opacity-60">
+                                <span className="font-bold">{item.name}</span>
+                                <span className="font-black">x{item.qty}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <Button 
+                            className="w-full h-14 rounded-2xl font-black bg-slate-800 hover:bg-slate-900 text-white shadow-lg gap-2 text-sm"
+                            onClick={() => updateOrderStatus(order.id, 'Picked Up')}
+                          >
+                            <Send size={18} /> ENTREGAR PEDIDO
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </ScrollArea>
               </div>
@@ -249,62 +258,49 @@ export default function KitchenPage() {
           </TabsContent>
 
           <TabsContent value="inventory" className="m-0 h-full">
-            <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white overflow-hidden border-t-8 border-t-secondary">
-              <CardHeader className="p-12 border-b-2 flex flex-row items-center justify-between bg-muted/5">
+            <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
+              <CardHeader className="p-8 border-b-2 bg-muted/5 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-4xl font-black flex items-center gap-6">
-                    <Box className="text-secondary w-12 h-12" /> STOCK DE COCINA
+                  <CardTitle className="text-2xl font-black flex items-center gap-3">
+                    <Box className="text-secondary" /> STOCK DE COCINA
                   </CardTitle>
-                  <p className="text-muted-foreground font-black uppercase text-xs tracking-[0.3em] mt-2">Inventario en Tiempo Real</p>
+                  <p className="text-muted-foreground font-bold text-xs">Inventario disponible para preparación</p>
                 </div>
-                <Badge variant="outline" className="h-12 px-6 rounded-2xl font-black border-2 bg-white">ALMACÉN ACTIVO</Badge>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-380px)]">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-12">
+                <ScrollArea className="h-[calc(100vh-320px)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
                     {inventory?.map((item: any) => {
                       const isLow = item.currentStock <= item.minStockLevel;
                       return (
                         <div key={item.id} className={cn(
-                          "p-8 rounded-[2.5rem] border-4 transition-all flex flex-col justify-between shadow-sm",
-                          isLow ? "bg-primary/5 border-primary/20" : "bg-white border-muted/50"
+                          "p-6 rounded-3xl border-2 transition-all flex flex-col justify-between",
+                          isLow ? "bg-primary/5 border-primary/20" : "bg-white border-muted"
                         )}>
-                          <div className="flex justify-between items-start mb-6">
-                            <div>
-                              <h3 className="text-2xl font-black leading-tight mb-2">{item.name}</h3>
-                              <Badge className={cn("rounded-full font-black text-[10px] uppercase px-3", isLow ? "bg-primary text-white" : "bg-secondary text-black")}>
-                                {isLow ? "BAJO STOCK" : "ÓPTIMO"}
-                              </Badge>
-                            </div>
-                            <div className="text-right">
-                              <span className={cn("text-5xl font-black block leading-none", isLow ? "text-primary" : "text-foreground")}>
+                          <div>
+                            <h3 className="text-lg font-black leading-tight mb-1">{item.name}</h3>
+                            <div className="flex items-center gap-2 mb-4">
+                              <span className={cn("text-3xl font-black", isLow ? "text-primary" : "text-foreground")}>
                                 {item.currentStock}
                               </span>
-                              <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{item.unitOfMeasure}</span>
+                              <span className="text-[10px] font-bold uppercase text-muted-foreground">{item.unitOfMeasure}</span>
                             </div>
                           </div>
-                          
-                          <div className="flex flex-col gap-4">
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="h-14 w-14 rounded-2xl border-4 hover:bg-destructive/10"
-                                onClick={() => updateStock(item.id, item.currentStock - 1)}
-                              >
-                                <Minus className="w-6 h-6" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="h-14 w-14 rounded-2xl border-4 hover:bg-primary/10"
-                                onClick={() => updateStock(item.id, item.currentStock + 1)}
-                              >
-                                <Plus className="w-6 h-6" />
-                              </Button>
-                              <div className="flex-1 bg-muted/30 rounded-2xl flex items-center justify-center font-black uppercase text-[10px] text-muted-foreground border-2">
-                                Ajuste Rápido
-                              </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" size="icon" className="h-10 w-10 rounded-xl"
+                              onClick={() => updateStock(item.id, item.currentStock - 1)}
+                            >
+                              <Minus size={16} />
+                            </Button>
+                            <Button 
+                              variant="outline" size="icon" className="h-10 w-10 rounded-xl"
+                              onClick={() => updateStock(item.id, item.currentStock + 1)}
+                            >
+                              <Plus size={16} />
+                            </Button>
+                            <div className="flex-1 bg-muted/30 rounded-xl flex items-center justify-center font-black text-[9px] uppercase">
+                              Ajustar
                             </div>
                           </div>
                         </div>
