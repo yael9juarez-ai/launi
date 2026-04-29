@@ -6,6 +6,7 @@ import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingCart, 
   Search, 
