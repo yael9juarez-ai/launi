@@ -17,7 +17,8 @@ import {
   Plus,
   Trash2,
   Tv,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +46,8 @@ export default function ClientMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -74,6 +77,7 @@ export default function ClientMenu() {
   };
 
   const getAiRecommendations = async (item: MenuItem) => {
+    setIsAiLoading(true);
     try {
       const result = await smartMenuRecommendation({
         availableMenuItems: MENU_ITEMS.map(m => ({ 
@@ -82,7 +86,8 @@ export default function ClientMenu() {
           price: m.price, 
           category: m.category 
         })),
-        customerOrderHistory: [item.name]
+        customerOrderHistory: [item.name],
+        currentPromotions: ["¡Combo Universitario! Agrega una bebida y ahorra.", "Postres frescos recién llegados."]
       });
       
       const items = result.recommendations
@@ -91,14 +96,16 @@ export default function ClientMenu() {
           return match ? { ...match, reason: rec.reason } : null;
         })
         .filter(i => i !== null && i.id !== item.id)
-        .slice(0, 2);
+        .slice(0, 3);
 
       if (items.length > 0) {
         setUpsellRecommendations(items);
         setShowUpsell(true);
       }
     } catch (error) {
-      console.error("Error AI Recommendations:", error);
+      console.warn("IA no disponible temporalmente (Verifica API Key)");
+    } finally {
+      setIsAiLoading(false);
     }
   };
 
@@ -108,13 +115,13 @@ export default function ClientMenu() {
       return;
     }
 
-    setCart([...cart, item]);
+    setCart(prev => [...prev, item]);
     
     if (!silent) {
       setLastAddedItem(item);
       toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
-      // Ejecutar recomendación después del toast
-      await getAiRecommendations(item);
+      // Ejecutar recomendación IA
+      getAiRecommendations(item);
     } else {
       setShowUpsell(false);
     }
@@ -186,9 +193,12 @@ export default function ClientMenu() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Invitado'}</span>
           </div>
         </div>
-        <Button variant="outline" className="rounded-xl h-10 px-4 font-black gap-2 border-2 text-xs" onClick={() => window.open('/queue', '_blank')}>
-          <Tv size={16} className="text-primary" /> TURNOS
-        </Button>
+        <div className="flex items-center gap-2">
+           {isAiLoading && <Sparkles className="w-5 h-5 text-secondary animate-pulse" />}
+           <Button variant="outline" className="rounded-xl h-10 px-4 font-black gap-2 border-2 text-xs" onClick={() => window.open('/queue', '_blank')}>
+            <Tv size={16} className="text-primary" /> TURNOS
+          </Button>
+        </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
@@ -276,6 +286,7 @@ export default function ClientMenu() {
           <div className="bg-secondary p-8 text-black relative">
             <h2 className="text-3xl font-black leading-tight">¿Te gustaría algo más?</h2>
             <p className="font-bold opacity-70">Sugerencias inteligentes para acompañar tu {lastAddedItem?.name}.</p>
+            <Sparkles className="absolute right-6 top-8 w-12 h-12 text-black/20" />
           </div>
           <div className="p-8 space-y-4 bg-white">
             {upsellRecommendations.map((rec: any) => (
