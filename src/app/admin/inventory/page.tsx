@@ -57,6 +57,7 @@ export default function InventoryPage() {
     });
     await batch.commit();
     toast({
+      className: "uni-toast-success",
       title: "🔄 REESTABLECIDO",
       description: "Inventario reiniciado a valores base en la nube.",
     });
@@ -152,7 +153,11 @@ export default function InventoryPage() {
                         {formatHumanStock(item.currentStock, item.unitOfMeasure)}
                       </span>
                     </div>
-                    <Progress value={progressValue} className="h-3 rounded-full bg-muted shadow-inner" indicatorClassName={status.progress} />
+                    <Progress 
+                      value={progressValue} 
+                      className="h-3 rounded-full bg-muted shadow-inner" 
+                      indicatorClassName={status.progress} 
+                    />
                   </div>
 
                   <div className="flex items-center gap-3 justify-end md:w-1/4">
