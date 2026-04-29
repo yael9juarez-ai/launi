@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,7 +13,8 @@ import {
   Loader2,
   Box,
   Plus,
-  Minus
+  Minus,
+  LogOut
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,6 @@ export default function KitchenPage() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  // Redirigir si no es cocinero dentro de useEffect para evitar errores de renderizado
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
       router.push('/login');
@@ -67,10 +66,10 @@ export default function KitchenPage() {
     });
   };
 
-  const updateStock = (id: string, amount: number) => {
+  const updateStock = (id: string, newAmount: number) => {
     const ingRef = doc(firestore, 'ingredients', id);
     updateDocumentNonBlocking(ingRef, {
-      currentStock: amount,
+      currentStock: Math.max(0, newAmount),
       updatedAt: serverTimestamp()
     });
   };
@@ -104,21 +103,19 @@ export default function KitchenPage() {
           </div>
           <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter">Cocina UniEats</h1>
-            <p className="hidden md:block text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel de Control de Producción</p>
+            <p className="hidden md:block text-[10px] font-black text-muted-foreground uppercase tracking-widest">Producción e Insumos</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl font-black border-2 h-12 px-4 md:px-6" onClick={handleLogout}>
-             CERRAR SESIÓN
-          </Button>
-        </div>
+        <Button variant="outline" className="rounded-xl font-black border-2 h-12 gap-2" onClick={handleLogout}>
+          <LogOut size={18} /> SALIR
+        </Button>
       </header>
 
       <main className="flex-1 p-4 md:p-8 bg-muted/20">
         <Tabs defaultValue="orders" className="h-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto h-14 bg-white rounded-2xl p-1 shadow-md mb-8">
             <TabsTrigger value="orders" className="rounded-xl font-black text-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-              ÓRDENES ({pendingOrders.length + preparingOrders.length})
+              PEDIDOS ({pendingOrders.length + preparingOrders.length})
             </TabsTrigger>
             <TabsTrigger value="inventory" className="rounded-xl font-black text-lg data-[state=active]:bg-secondary data-[state=active]:text-black">
               ALMACÉN
@@ -127,46 +124,56 @@ export default function KitchenPage() {
 
           <TabsContent value="orders" className="m-0 h-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Órdenes Pendientes */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-primary/10">
                   <h2 className="text-2xl font-black flex items-center gap-3">
-                    <Clock className="text-primary animate-pulse" /> ENTRANTE
+                    <Clock className="text-primary animate-pulse" /> ENTRANTES
                   </h2>
                   <Badge className="bg-primary text-white font-black text-xl px-4 py-1 rounded-full">{pendingOrders.length}</Badge>
                 </div>
-                
                 <ScrollArea className="h-[calc(100vh-320px)]">
                   <div className="space-y-6 pr-2">
-                    {pendingOrders.map(order => (
-                      <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-primary overflow-hidden">
-                        <CardHeader className="p-8 pb-4">
-                          <span className="text-4xl font-black text-primary">#{order.id}</span>
-                          <p className="font-bold text-muted-foreground uppercase text-xs">{order.user}</p>
-                        </CardHeader>
-                        <CardContent className="p-8 pt-0">
-                          <div className="space-y-2 mb-6">
-                            {order.items?.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between items-center bg-muted/30 p-4 rounded-xl">
-                                <span className="font-black text-xl">{item.name}</span>
-                                <span className="bg-primary text-white w-10 h-10 flex items-center justify-center rounded-full font-black text-lg">
-                                  {item.qty}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="w-full h-16 rounded-2xl text-xl font-black mcd-gradient shadow-xl"
-                            onClick={() => updateOrderStatus(order.id, 'Preparing')}
-                          >
-                            <Flame className="mr-2" /> COMENZAR
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {pendingOrders.length === 0 ? (
+                      <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-4 border-dashed">
+                        <p className="font-black text-muted-foreground opacity-30">SIN ÓRDENES NUEVAS</p>
+                      </div>
+                    ) : (
+                      pendingOrders.map(order => (
+                        <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-primary overflow-hidden">
+                          <CardHeader className="p-8 pb-4">
+                            <div className="flex justify-between items-start">
+                              <span className="text-4xl font-black text-primary">#{order.id}</span>
+                              <Badge variant="outline" className="font-black">{order.method?.toUpperCase()}</Badge>
+                            </div>
+                            <p className="font-bold text-muted-foreground uppercase text-xs">CLIENTE: {order.user}</p>
+                          </CardHeader>
+                          <CardContent className="p-8 pt-0">
+                            <div className="space-y-2 mb-6">
+                              {order.items?.map((item: any, i: number) => (
+                                <div key={i} className="flex justify-between items-center bg-muted/30 p-4 rounded-xl">
+                                  <span className="font-black text-xl">{item.name}</span>
+                                  <span className="bg-primary text-white w-10 h-10 flex items-center justify-center rounded-full font-black text-lg">
+                                    {item.qty}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <Button 
+                              className="w-full h-16 rounded-2xl text-xl font-black mcd-gradient shadow-xl"
+                              onClick={() => updateOrderStatus(order.id, 'Preparing')}
+                            >
+                              <Flame className="mr-2" /> COMENZAR PREPARACIÓN
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </ScrollArea>
               </div>
 
+              {/* Órdenes en Preparación */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-secondary/20">
                   <h2 className="text-2xl font-black flex items-center gap-3">
@@ -174,35 +181,40 @@ export default function KitchenPage() {
                   </h2>
                   <Badge className="bg-secondary text-black font-black text-xl px-4 py-1 rounded-full">{preparingOrders.length}</Badge>
                 </div>
-
                 <ScrollArea className="h-[calc(100vh-320px)]">
                   <div className="space-y-6 pr-2">
-                    {preparingOrders.map(order => (
-                      <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-secondary overflow-hidden">
-                        <CardHeader className="p-8 pb-4">
-                          <span className="text-4xl font-black text-secondary">#{order.id}</span>
-                          <p className="font-bold text-muted-foreground uppercase text-xs">{order.user}</p>
-                        </CardHeader>
-                        <CardContent className="p-8 pt-0">
-                          <div className="space-y-2 mb-6">
-                            {order.items?.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between items-center bg-secondary/5 p-4 rounded-xl border-2 border-secondary/10">
-                                <span className="font-black text-xl">{item.name}</span>
-                                <span className="bg-secondary text-black w-10 h-10 flex items-center justify-center rounded-full font-black text-lg">
-                                  {item.qty}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="w-full h-16 rounded-2xl text-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl"
-                            onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
-                          >
-                            <CheckCircle2 className="mr-2" /> MARCAR LISTO
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {preparingOrders.length === 0 ? (
+                      <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-4 border-dashed">
+                        <p className="font-black text-muted-foreground opacity-30">ESTUFA VACÍA</p>
+                      </div>
+                    ) : (
+                      preparingOrders.map(order => (
+                        <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-secondary overflow-hidden">
+                          <CardHeader className="p-8 pb-4">
+                            <span className="text-4xl font-black text-secondary">#{order.id}</span>
+                            <p className="font-bold text-muted-foreground uppercase text-xs">CLIENTE: {order.user}</p>
+                          </CardHeader>
+                          <CardContent className="p-8 pt-0">
+                            <div className="space-y-2 mb-6">
+                              {order.items?.map((item: any, i: number) => (
+                                <div key={i} className="flex justify-between items-center bg-secondary/5 p-4 rounded-xl border-2 border-secondary/10">
+                                  <span className="font-black text-xl">{item.name}</span>
+                                  <span className="bg-secondary text-black w-10 h-10 flex items-center justify-center rounded-full font-black text-lg">
+                                    {item.qty}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <Button 
+                              className="w-full h-16 rounded-2xl text-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl"
+                              onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
+                            >
+                              <CheckCircle2 className="mr-2" /> MARCAR LISTO PARA ENTREGA
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </ScrollArea>
               </div>
@@ -233,14 +245,17 @@ export default function KitchenPage() {
                                 {isLow ? "CRÍTICO" : "NORMAL"}
                               </Badge>
                             </div>
-                            <span className={cn("text-2xl font-black", isLow ? "text-primary" : "text-muted-foreground")}>
-                              {item.currentStock} <span className="text-xs uppercase">{item.unitOfMeasure}</span>
-                            </span>
+                            <div className="text-right">
+                              <span className={cn("text-3xl font-black block", isLow ? "text-primary" : "text-foreground")}>
+                                {item.currentStock}
+                              </span>
+                              <span className="text-[10px] font-bold uppercase text-muted-foreground">{item.unitOfMeasure}</span>
+                            </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, Math.max(0, item.currentStock - 1))}><Minus /></Button>
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, item.currentStock - 1)}><Minus /></Button>
                             <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, item.currentStock + 1)}><Plus /></Button>
-                            <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black uppercase text-[10px]">Ajustar Stock</div>
+                            <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black uppercase text-[10px]">Ajuste Manual</div>
                           </div>
                         </div>
                       );

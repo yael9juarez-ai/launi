@@ -39,9 +39,8 @@ service cloud.firestore {
     }
 
     match /ingredients/{ingredientId} {
-      // Necesario para que el cliente verifique disponibilidad antes de comprar
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isStaff();
+      allow read: if isSignedIn();
+      allow write: if isStaff();
     }
 
     match /orders/{orderId} {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { UtensilsCrossed, Lock, Loader2, User, LogIn } from 'lucide-react';
+import { UtensilsCrossed, Lock, Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser } from '@/firebase';
 import { signInAnonymously, updateProfile, signOut } from 'firebase/auth';
@@ -35,15 +34,15 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      // Primero nos aseguramos de cerrar cualquier sesión previa
       await signOut(auth);
       
       const userCredential = await signInAnonymously(auth);
+      const name = email.trim().toLowerCase();
+      
       await updateProfile(userCredential.user, {
-        displayName: email.trim().toLowerCase()
+        displayName: name
       });
 
-      const name = email.trim().toLowerCase();
       let targetPath = '/client/menu';
       if (name === 'admin') targetPath = '/admin/dashboard';
       else if (name === 'cocinero') targetPath = '/admin/kitchen';
@@ -58,7 +57,7 @@ export default function LoginPage() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "ERROR DE CONEXIÓN",
+        title: "ERROR DE ACCESO",
         description: "No se pudo iniciar sesión. Revisa tu conexión.",
       });
     } finally {
@@ -91,16 +90,17 @@ export default function LoginPage() {
         <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
           <CardHeader className="space-y-2 pb-8 text-center border-b">
             <CardTitle className="text-3xl font-black tracking-tight">Acceso Institucional</CardTitle>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Campus Universidad UNI</p>
           </CardHeader>
           <CardContent className="pt-10 px-10">
             <form onSubmit={handleAuth} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Nombre / Usuario</Label>
+                <Label htmlFor="email" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Usuario / Perfil</Label>
                 <div className="relative">
                   <User className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="email" 
-                    placeholder="admin, cocinero, tu nombre..." 
+                    placeholder="admin, cocinero o tu nombre" 
                     className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -131,7 +131,7 @@ export default function LoginPage() {
             </form>
           </CardContent>
           <CardFooter className="py-8 bg-muted/20 text-center">
-            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase">Sistema UNI - Gestión Cafetería</p>
+            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase">Sistema de Gestión UNI - Cafetería</p>
           </CardFooter>
         </Card>
       </div>
