@@ -22,7 +22,9 @@ import {
   Banknote,
   Loader2,
   AlertCircle,
-  Star
+  Star,
+  ExternalLink,
+  MonitorPlay
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -171,7 +173,9 @@ export default function AdminDashboard() {
           </div>
           <span className="text-xl font-black tracking-tighter text-foreground">UniEats <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full align-middle ml-1">ADMIN</span></span>
         </div>
+        
         <nav className="flex-1 p-4 space-y-2">
+          <p className="text-[10px] font-black text-muted-foreground uppercase px-4 mb-2 tracking-widest">Navegación</p>
           <Button variant="ghost" className="w-full justify-start gap-3 text-primary bg-primary/5 font-bold rounded-xl">
             <BarChart3 size={20} /> Dashboard
           </Button>
@@ -184,7 +188,22 @@ export default function AdminDashboard() {
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/inventory')}>
             <Package size={20} /> Inventario
           </Button>
+
+          <div className="pt-6">
+            <p className="text-[10px] font-black text-muted-foreground uppercase px-4 mb-2 tracking-widest">Modo Presentación</p>
+            <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-secondary/10 group" onClick={() => window.open('/client/menu', '_blank')}>
+              <MonitorPlay size={20} className="text-secondary" /> 
+              <span>Ver como Alumno</span>
+              <ExternalLink size={12} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Button>
+            <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-primary/5 group" onClick={() => window.open('/queue', '_blank')}>
+              <Tv size={20} className="text-primary" /> 
+              <span>Monitor Público</span>
+              <ExternalLink size={12} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Button>
+          </div>
         </nav>
+
         <div className="p-4 border-t">
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-destructive hover:bg-destructive/10" onClick={handleLogout}>
             <LogOut size={20} /> Cerrar Sesión
