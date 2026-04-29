@@ -40,7 +40,6 @@ export default function ClientMenu() {
   const [cart, setCart] = useState<any[]>([]);
   const [showUpsell, setShowUpsell] = useState(false);
   const [upsellRecommendations, setUpsellRecommendations] = useState<any[]>([]);
-  const [lastAddedItem, setLastAddedItem] = useState<MenuItem | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
@@ -74,17 +73,16 @@ export default function ClientMenu() {
     });
   };
 
-  // Lógica de recomendación simple basada en categorías
   const getSimpleRecommendations = (item: MenuItem) => {
     let targetCategories: string[] = [];
     let message = "";
 
     if (item.category === "Comida") {
       targetCategories = ["Bebidas", "Golosinas"];
-      message = "¡Completa tu combo!";
+      message = "¡Combina tu comida con algo fresco!";
     } else if (item.category === "Bebidas") {
       targetCategories = ["Comida", "Golosinas"];
-      message = "¡Algo para acompañar tu bebida!";
+      message = "¿Algo para acompañar tu bebida?";
     } else if (item.category === "Golosinas") {
       targetCategories = ["Bebidas", "Comida"];
       message = "¡No olvides algo de tomar!";
@@ -115,7 +113,6 @@ export default function ClientMenu() {
     setCart(prev => [...prev, item]);
     
     if (!silent) {
-      setLastAddedItem(item);
       toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
       getSimpleRecommendations(item);
     } else {
@@ -130,7 +127,6 @@ export default function ClientMenu() {
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
     setCurrentOrderId(`#${orderId}`);
 
-    // Guardar en Firestore para sincronización multi-dispositivo
     const orderRef = doc(firestore, 'orders', orderId);
     await setDoc(orderRef, {
       id: orderId,
@@ -149,7 +145,6 @@ export default function ClientMenu() {
       }, [])
     });
 
-    // Descontar inventario en la nube
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -187,7 +182,7 @@ export default function ClientMenu() {
             <ArrowLeft size={20} />
           </Button>
           <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tighter text-primary">UniEats</span>
+            <span className="text-xl font-black tracking-tighter text-primary leading-tight">UniEats</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Invitado'}</span>
           </div>
         </div>
@@ -245,8 +240,14 @@ export default function ClientMenu() {
             const avail = checkStockAvailability(item, cart);
             return (
               <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2rem] overflow-hidden bg-white flex flex-col transition-all", !avail && "opacity-50 grayscale")}>
-                <div className="aspect-[16/9] relative overflow-hidden">
-                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="(max-width: 768px) 100vw, 33vw" />
+                <div className="aspect-video relative overflow-hidden">
+                  <Image 
+                    src={item.imageUrl} 
+                    alt={item.name} 
+                    fill 
+                    className="object-cover group-hover:scale-110 transition-transform duration-500" 
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  />
                   <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center shadow-xl">
                     $ {item.price.toFixed(2)}
                   </div>
@@ -282,8 +283,8 @@ export default function ClientMenu() {
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg mx-4">
           <div className="bg-secondary p-8 text-black relative">
-            <h2 className="text-3xl font-black leading-tight">¿Te gustaría algo más?</h2>
-            <p className="font-bold opacity-70">¡Añade un complemento a tu orden!</p>
+            <h2 className="text-3xl font-black leading-tight">¿No quieres agregar algo más?</h2>
+            <p className="font-bold opacity-70">¡Completa tu orden con estas sugerencias!</p>
             <Plus className="absolute right-6 top-8 w-12 h-12 text-black/20" />
           </div>
           <div className="p-8 space-y-4 bg-white">
@@ -294,7 +295,7 @@ export default function ClientMenu() {
                 </div>
                 <div className="flex-1">
                   <p className="font-black text-sm">{rec.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-bold leading-tight mt-1 line-clamp-2 italic">{rec.reason}</p>
+                  <p className="text-[10px] text-muted-foreground font-bold leading-tight mt-1 italic">{rec.reason}</p>
                   <div className="flex justify-between items-center mt-2">
                     <p className="text-primary font-black text-sm">$ {rec.price.toFixed(2)}</p>
                     <Button size="sm" className="h-8 rounded-full font-black px-4 text-[10px]" onClick={() => addToCart(rec, true)}>
@@ -305,7 +306,7 @@ export default function ClientMenu() {
               </div>
             ))}
             <Button variant="ghost" className="w-full h-14 rounded-2xl font-black text-muted-foreground" onClick={() => setShowUpsell(false)}>
-              No, gracias
+              No por ahora
             </Button>
           </div>
         </DialogContent>
@@ -314,20 +315,20 @@ export default function ClientMenu() {
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md mx-4">
           <div className="bg-primary p-8 text-white">
-            <h2 className="text-3xl font-black">Finalizar Pago</h2>
+            <h2 className="text-3xl font-black">Finalizar Pedido</h2>
           </div>
           <div className="p-8 space-y-4">
             <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('transfer')}>
               <CreditCard size={24} /> <p className="font-black text-lg">Transferencia / QR</p>
             </Button>
             <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('cash')}>
-              <Wallet size={24} /> <p className="font-black text-lg">Efectivo en Ventanilla</p>
+              <Wallet size={24} /> <p className="font-black text-lg">Efectivo en Caja</p>
             </Button>
             <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-4 mt-4">
               <span>Total</span> <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
             <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient" onClick={handlePayment} disabled={!paymentMethod}>
-              Confirmar Pedido
+              Confirmar
             </Button>
           </div>
         </DialogContent>
