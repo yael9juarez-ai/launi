@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -76,7 +77,7 @@ export default function KitchenPage() {
     );
   }
 
-  if (!user) {
+  if (!user || user.displayName !== 'cocinero') {
     router.push('/login');
     return null;
   }
@@ -97,8 +98,8 @@ export default function KitchenPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl font-black border-2 h-12 px-4 md:px-6" onClick={() => router.push('/admin/dashboard')}>
-            <LayoutDashboard className="mr-2 h-5 w-5" /> <span className="hidden md:inline">DASHBOARD</span>
+          <Button variant="outline" className="rounded-xl font-black border-2 h-12 px-4 md:px-6" onClick={() => router.push('/login')}>
+             CERRAR SESIÓN
           </Button>
         </div>
       </header>
@@ -116,7 +117,6 @@ export default function KitchenPage() {
 
           <TabsContent value="orders" className="m-0 h-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* POR EMPEZAR */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-primary/10">
                   <h2 className="text-2xl font-black flex items-center gap-3">
@@ -130,11 +130,8 @@ export default function KitchenPage() {
                     {pendingOrders.map(order => (
                       <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-primary overflow-hidden">
                         <CardHeader className="p-8 pb-4">
-                          <div className="flex justify-between items-center">
-                            <span className="text-4xl font-black text-primary">#{order.id}</span>
-                            <Badge variant="outline" className="font-black border-2">{order.method?.toUpperCase()}</Badge>
-                          </div>
-                          <p className="font-bold text-muted-foreground">{order.user}</p>
+                          <span className="text-4xl font-black text-primary">#{order.id}</span>
+                          <p className="font-bold text-muted-foreground uppercase text-xs">{order.user}</p>
                         </CardHeader>
                         <CardContent className="p-8 pt-0">
                           <div className="space-y-2 mb-6">
@@ -160,7 +157,6 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* EN PREPARACIÓN */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-secondary/20">
                   <h2 className="text-2xl font-black flex items-center gap-3">
@@ -174,11 +170,8 @@ export default function KitchenPage() {
                     {preparingOrders.map(order => (
                       <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-secondary overflow-hidden">
                         <CardHeader className="p-8 pb-4">
-                          <div className="flex justify-between items-center">
-                            <span className="text-4xl font-black text-secondary">#{order.id}</span>
-                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">¡Prioridad!</span>
-                          </div>
-                          <p className="font-bold text-muted-foreground">{order.user}</p>
+                          <span className="text-4xl font-black text-secondary">#{order.id}</span>
+                          <p className="font-bold text-muted-foreground uppercase text-xs">{order.user}</p>
                         </CardHeader>
                         <CardContent className="p-8 pt-0">
                           <div className="space-y-2 mb-6">
@@ -209,30 +202,19 @@ export default function KitchenPage() {
           <TabsContent value="inventory" className="m-0 h-full">
             <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden">
               <CardHeader className="p-10 border-b">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div>
-                    <CardTitle className="text-3xl font-black flex items-center gap-4">
-                      <Box className="text-secondary w-10 h-10" /> CONTROL DE INSUMOS
-                    </CardTitle>
-                    <p className="font-bold text-muted-foreground uppercase text-xs tracking-widest mt-2">Monitoreo de stock crítico para cocina</p>
-                  </div>
-                  <div className="flex items-center gap-4 bg-muted/20 p-4 rounded-2xl">
-                    <AlertTriangle className="text-primary animate-bounce" />
-                    <span className="font-black text-sm">REVISAR ALERTAS EN ROJO</span>
-                  </div>
-                </div>
+                <CardTitle className="text-3xl font-black flex items-center gap-4">
+                  <Box className="text-secondary w-10 h-10" /> CONTROL DE INSUMOS
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-350px)]">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-10">
                     {inventory?.map((item: any) => {
                       const isLow = item.currentStock <= item.minStockLevel;
-                      const progress = Math.min(100, (item.currentStock / (item.minStockLevel * 3)) * 100);
-                      
                       return (
                         <div key={item.id} className={cn(
                           "p-6 rounded-[2rem] border-4 transition-all flex flex-col justify-between",
-                          isLow ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent hover:border-secondary/20"
+                          isLow ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent"
                         )}>
                           <div className="flex justify-between items-start mb-4">
                             <div>
@@ -245,30 +227,10 @@ export default function KitchenPage() {
                               {item.currentStock} <span className="text-xs uppercase">{item.unitOfMeasure}</span>
                             </span>
                           </div>
-
-                          <div className="space-y-4">
-                            <Progress value={progress} className="h-3 rounded-full" indicatorClassName={isLow ? "bg-primary" : "bg-secondary"} />
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="h-12 w-12 rounded-xl border-2"
-                                onClick={() => updateStock(item.id, Math.max(0, item.currentStock - 1))}
-                              >
-                                <Minus />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="h-12 w-12 rounded-xl border-2"
-                                onClick={() => updateStock(item.id, item.currentStock + 1)}
-                              >
-                                <Plus />
-                              </Button>
-                              <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black">
-                                +1 {item.unitOfMeasure}
-                              </div>
-                            </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, Math.max(0, item.currentStock - 1))}><Minus /></Button>
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => updateStock(item.id, item.currentStock + 1)}><Plus /></Button>
+                            <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black uppercase text-[10px]">Ajustar Stock</div>
                           </div>
                         </div>
                       );
