@@ -18,7 +18,8 @@ import {
   UtensilsCrossed,
   ArrowRight,
   Send,
-  BellRing
+  BellRing,
+  LayoutDashboard
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +39,8 @@ export default function KitchenPage() {
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
+    // Permitir tanto a cocineros como a admins entrar a esta vista operativa
+    if (!isUserLoading && (!user || (user.displayName !== 'cocinero' && user.displayName !== 'admin'))) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
@@ -97,9 +99,11 @@ export default function KitchenPage() {
     );
   }
 
-  if (!user || user.displayName !== 'cocinero') {
+  if (!user || (user.displayName !== 'cocinero' && user.displayName !== 'admin')) {
     return null;
   }
+
+  const isAdmin = user.displayName === 'admin';
 
   // Filtrado de órdenes por estado para las 3 columnas
   const incomingOrders = orders?.filter(o => o.status === 'Pending' || o.status === 'Confirmed').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
@@ -114,12 +118,23 @@ export default function KitchenPage() {
             <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter">SISTEMA DE COCINA</h1>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel de Producción e Insumos</p>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase">Gestión de Cocina</h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Personal de Producción e Insumos</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant="outline" className="h-9 px-4 rounded-xl font-black border-2 hidden md:flex uppercase">OPERADOR: {user.displayName}</Badge>
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              className="rounded-xl font-black border-2 h-10 gap-2 text-primary hover:bg-primary/5 hidden md:flex"
+              onClick={() => router.push('/admin/dashboard')}
+            >
+              <LayoutDashboard size={16} /> VOLVER AL PANEL
+            </Button>
+          )}
+          <Badge variant="outline" className="h-9 px-4 rounded-xl font-black border-2 hidden md:flex uppercase">
+            {isAdmin ? 'VISTA ADMIN' : `OPERADOR: ${user.displayName}`}
+          </Badge>
           <Button variant="outline" className="rounded-xl font-black border-2 h-10 gap-2 text-destructive hover:bg-destructive/10" onClick={handleLogout}>
             <LogOut size={16} /> SALIR
           </Button>
@@ -217,7 +232,7 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* COLUMNA 3: LISTOS PARA ENTREGA (EL "SEGUNDO CLIC") */}
+              {/* COLUMNA 3: LISTOS PARA ENTREGA */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between bg-white p-5 rounded-3xl shadow-sm border-2 border-emerald-500/20">
                   <div className="flex items-center gap-3">
