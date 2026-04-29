@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +9,14 @@ import {
   ShoppingCart, 
   Search, 
   ChevronRight,
-  Plus,
   Trash2,
   Loader2,
   UtensilsCrossed,
   CreditCard,
-  Wallet
+  Wallet,
+  QrCode,
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +47,11 @@ export default function ClientMenu() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+
+  // Número de cuenta aleatorio para transferencia
+  const accountNumber = useMemo(() => {
+    return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+  }, []);
 
   const ingredientsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -144,6 +150,7 @@ export default function ClientMenu() {
 
     setCart([]);
     setShowPayment(false);
+    setPaymentMethod(null);
     toast({ className: "uni-toast-success", title: "PEDIDO REALIZADO", description: `Orden #${orderId} enviada a cocina.` });
   };
 
@@ -167,7 +174,13 @@ export default function ClientMenu() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase">{user?.displayName || 'Alumno'}</span>
           </div>
         </div>
-        <Button variant="outline" className="rounded-xl h-10 font-black gap-2 border-2 text-xs" onClick={handleLogout}>SALIR</Button>
+        <div className="flex items-center gap-2">
+           <Button variant="ghost" size="icon" className="rounded-full relative" onClick={() => { if(cart.length > 0) setShowPayment(true) }}>
+             <ShoppingCart size={24} />
+             {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">{cart.length}</span>}
+           </Button>
+           <Button variant="outline" className="rounded-xl h-10 font-black gap-2 border-2 text-xs" onClick={handleLogout}>SALIR</Button>
+        </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
@@ -241,16 +254,72 @@ export default function ClientMenu() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showPayment} onOpenChange={setShowPayment}>
+      <Dialog open={showPayment} onOpenChange={(open) => { setShowPayment(open); if(!open) setPaymentMethod(null); }}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
           <DialogHeader className="bg-primary p-8 text-white">
             <DialogTitle className="text-3xl font-black">Finalizar Pedido</DialogTitle>
           </DialogHeader>
           <div className="p-8 space-y-4">
-            <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('transfer')}><CreditCard size={24} /> <p className="font-black">Transferencia / QR</p></Button>
-            <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('cash')}><Wallet size={24} /> <p className="font-black">Efectivo en Caja</p></Button>
-            <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-4"><span>Total</span> <span className="text-primary">$ {total.toFixed(2)}</span></div>
-            <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient" onClick={handlePayment} disabled={!paymentMethod}>Confirmar</Button>
+            {!paymentMethod ? (
+              <>
+                <p className="text-sm font-bold text-muted-foreground uppercase text-center mb-2">Selecciona tu método de pago</p>
+                <Button variant="outline" className="h-24 w-full rounded-2xl flex items-center justify-start gap-5 px-8 border-2 hover:bg-primary/5 hover:border-primary transition-all group" onClick={() => setPaymentMethod('transfer')}>
+                  <div className="bg-primary/10 p-3 rounded-xl group-hover:bg-primary/20"><CreditCard size={28} className="text-primary" /></div>
+                  <div className="text-left">
+                    <p className="font-black text-lg">Transferencia / QR</p>
+                    <p className="text-[10px] font-bold text-muted-foreground">Pago digital instantáneo</p>
+                  </div>
+                </Button>
+                <Button variant="outline" className="h-24 w-full rounded-2xl flex items-center justify-start gap-5 px-8 border-2 hover:bg-secondary/5 hover:border-secondary transition-all group" onClick={() => setPaymentMethod('cash')}>
+                  <div className="bg-secondary/10 p-3 rounded-xl group-hover:bg-secondary/20"><Wallet size={28} className="text-secondary" /></div>
+                  <div className="text-left">
+                    <p className="font-black text-lg">Efectivo en Caja</p>
+                    <p className="text-[10px] font-bold text-muted-foreground">Paga al recoger en ventanilla</p>
+                  </div>
+                </Button>
+              </>
+            ) : paymentMethod === 'transfer' ? (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="bg-muted/30 p-6 rounded-3xl border-2 border-dashed border-primary/20 text-center">
+                  <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4 border-2">
+                    <Image src="https://picsum.photos/seed/qr-code/200/200" alt="QR de Pago" width={160} height={160} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Cuenta CLABE</p>
+                    <p className="text-xl font-black text-primary tracking-wider">{accountNumber}</p>
+                    <p className="text-[10px] font-bold">Banco: UniEats Digital</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-100">
+                  <div className="bg-emerald-500 p-2 rounded-lg text-white shadow-lg"><MessageSquare size={20} /></div>
+                  <div>
+                    <p className="text-xs font-black text-emerald-900 uppercase">IMPORTANTE</p>
+                    <p className="text-[11px] font-medium text-emerald-800 leading-tight">Favor de mandar tu recibo al WhatsApp: <span className="font-black">+52 55 1234 5678</span> indicando tu número de pedido.</p>
+                  </div>
+                </div>
+
+                <Button variant="ghost" className="w-full text-xs font-black text-muted-foreground" onClick={() => setPaymentMethod(null)}>Cambiar método de pago</Button>
+              </div>
+            ) : (
+              <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-200 text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg"><Wallet size={32} /></div>
+                <div className="space-y-1">
+                  <p className="font-black text-lg text-amber-900 leading-tight">Pago en Efectivo</p>
+                  <p className="text-[11px] font-medium text-amber-800">Recuerda que tu pedido entrará a cocina una vez que realices el pago en la caja central.</p>
+                </div>
+                <Button variant="ghost" className="w-full text-xs font-black text-amber-900/50" onClick={() => setPaymentMethod(null)}>Cambiar método de pago</Button>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-4 mt-4">
+              <span className="text-sm text-muted-foreground uppercase">Total</span> 
+              <span className="text-primary">$ {total.toFixed(2)}</span>
+            </div>
+            
+            <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient shadow-xl" onClick={handlePayment} disabled={!paymentMethod}>
+              {paymentMethod === 'transfer' ? 'CONFIRMAR Y ENVIAR' : 'PEDIR AHORA'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
