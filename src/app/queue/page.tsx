@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, limit } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 
 export default function QueueDisplayPage() {
@@ -38,7 +38,8 @@ export default function QueueDisplayPage() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, 'orders');
+    // Limit to 50 most recent to avoid large transfers and index issues
+    return query(collection(firestore, 'orders'), limit(50));
   }, [firestore, user]);
 
   const { data: allOrders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
@@ -53,16 +54,18 @@ export default function QueueDisplayPage() {
   }, []);
 
   // Pedidos que se están preparando o acaban de entrar
-  const inProcess = useMemo(() => 
-    allOrders?.filter(o => o.status === 'Preparing' || o.status === 'Pending' || o.status === 'Confirmed')
-      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)) || []
-  , [allOrders]);
+  const inProcess = useMemo(() => {
+    if (!allOrders) return [];
+    return allOrders.filter(o => o.status === 'Preparing' || o.status === 'Pending' || o.status === 'Confirmed')
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  }, [allOrders]);
 
   // Pedidos listos para recoger
-  const ready = useMemo(() => 
-    allOrders?.filter(o => o.status === 'Ready for Pickup')
-      .sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)) || []
-  , [allOrders]);
+  const ready = useMemo(() => {
+    if (!allOrders) return [];
+    return allOrders.filter(o => o.status === 'Ready for Pickup')
+      .sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+  }, [allOrders]);
 
   const handleBackWithPin = () => {
     if (pinInput === "1234") {

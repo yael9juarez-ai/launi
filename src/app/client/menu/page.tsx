@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useUser, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, query, where, limit } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 
@@ -70,12 +70,17 @@ export default function ClientMenu() {
     return query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(5)
+      limit(10)
     );
   }, [firestore, user]);
 
-  const { data: userOrders } = useCollection(activeOrdersQuery);
+  const { data: userOrdersRaw } = useCollection(activeOrdersQuery);
+
+  // Sort orders in memory to avoid index requirements
+  const userOrders = useMemo(() => {
+    if (!userOrdersRaw) return [];
+    return [...userOrdersRaw].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  }, [userOrdersRaw]);
 
   // Logic to trigger rating dialog when an order is picked up
   useEffect(() => {

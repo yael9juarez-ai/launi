@@ -1,80 +1,41 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- Funciones de Ayuda ---
-
+    
+    // Funciones de ayuda
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Un usuario es Admin si existe en la colección de roles o tiene el campo role en su perfil
-    function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
-      );
-    }
-
-    // Un usuario es Cocinero si existe en la colección de roles o tiene el campo role en su perfil
-    function isKitchen() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_kitchenstaff/$(request.auth.uid)) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "cocinero"
-      );
-    }
-
-    function isStaff() {
-      return isAdmin() || isKitchen();
-    }
-
-    // --- Reglas de Colecciones ---
-
+    // Permitir a cualquier usuario autenticado leer y escribir en su propio perfil
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if isSignedIn();
     }
 
-    match /ingredients/{ingredientId} {
-      // Todos los usuarios necesitan leer para ver stock
-      allow read: if isSignedIn();
-      // Permitir actualización a todos los logueados para que el alumno descuente stock al pedir
-      allow update: if isSignedIn();
-      // Solo el staff puede crear o borrar insumos
-      allow create, delete: if isStaff();
-    }
-
+    // Reglas para pedidos: alumnos, monitor y personal necesitan leer/escribir
     match /orders/{orderId} {
-      allow read: if isSignedIn();
+      allow read, write: if isSignedIn();
+    }
+
+    // Reglas para ingredientes: lectura pública, actualización por usuarios logueados (descuento de stock)
+    match /ingredients/{ingredientId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Reglas para reseñas: lectura pública, creación por alumnos
+    match /service_reviews/{reviewId} {
+      allow read: if true;
       allow create: if isSignedIn();
-      // Permitir actualización de estados (admin, cocinero o el propio alumno para cancelar)
-      allow update: if isSignedIn();
-      allow delete: if isAdmin();
-    }
-
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /menuItems/{menuItemId} {
-      allow read: if true;
-      allow write: if isAdmin();
     }
     
-    // Roles (DBAC - Database Access Control)
+    // Reglas para roles
     match /roles_admin/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && userId == request.auth.uid;
+      allow read, write: if isSignedIn();
     }
     
     match /roles_kitchenstaff/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && userId == request.auth.uid;
-    }
-
-    match /roles_cashier/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && userId == request.auth.uid;
+      allow read, write: if isSignedIn();
     }
   }
 }
