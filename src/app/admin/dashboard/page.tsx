@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -20,7 +21,8 @@ import {
   CreditCard,
   Banknote,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Star
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -85,6 +87,12 @@ export default function AdminDashboard() {
 
   const confirmedSalesTotal = useMemo(() => {
     return confirmedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  }, [confirmedOrders]);
+
+  const avgRating = useMemo(() => {
+    const rated = confirmedOrders.filter(o => o.rating > 0);
+    if (rated.length === 0) return 0;
+    return rated.reduce((sum, o) => sum + o.rating, 0) / rated.length;
   }, [confirmedOrders]);
 
   const confirmedItemsStats = useMemo(() => {
@@ -188,7 +196,7 @@ export default function AdminDashboard() {
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel Administrativo</h1>
-            <p className="text-muted-foreground font-medium">Control financiero y liberación de órdenes.</p>
+            <p className="text-muted-foreground font-medium">Control financiero y satisfacción del cliente.</p>
           </div>
           <div className="flex gap-4">
             <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={() => window.open('/queue', '_blank')}>
@@ -215,7 +223,7 @@ export default function AdminDashboard() {
                   </TabsList>
                   {['daily', 'weekly', 'monthly'].map((period) => (
                     <TabsContent key={period} value={period} className="mt-0">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
                           <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Ventas Totales</p>
                           <p className="text-3xl font-black text-primary">$ {reportData[period as keyof typeof reportData].totalSales.toFixed(2)}</p>
@@ -223,6 +231,10 @@ export default function AdminDashboard() {
                         <div className="bg-muted/30 p-6 rounded-3xl border-2 border-primary/5">
                           <p className="text-xs font-black text-muted-foreground mb-1 uppercase tracking-widest">Transacciones</p>
                           <p className="text-3xl font-black">{reportData[period as keyof typeof reportData].totalTransactions}</p>
+                        </div>
+                        <div className="bg-secondary/10 p-6 rounded-3xl border-2 border-secondary/20">
+                          <p className="text-xs font-black text-secondary-foreground mb-1 uppercase tracking-widest">Satisfacción</p>
+                          <p className="text-3xl font-black flex items-center gap-2">{avgRating.toFixed(1)} <Star className="fill-secondary text-secondary h-6 w-6" /></p>
                         </div>
                       </div>
                       <h3 className="text-xl font-black mb-4 flex items-center gap-2">

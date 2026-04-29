@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   ShoppingCart, 
@@ -18,7 +18,10 @@ import {
   MessageSquare,
   MapPin,
   Sparkles,
-  Star
+  Star,
+  Clock,
+  CheckCircle2,
+  Flame
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useUser, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, query, where } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 
@@ -61,27 +64,29 @@ export default function ClientMenu() {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
   }, []);
 
-  // Monitor for delivered orders to rate
-  const userOrdersQuery = useMemoFirebase(() => {
+  // Monitor real-time status of current and recent orders
+  const activeOrdersQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid),
-      where('status', '==', 'Picked Up')
+      orderBy('createdAt', 'desc'),
+      limit(5)
     );
   }, [firestore, user]);
 
-  const { data: deliveredOrders } = useCollection(userOrdersQuery);
+  const { data: userOrders } = useCollection(activeOrdersQuery);
 
+  // Logic to trigger rating dialog when an order is picked up
   useEffect(() => {
-    if (deliveredOrders && deliveredOrders.length > 0) {
-      const pendingRate = deliveredOrders.find(o => !o.isRated);
-      if (pendingRate) {
-        setOrderToRate(pendingRate);
+    if (userOrders && userOrders.length > 0) {
+      const justDelivered = userOrders.find(o => o.status === 'Picked Up' && (o.isRated === false || o.isRated === undefined));
+      if (justDelivered && !showRating && !orderToRate) {
+        setOrderToRate(justDelivered);
         setShowRating(true);
       }
     }
-  }, [deliveredOrders]);
+  }, [userOrders, showRating, orderToRate]);
 
   const ingredientsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -252,6 +257,36 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Active Order Status Bar */}
+        {userOrders && userOrders.length > 0 && userOrders.some(o => o.status !== 'Picked Up' && o.status !== 'Cancelled') && (
+          <div className="mb-8 space-y-4">
+            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-widest px-2">Estatus de mi Pedido</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userOrders.filter(o => o.status !== 'Picked Up' && o.status !== 'Cancelled').map(order => (
+                <div key={order.id} className="bg-white border-2 border-secondary/20 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center text-white",
+                      order.status === 'Pending' ? "bg-slate-400" : order.status === 'Preparing' ? "bg-secondary" : "bg-emerald-500"
+                    )}>
+                      {order.status === 'Pending' ? <Clock /> : order.status === 'Preparing' ? <Flame className="text-black" /> : <CheckCircle2 />}
+                    </div>
+                    <div>
+                      <p className="font-black">Pedido #{order.id}</p>
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                        {order.status === 'Pending' ? 'Esperando pago/autorización' : order.status === 'Preparing' ? 'En preparación' : '¡Listo para recoger!'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="font-black px-3 h-7 rounded-lg">
+                    {order.status.toUpperCase()}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <div className="bg-primary/5 p-4 rounded-3xl mb-8 border border-primary/10 flex items-center gap-4">
             <div className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20"><MapPin size={24} /></div>
@@ -302,7 +337,12 @@ export default function ClientMenu() {
       </main>
 
       {/* RATING DIALOG */}
-      <Dialog open={showRating} onOpenChange={setShowRating}>
+      <Dialog open={showRating} onOpenChange={(open) => {
+        if (!open) {
+          setShowRating(false);
+          setOrderToRate(null);
+        }
+      }}>
         <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-sm">
           <DialogHeader className="bg-primary p-8 text-white text-center">
             <DialogTitle className="text-2xl font-black">¡Pedido Entregado!</DialogTitle>
