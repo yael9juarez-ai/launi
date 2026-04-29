@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,6 +33,7 @@ export default function KitchenPage() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
+  // Redirigir si no es cocinero dentro de useEffect para evitar errores de renderizado
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
       router.push('/login');
