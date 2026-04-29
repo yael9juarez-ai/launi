@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,14 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UtensilsCrossed, Lock, Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { signInAnonymously, updateProfile, signOut } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -38,14 +41,25 @@ export default function LoginPage() {
       
       const userCredential = await signInAnonymously(auth);
       const name = email.trim().toLowerCase();
+      const uid = userCredential.user.uid;
       
       await updateProfile(userCredential.user, {
         displayName: name
       });
 
-      let targetPath = '/client/menu';
-      if (name === 'admin') targetPath = '/admin/dashboard';
-      else if (name === 'cocinero') targetPath = '/admin/kitchen';
+      // Crear documento de usuario y rol en Firestore para habilitar Security Rules
+      await setDoc(doc(firestore, 'users', uid), {
+        id: uid,
+        displayName: name,
+        role: name === 'admin' ? 'admin' : name === 'cocinero' ? 'cocinero' : 'alumno',
+        updatedAt: serverTimestamp()
+      });
+
+      if (name === 'admin') {
+        await setDoc(doc(firestore, 'roles_admin', uid), { active: true });
+      } else if (name === 'cocinero') {
+        await setDoc(doc(firestore, 'roles_kitchenstaff', uid), { active: true });
+      }
 
       toast({
         className: "uni-toast-success",
@@ -53,8 +67,9 @@ export default function LoginPage() {
         description: `Accediendo como ${name}...`,
       });
 
-      router.push(targetPath);
+      // La redirección ocurrirá vía useEffect
     } catch (error: any) {
+      console.error(error);
       toast({
         variant: "destructive",
         title: "ERROR DE ACCESO",

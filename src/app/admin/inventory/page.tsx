@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -33,7 +34,6 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  // Protección de ruta
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'admin')) {
       router.push('/login');

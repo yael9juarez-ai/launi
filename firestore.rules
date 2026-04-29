@@ -9,21 +9,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        request.auth.token.name == "admin"
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
       );
     }
 
     function isKitchen() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_kitchenstaff/$(request.auth.uid)) ||
-        request.auth.token.name == "cocinero"
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "cocinero"
       );
     }
 
@@ -34,20 +30,18 @@ service cloud.firestore {
     // --- Reglas de Colecciones ---
 
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /ingredients/{ingredientId} {
       allow read: if isSignedIn();
-      allow write: if isStaff();
+      allow write: if isStaff() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName == "admin");
     }
 
     match /orders/{orderId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
       allow delete: if isAdmin();
     }
@@ -62,10 +56,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Roles (DBAC)
-    match /{role_collection}/{userId} {
-      allow get: if isSignedIn();
-      allow list, write: if isAdmin();
+    // Roles (DBAC) - Permitimos que el usuario se asigne su rol si su displayName coincide
+    match /roles_admin/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && userId == request.auth.uid;
+    }
+    
+    match /roles_kitchenstaff/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && userId == request.auth.uid;
+    }
+
+    match /roles_cashier/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && userId == request.auth.uid;
     }
   }
 }
