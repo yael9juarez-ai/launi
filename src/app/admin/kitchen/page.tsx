@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +31,12 @@ export default function KitchenPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -81,9 +86,7 @@ export default function KitchenPage() {
     );
   }
 
-  // Redirigir si no es cocinero
   if (!user || user.displayName !== 'cocinero') {
-    router.push('/login');
     return null;
   }
 

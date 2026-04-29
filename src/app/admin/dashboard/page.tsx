@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +64,12 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!isUserLoading && (!user || user.displayName !== 'admin')) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -144,7 +149,6 @@ export default function AdminDashboard() {
   }
 
   if (!user || user.displayName !== 'admin') {
-    router.push('/login');
     return null;
   }
 
