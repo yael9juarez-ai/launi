@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -14,9 +15,9 @@ import {
   UtensilsCrossed,
   CreditCard,
   Wallet,
-  QrCode,
-  ExternalLink,
-  MessageSquare
+  MessageSquare,
+  MapPin,
+  Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +40,7 @@ export default function ClientMenu() {
   const [cart, setCart] = useState<any[]>([]);
   const [showUpsell, setShowUpsell] = useState(false);
   const [upsellRecommendations, setUpsellRecommendations] = useState<any[]>([]);
+  const [upsellTitle, setUpsellTitle] = useState("");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   
@@ -48,7 +50,6 @@ export default function ClientMenu() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Número de cuenta aleatorio para transferencia
   const accountNumber = useMemo(() => {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
   }, []);
@@ -76,9 +77,18 @@ export default function ClientMenu() {
 
   const getSimpleRecommendations = (item: MenuItem) => {
     let targetCategories: string[] = [];
-    if (item.category === "Comida") targetCategories = ["Bebidas", "Golosinas"];
-    else if (item.category === "Bebidas") targetCategories = ["Comida", "Golosinas"];
-    else if (item.category === "Golosinas") targetCategories = ["Bebidas", "Comida"];
+    let title = "¿No quieres agregar algo más?";
+
+    if (item.category === "Comida") {
+      targetCategories = ["Bebidas", "Golosinas"];
+      title = "¿Te gustaría una bebida o algo dulce para acompañar?";
+    } else if (item.category === "Bebidas") {
+      targetCategories = ["Comida", "Golosinas"];
+      title = "¿Hambre? ¡Mira estas opciones para tu bebida!";
+    } else if (item.category === "Golosinas") {
+      targetCategories = ["Bebidas", "Comida"];
+      title = "¿Algo para acompañar tu antojo?";
+    }
 
     const suggestions = MENU_ITEMS.filter(m => 
       targetCategories.includes(m.category) && 
@@ -89,6 +99,7 @@ export default function ClientMenu() {
 
     if (suggestions.length > 0) {
       setUpsellRecommendations(suggestions);
+      setUpsellTitle(title);
       setShowUpsell(true);
     }
   };
@@ -184,20 +195,30 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-6 mb-8">
-          <div className="relative">
-            <Search className="absolute left-5 top-5 h-6 w-6 text-muted-foreground" />
-            <Input 
-              placeholder="Busca tu comida favorita..." 
-              className="pl-16 h-16 bg-white border-2 rounded-2xl text-xl font-medium"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        <div className="mb-8">
+          <div className="bg-primary/5 p-4 rounded-3xl mb-8 border border-primary/10 flex items-center gap-4">
+            <div className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20"><MapPin size={24} /></div>
+            <div>
+              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Ubicación Actual</p>
+              <p className="text-lg font-black tracking-tight">Plantel La Uni: Sevilla Toledo 39</p>
+            </div>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {["Todas", ...CATEGORIES].map(cat => (
-              <Button key={cat} variant={selectedCategory === cat ? "default" : "secondary"} onClick={() => setSelectedCategory(cat)} className="rounded-full h-12 px-8 font-black whitespace-nowrap">{cat}</Button>
-            ))}
+
+          <div className="flex flex-col gap-6">
+            <div className="relative">
+              <Search className="absolute left-5 top-5 h-6 w-6 text-muted-foreground" />
+              <Input 
+                placeholder="Busca tu comida favorita..." 
+                className="pl-16 h-16 bg-white border-2 rounded-2xl text-xl font-medium"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {["Todas", ...CATEGORIES].map(cat => (
+                <Button key={cat} variant={selectedCategory === cat ? "default" : "secondary"} onClick={() => setSelectedCategory(cat)} className="rounded-full h-12 px-8 font-black whitespace-nowrap">{cat}</Button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -205,7 +226,7 @@ export default function ClientMenu() {
           {MENU_ITEMS.filter(item => (selectedCategory === "Todas" || item.category === selectedCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => {
             const avail = checkStockAvailability(item, cart);
             return (
-              <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2rem] overflow-hidden bg-white flex flex-col transition-all", !avail && "opacity-50 grayscale")}>
+              <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white flex flex-col transition-all hover:shadow-2xl hover:-translate-y-1", !avail && "opacity-50 grayscale")}>
                 <div className="aspect-video relative overflow-hidden">
                   <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="(max-width: 768px) 100vw, 25vw" />
                   <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center shadow-xl">$ {item.price.toFixed(2)}</div>
@@ -215,7 +236,7 @@ export default function ClientMenu() {
                   <CardTitle className="text-xl font-black line-clamp-1">{item.name}</CardTitle>
                 </CardHeader>
                 <CardFooter className="p-6 pt-0 mt-auto">
-                  <Button className="w-full h-14 rounded-xl font-black text-lg" onClick={() => addToCart(item)} disabled={!avail}>{avail ? 'Añadir' : 'Agotado'}</Button>
+                  <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-lg" onClick={() => addToCart(item)} disabled={!avail}>{avail ? 'Añadir al Carrito' : 'Agotado'}</Button>
                 </CardFooter>
               </Card>
             );
@@ -227,41 +248,53 @@ export default function ClientMenu() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-2xl z-50 flex gap-3">
           <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full shadow-2xl border-4 border-white" onClick={() => setCart([])}><Trash2 size={24} /></Button>
           <Button className="flex-1 h-16 rounded-2xl shadow-2xl text-lg font-black flex justify-between px-8 mcd-gradient" onClick={() => setShowPayment(true)}>
-            <span>{cart.length} items</span>
-            <span className="flex items-center gap-2">PAGAR $ {total.toFixed(2)} <ChevronRight size={24} /></span>
+            <span>{cart.length} productos</span>
+            <span className="flex items-center gap-2">PEDIR $ {total.toFixed(2)} <ChevronRight size={24} /></span>
           </Button>
         </div>
       )}
 
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
-        <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg">
+        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg">
           <DialogHeader className="bg-secondary p-8 text-black">
-            <DialogTitle className="text-3xl font-black">¿No quieres agregar algo más?</DialogTitle>
+            <DialogTitle className="text-3xl font-black flex items-center gap-3">
+              <Sparkles className="text-primary" /> Sugerencia Especial
+            </DialogTitle>
           </DialogHeader>
-          <div className="p-8 space-y-4 bg-white">
-            {upsellRecommendations.map((rec: any) => (
-              <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 hover:border-primary/20 transition-all">
-                <div className="w-20 h-20 relative rounded-2xl overflow-hidden shrink-0"><Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" sizes="80px" /></div>
-                <div className="flex-1">
-                  <p className="font-black text-lg leading-tight">{rec.name}</p>
-                  <p className="text-primary font-black text-xl mt-1">$ {rec.price.toFixed(2)}</p>
-                  <Button size="sm" className="w-full mt-2 rounded-full font-black mcd-gradient" onClick={() => addToCart(rec, true)}>+ AÑADIR</Button>
+          <div className="p-8 space-y-6 bg-white">
+            <p className="font-black text-xl leading-tight text-center">{upsellTitle}</p>
+            <div className="space-y-4">
+              {upsellRecommendations.map((rec: any) => (
+                <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 hover:border-primary/20 transition-all bg-muted/10">
+                  <div className="w-24 h-24 relative rounded-2xl overflow-hidden shrink-0 shadow-md">
+                    <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" sizes="96px" />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between py-1">
+                    <div>
+                      <p className="text-[10px] font-black text-primary uppercase">{rec.category}</p>
+                      <p className="font-black text-lg leading-tight">{rec.name}</p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-primary font-black text-xl">$ {rec.price.toFixed(2)}</p>
+                      <Button size="sm" className="rounded-full font-black mcd-gradient px-6" onClick={() => addToCart(rec, true)}>Añadir</Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-            <Button variant="ghost" className="w-full h-14 rounded-2xl font-black text-muted-foreground" onClick={() => setShowUpsell(false)}>No por ahora</Button>
+              ))}
+            </div>
+            <Button variant="ghost" className="w-full h-14 rounded-2xl font-black text-muted-foreground hover:bg-muted/50" onClick={() => setShowUpsell(false)}>No, gracias. Así estoy bien.</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showPayment} onOpenChange={(open) => { setShowPayment(open); if(!open) setPaymentMethod(null); }}>
-        <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
+        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
           <DialogHeader className="bg-primary p-8 text-white">
             <DialogTitle className="text-3xl font-black">Finalizar Pedido</DialogTitle>
           </DialogHeader>
-          <div className="p-8 space-y-4">
+          <div className="p-8 space-y-6">
             {!paymentMethod ? (
-              <>
+              <div className="space-y-4">
                 <p className="text-sm font-bold text-muted-foreground uppercase text-center mb-2">Selecciona tu método de pago</p>
                 <Button variant="outline" className="h-24 w-full rounded-2xl flex items-center justify-start gap-5 px-8 border-2 hover:bg-primary/5 hover:border-primary transition-all group" onClick={() => setPaymentMethod('transfer')}>
                   <div className="bg-primary/10 p-3 rounded-xl group-hover:bg-primary/20"><CreditCard size={28} className="text-primary" /></div>
@@ -277,7 +310,7 @@ export default function ClientMenu() {
                     <p className="text-[10px] font-bold text-muted-foreground">Paga al recoger en ventanilla</p>
                   </div>
                 </Button>
-              </>
+              </div>
             ) : paymentMethod === 'transfer' ? (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="bg-muted/30 p-6 rounded-3xl border-2 border-dashed border-primary/20 text-center">
@@ -294,30 +327,30 @@ export default function ClientMenu() {
                 <div className="flex items-start gap-4 p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-100">
                   <div className="bg-emerald-500 p-2 rounded-lg text-white shadow-lg"><MessageSquare size={20} /></div>
                   <div>
-                    <p className="text-xs font-black text-emerald-900 uppercase">IMPORTANTE</p>
-                    <p className="text-[11px] font-medium text-emerald-800 leading-tight">Favor de mandar tu recibo al WhatsApp: <span className="font-black">+52 55 1234 5678</span> indicando tu número de pedido.</p>
+                    <p className="text-xs font-black text-emerald-900 uppercase">INSTRUCCIÓN</p>
+                    <p className="text-[11px] font-medium text-emerald-800 leading-tight">Envía tu comprobante al WhatsApp: <span className="font-black">+52 55 1234 5678</span> con tu número de pedido.</p>
                   </div>
                 </div>
 
                 <Button variant="ghost" className="w-full text-xs font-black text-muted-foreground" onClick={() => setPaymentMethod(null)}>Cambiar método de pago</Button>
               </div>
             ) : (
-              <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-200 text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-200 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg"><Wallet size={32} /></div>
                 <div className="space-y-1">
                   <p className="font-black text-lg text-amber-900 leading-tight">Pago en Efectivo</p>
-                  <p className="text-[11px] font-medium text-amber-800">Recuerda que tu pedido entrará a cocina una vez que realices el pago en la caja central.</p>
+                  <p className="text-[11px] font-medium text-amber-800">Tu pedido entrará a cocina una vez que realices el pago en la caja central.</p>
                 </div>
                 <Button variant="ghost" className="w-full text-xs font-black text-amber-900/50" onClick={() => setPaymentMethod(null)}>Cambiar método de pago</Button>
               </div>
             )}
             
-            <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-4 mt-4">
-              <span className="text-sm text-muted-foreground uppercase">Total</span> 
+            <div className="flex justify-between items-center text-3xl font-black border-t-4 pt-6">
+              <span className="text-sm text-muted-foreground uppercase tracking-widest">Total</span> 
               <span className="text-primary">$ {total.toFixed(2)}</span>
             </div>
             
-            <Button className="w-full h-16 rounded-xl text-xl font-black mcd-gradient shadow-xl" onClick={handlePayment} disabled={!paymentMethod}>
+            <Button className="w-full h-16 rounded-2xl text-xl font-black mcd-gradient shadow-xl" onClick={handlePayment} disabled={!paymentMethod}>
               {paymentMethod === 'transfer' ? 'CONFIRMAR Y ENVIAR' : 'PEDIR AHORA'}
             </Button>
           </div>
