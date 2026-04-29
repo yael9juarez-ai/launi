@@ -34,7 +34,6 @@ export default function KitchenPage() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  // Protección de ruta y redirección
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
       router.push('/login');
@@ -98,7 +97,6 @@ export default function KitchenPage() {
     return null;
   }
 
-  // Filtrado de órdenes operativas
   const incomingOrders = orders?.filter(o => o.status === 'Pending' || o.status === 'Confirmed').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
   const preparingOrders = orders?.filter(o => o.status === 'Preparing').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
 
@@ -110,12 +108,12 @@ export default function KitchenPage() {
             <ChefHat className="w-10 h-10" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">Panel de Cocina</h1>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Gestión de Producción en Tiempo Real</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">OPERACIONES COCINA</h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel de Control de Producción</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant="outline" className="h-10 px-4 rounded-xl font-black border-2 hidden md:flex">USUARIO: {user.displayName?.toUpperCase()}</Badge>
+          <Badge variant="outline" className="h-10 px-4 rounded-xl font-black border-2 hidden md:flex">PERSONAL: {user.displayName?.toUpperCase()}</Badge>
           <Button variant="outline" className="rounded-xl font-black border-2 h-12 gap-2 text-destructive hover:bg-destructive/10" onClick={handleLogout}>
             <LogOut size={18} /> SALIR
           </Button>
@@ -126,16 +124,15 @@ export default function KitchenPage() {
         <Tabs defaultValue="orders" className="h-full">
           <TabsList className="grid w-full grid-cols-2 max-w-xl mx-auto h-16 bg-white rounded-2xl p-1 shadow-lg mb-8 border-2">
             <TabsTrigger value="orders" className="rounded-xl font-black text-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-              GESTIÓN DE ÓRDENES
+              GESTIÓN DE PEDIDOS
             </TabsTrigger>
             <TabsTrigger value="inventory" className="rounded-xl font-black text-xl data-[state=active]:bg-secondary data-[state=active]:text-black transition-all">
-              ALMACÉN / STOCK
+              ALMACÉN DE INSUMOS
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="m-0 h-full">
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              {/* COLUMNA 1: ÓRDENES ENTRANTE */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-primary/10">
                   <div className="flex items-center gap-4">
@@ -143,8 +140,8 @@ export default function KitchenPage() {
                       <Clock size={32} className="animate-pulse" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black tracking-tighter uppercase">Entrantes</h2>
-                      <p className="text-xs font-bold text-muted-foreground">Esperando preparación</p>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase">Nuevos Pedidos</h2>
+                      <p className="text-xs font-bold text-muted-foreground">Esperando confirmación</p>
                     </div>
                   </div>
                   <Badge className="bg-primary text-white font-black text-4xl px-6 py-2 rounded-2xl shadow-lg">{incomingOrders.length}</Badge>
@@ -155,26 +152,26 @@ export default function KitchenPage() {
                     {incomingOrders.length === 0 ? (
                       <div className="bg-white/50 p-16 rounded-[3rem] text-center border-4 border-dashed">
                         <UtensilsCrossed size={64} className="mx-auto mb-4 opacity-10" />
-                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">SIN ÓRDENES NUEVAS</p>
+                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">COCINA LIMPIA</p>
                       </div>
                     ) : (
                       incomingOrders.map(order => (
-                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-primary overflow-hidden hover:scale-[1.01] transition-transform">
+                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-primary overflow-hidden">
                           <CardHeader className="p-8 pb-4">
                             <div className="flex justify-between items-start">
                               <div>
                                 <span className="text-5xl font-black text-primary leading-none">#{order.id}</span>
-                                <p className="font-black text-muted-foreground uppercase text-sm mt-2">CLIENTE: {order.user}</p>
+                                <p className="font-black text-muted-foreground uppercase text-sm mt-2">USUARIO: {order.user}</p>
                               </div>
                               <Badge variant="secondary" className="font-black h-10 px-4 rounded-full text-lg uppercase">
-                                {order.method || 'Caja'}
+                                {order.method === 'transfer' ? 'PAGADO QR' : 'EFECTIVO'}
                               </Badge>
                             </div>
                           </CardHeader>
                           <CardContent className="p-8 pt-0">
                             <div className="space-y-3 mb-8">
                               {order.items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center bg-muted/30 p-5 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
+                                <div key={i} className="flex justify-between items-center bg-muted/30 p-5 rounded-2xl border-2">
                                   <span className="font-black text-2xl">{item.name}</span>
                                   <span className="bg-primary text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-md">
                                     {item.qty}
@@ -183,10 +180,10 @@ export default function KitchenPage() {
                               ))}
                             </div>
                             <Button 
-                              className="w-full h-20 rounded-[2rem] text-2xl font-black mcd-gradient shadow-xl hover:shadow-primary/20 transition-all gap-4"
+                              className="w-full h-20 rounded-[2rem] text-2xl font-black mcd-gradient shadow-xl hover:scale-[1.02] transition-transform gap-4"
                               onClick={() => updateOrderStatus(order.id, 'Preparing')}
                             >
-                              <Flame className="w-8 h-8" /> COMENZAR COCINA <ArrowRight />
+                              <Flame className="w-8 h-8" /> EMPEZAR A COCINAR <ArrowRight />
                             </Button>
                           </CardContent>
                         </Card>
@@ -196,7 +193,6 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* COLUMNA 2: ÓRDENES EN PREPARACIÓN */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-secondary/20">
                   <div className="flex items-center gap-4">
@@ -204,8 +200,8 @@ export default function KitchenPage() {
                       <Flame size={32} />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black tracking-tighter uppercase">En Fuego</h2>
-                      <p className="text-xs font-bold text-muted-foreground">Preparando ahora mismo</p>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase">En Preparación</h2>
+                      <p className="text-xs font-bold text-muted-foreground">Cocinando ahora</p>
                     </div>
                   </div>
                   <Badge className="bg-secondary text-black font-black text-4xl px-6 py-2 rounded-2xl shadow-lg">{preparingOrders.length}</Badge>
@@ -216,14 +212,14 @@ export default function KitchenPage() {
                     {preparingOrders.length === 0 ? (
                       <div className="bg-white/50 p-16 rounded-[3rem] text-center border-4 border-dashed">
                         <Flame size={64} className="mx-auto mb-4 opacity-10" />
-                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">COCINA DISPONIBLE</p>
+                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">DISPONIBLE</p>
                       </div>
                     ) : (
                       preparingOrders.map(order => (
-                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-secondary overflow-hidden hover:scale-[1.01] transition-transform">
+                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-secondary overflow-hidden">
                           <CardHeader className="p-8 pb-4">
                             <span className="text-5xl font-black text-secondary">#{order.id}</span>
-                            <p className="font-black text-muted-foreground uppercase text-sm mt-2">CLIENTE: {order.user}</p>
+                            <p className="font-black text-muted-foreground uppercase text-sm mt-2">USUARIO: {order.user}</p>
                           </CardHeader>
                           <CardContent className="p-8 pt-0">
                             <div className="space-y-3 mb-8">
@@ -237,7 +233,7 @@ export default function KitchenPage() {
                               ))}
                             </div>
                             <Button 
-                              className="w-full h-20 rounded-[2rem] text-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl transition-all gap-4"
+                              className="w-full h-20 rounded-[2rem] text-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl hover:scale-[1.02] transition-transform gap-4"
                               onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
                             >
                               <CheckCircle2 className="w-8 h-8" /> MARCAR LISTO / AUTORIZAR
@@ -257,9 +253,9 @@ export default function KitchenPage() {
               <CardHeader className="p-12 border-b-2 flex flex-row items-center justify-between bg-muted/5">
                 <div>
                   <CardTitle className="text-4xl font-black flex items-center gap-6">
-                    <Box className="text-secondary w-12 h-12" /> CONTROL DE INSUMOS
+                    <Box className="text-secondary w-12 h-12" /> STOCK DE COCINA
                   </CardTitle>
-                  <p className="text-muted-foreground font-black uppercase text-xs tracking-[0.3em] mt-2">Sincronización Cloud UniEats</p>
+                  <p className="text-muted-foreground font-black uppercase text-xs tracking-[0.3em] mt-2">Inventario en Tiempo Real</p>
                 </div>
                 <Badge variant="outline" className="h-12 px-6 rounded-2xl font-black border-2 bg-white">ALMACÉN ACTIVO</Badge>
               </CardHeader>
@@ -271,13 +267,13 @@ export default function KitchenPage() {
                       return (
                         <div key={item.id} className={cn(
                           "p-8 rounded-[2.5rem] border-4 transition-all flex flex-col justify-between shadow-sm",
-                          isLow ? "bg-primary/5 border-primary/20 shadow-[0_0_30px_rgba(227,6,19,0.1)]" : "bg-white border-muted/50"
+                          isLow ? "bg-primary/5 border-primary/20" : "bg-white border-muted/50"
                         )}>
                           <div className="flex justify-between items-start mb-6">
                             <div>
                               <h3 className="text-2xl font-black leading-tight mb-2">{item.name}</h3>
                               <Badge className={cn("rounded-full font-black text-[10px] uppercase px-3", isLow ? "bg-primary text-white" : "bg-secondary text-black")}>
-                                {isLow ? "STOCK CRÍTICO" : "ÓPTIMO"}
+                                {isLow ? "BAJO STOCK" : "ÓPTIMO"}
                               </Badge>
                             </div>
                             <div className="text-right">
@@ -307,14 +303,9 @@ export default function KitchenPage() {
                                 <Plus className="w-6 h-6" />
                               </Button>
                               <div className="flex-1 bg-muted/30 rounded-2xl flex items-center justify-center font-black uppercase text-[10px] text-muted-foreground border-2">
-                                Ajuste
+                                Ajuste Rápido
                               </div>
                             </div>
-                            {isLow && (
-                              <p className="text-[10px] font-black text-primary text-center uppercase animate-pulse">
-                                Reabastecimiento Urgente
-                              </p>
-                            )}
                           </div>
                         </div>
                       );
