@@ -79,7 +79,7 @@ export default function AdminDashboard() {
   const { data: allOrders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
 
   const pendingOrders = allOrders?.filter(o => o.status === 'Pending') || [];
-  const confirmedOrders = allOrders?.filter(o => o.status !== 'Pending') || [];
+  const confirmedOrders = allOrders?.filter(o => o.status !== 'Pending' && o.status !== 'Cancelled') || [];
 
   const confirmedSalesTotal = useMemo(() => {
     return confirmedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
     toast({
       className: "uni-toast-success",
       title: "✅ PAGO LIBERADO",
-      description: `Pedido #${orderId} enviado a cocina.`,
+      description: `Pedido #${orderId} enviado a preparación.`,
     });
   };
 
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
     <div className="flex h-screen bg-[#FDFDFD]">
       <aside className="w-64 bg-white border-r hidden lg:flex flex-col">
         <div className="p-6 border-b flex items-center gap-3">
-          <div className="w-9 h-9 uni-gradient rounded-xl flex items-center justify-center text-white shadow-md">
+          <div className="w-9 h-9 mcd-gradient rounded-xl flex items-center justify-center text-white shadow-md">
             <UtensilsCrossed size={20} />
           </div>
           <span className="text-xl font-black tracking-tighter">UniEats <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full align-middle ml-1">ADMIN</span></span>
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
             <BarChart3 size={20} /> Dashboard
           </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/kitchen')}>
-            <ChefHat size={20} /> Cocina
+            <ChefHat size={20} /> Cocinero
           </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/pos')}>
             <DollarSign size={20} /> Punto de Venta
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel Administrativo</h1>
-            <p className="text-muted-foreground font-medium">Verificación de ingresos (Sincronizado Cloud).</p>
+            <p className="text-muted-foreground font-medium">Verificación de ingresos y gestión global.</p>
           </div>
           <div className="flex gap-4">
             <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={() => window.open('/queue', '_blank')}>
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
             <CardTitle className="text-2xl font-black flex items-center gap-2">
               <Clock className="text-secondary" /> PAGOS POR LIBERAR (CLOUD)
             </CardTitle>
-            <CardDescription className="font-bold">Valida el pago para permitir la preparación.</CardDescription>
+            <CardDescription className="font-bold">Valida el pago para permitir que el Cocinero empiece la preparación.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
             {pendingOrders.length === 0 ? (
