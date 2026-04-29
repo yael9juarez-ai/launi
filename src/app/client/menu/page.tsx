@@ -81,21 +81,22 @@ export default function ClientMenu() {
 
     if (item.category === "Comida") {
       targetCategories = ["Bebidas", "Golosinas"];
-      title = "¿Te gustaría una bebida o algo dulce para acompañar?";
+      title = "¿Te gustaría una bebida fresca o algo dulce para acompañar?";
     } else if (item.category === "Bebidas") {
       targetCategories = ["Comida", "Golosinas"];
-      title = "¿Hambre? ¡Mira estas opciones para tu bebida!";
+      title = "¿Hambre? ¡Mira estas opciones deliciosas para tu bebida!";
     } else if (item.category === "Golosinas") {
       targetCategories = ["Bebidas", "Comida"];
       title = "¿Algo para acompañar tu antojo?";
     }
 
+    // Pick up to 4 recommendations for more variety
     const suggestions = MENU_ITEMS.filter(m => 
       targetCategories.includes(m.category) && 
       m.id !== item.id &&
       !cart.some(cartItem => cartItem.id === m.id) &&
       checkStockAvailability(m, cart)
-    ).sort(() => 0.5 - Math.random()).slice(0, 2);
+    ).sort(() => 0.5 - Math.random()).slice(0, 4);
 
     if (suggestions.length > 0) {
       setUpsellRecommendations(suggestions);
@@ -129,7 +130,7 @@ export default function ClientMenu() {
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
 
     const orderRef = doc(firestore, 'orders', orderId);
-    await setDoc(orderRef, {
+    setDoc(orderRef, {
       id: orderId,
       userId: user.uid,
       user: user.displayName || 'Estudiante',
@@ -146,6 +147,7 @@ export default function ClientMenu() {
       }, [])
     });
 
+    // Reflection in inventory
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -255,28 +257,28 @@ export default function ClientMenu() {
       )}
 
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
-        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg">
+        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-2xl">
           <DialogHeader className="bg-secondary p-8 text-black">
             <DialogTitle className="text-3xl font-black flex items-center gap-3">
-              <Sparkles className="text-primary" /> Sugerencia Especial
+              <Sparkles className="text-primary" /> ¿Qué tal algo más?
             </DialogTitle>
           </DialogHeader>
           <div className="p-8 space-y-6 bg-white">
             <p className="font-black text-xl leading-tight text-center">{upsellTitle}</p>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {upsellRecommendations.map((rec: any) => (
                 <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 hover:border-primary/20 transition-all bg-muted/10">
-                  <div className="w-24 h-24 relative rounded-2xl overflow-hidden shrink-0 shadow-md">
-                    <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" sizes="96px" />
+                  <div className="w-20 h-20 relative rounded-2xl overflow-hidden shrink-0 shadow-md">
+                    <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" sizes="80px" />
                   </div>
                   <div className="flex-1 flex flex-col justify-between py-1">
                     <div>
-                      <p className="text-[10px] font-black text-primary uppercase">{rec.category}</p>
-                      <p className="font-black text-lg leading-tight">{rec.name}</p>
+                      <p className="text-[9px] font-black text-primary uppercase">{rec.category}</p>
+                      <p className="font-black text-base leading-tight">{rec.name}</p>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-primary font-black text-xl">$ {rec.price.toFixed(2)}</p>
-                      <Button size="sm" className="rounded-full font-black mcd-gradient px-6" onClick={() => addToCart(rec, true)}>Añadir</Button>
+                      <p className="text-primary font-black text-lg">$ {rec.price.toFixed(2)}</p>
+                      <Button size="sm" className="rounded-full font-black mcd-gradient px-4 h-8" onClick={() => addToCart(rec, true)}>Añadir</Button>
                     </div>
                   </div>
                 </div>
