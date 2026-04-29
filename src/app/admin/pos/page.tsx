@@ -1,61 +1,50 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem, Ingredient, INGREDIENTS } from '@/lib/data';
+import { useState, useMemo } from 'react';
+import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { 
-  Calculator, 
   Search, 
   Trash2, 
   Plus, 
   Minus,
   ShoppingCart,
   ArrowLeft,
-  Database
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { ToastAction } from "@/components/ui/toast";
 import { cn } from '@/lib/utils';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function POSPage() {
   const [cart, setCart] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todas');
-  const [inventory, setInventory] = useState<Ingredient[]>([]);
   const { toast } = useToast();
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
-  const syncInventory = () => {
-    const saved = localStorage.getItem('uni_inventory');
-    if (!saved) {
-      setInventory(INGREDIENTS);
-      localStorage.setItem('uni_inventory', JSON.stringify(INGREDIENTS));
-    } else {
-      setInventory(JSON.parse(saved));
-    }
-  };
+  const ingredientsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'ingredients');
+  }, [firestore, user]);
 
-  useEffect(() => {
-    syncInventory();
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'uni_inventory') syncInventory();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
   const checkStockAvailability = (item: MenuItem, quantity: number = 1) => {
-    const currentInv = JSON.parse(localStorage.getItem('uni_inventory') || JSON.stringify(INGREDIENTS));
+    if (!inventory) return true;
     return item.recipe.every(r => {
-      const ing = currentInv.find((i: any) => i.id === r.ingredientId);
-      return ing && ing.stock >= (r.quantity * quantity);
+      const ing = inventory.find((i: any) => i.id === r.ingredientId);
+      return ing && ing.currentStock >= (r.quantity * quantity);
     });
   };
 
@@ -98,35 +87,60 @@ export default function POSPage() {
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handleCheckout = () => {
-    if (cart.length === 0) return;
-    const currentInv = JSON.parse(localStorage.getItem('uni_inventory') || '[]');
-    const newInventory = [...currentInv];
+  const handleCheckout = async () => {
+    if (!user || cart.length === 0) return;
 
+    const orderId = `POS-${Date.now().toString().slice(-6)}`;
+    
+    // 1. Crear la orden en Firestore
+    const orderRef = doc(firestore, 'orders', orderId);
+    await setDoc(orderRef, {
+      id: orderId,
+      userId: user.uid,
+      user: 'Venta Directa (Caja)',
+      totalAmount: total,
+      status: 'Ready for Pickup', // Las ventas en caja están listas de inmediato
+      method: 'cash',
+      orderDate: new Date().toISOString(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      items: cart.map(item => ({
+        name: item.name,
+        qty: item.quantity,
+        price: item.price
+      }))
+    });
+
+    // 2. Descontar inventario en Firestore
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
-        const idx = newInventory.findIndex((i: any) => i.id === r.ingredientId);
-        if (idx !== -1) newInventory[idx].stock -= (r.quantity * cartItem.quantity);
+        const ing = inventory?.find(i => i.id === r.ingredientId);
+        if (ing) {
+          const ingRef = doc(firestore, 'ingredients', ing.id);
+          updateDocumentNonBlocking(ingRef, {
+            currentStock: ing.currentStock - (r.quantity * cartItem.quantity),
+            updatedAt: serverTimestamp()
+          });
+        }
       });
     });
     
-    localStorage.setItem('uni_inventory', JSON.stringify(newInventory));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'uni_inventory' }));
-
-    const currentTotal = parseFloat(localStorage.getItem('confirmed_sales_total') || '0');
-    localStorage.setItem('confirmed_sales_total', (currentTotal + total).toString());
-
-    const currentStats = JSON.parse(localStorage.getItem('confirmed_items_breakdown') || '{}');
-    cart.forEach(item => {
-      if (!currentStats[item.id]) currentStats[item.id] = { name: item.name, qty: 0, total: 0 };
-      currentStats[item.id].qty += item.quantity;
-      currentStats[item.id].total += (item.price * item.quantity);
-    });
-    localStorage.setItem('confirmed_items_breakdown', JSON.stringify(currentStats));
-    
-    toast({ className: "uni-toast-success", title: "✅ VENTA COMPLETADA", description: "Venta registrada e insumos descontados." });
+    toast({ className: "uni-toast-success", title: "✅ VENTA COMPLETADA", description: "Venta registrada e insumos descontados en la nube." });
     setCart([]);
   };
+
+  if (isUserLoading || (user && isInvLoading)) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-muted/30">
@@ -137,7 +151,7 @@ export default function POSPage() {
               <Button variant="outline" size="icon" className="rounded-full" onClick={() => router.push('/admin/dashboard')}>
                 <ArrowLeft size={20} />
               </Button>
-              <h1 className="text-xl md:text-2xl font-black">Caja Registradora</h1>
+              <h1 className="text-xl md:text-2xl font-black">Caja Registradora (Cloud)</h1>
             </div>
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

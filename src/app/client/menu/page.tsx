@@ -1,12 +1,11 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingCart, 
   Search, 
@@ -16,7 +15,6 @@ import {
   CreditCard,
   Wallet,
   Plus,
-  Sparkles,
   Trash2,
   Tv,
   Loader2
@@ -52,7 +50,6 @@ export default function ClientMenu() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Suscribirse al inventario global solo si hay usuario
   const ingredientsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'ingredients');
@@ -61,7 +58,7 @@ export default function ClientMenu() {
   const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
   const checkStockAvailability = (newItem: MenuItem, currentCart: any[]) => {
-    if (!inventory) return true; // Si no hay inventario cargado, permitimos añadir (se validará en backend)
+    if (!inventory) return true;
     
     const requirements: Record<string, number> = {};
     [...currentCart, newItem].forEach(cartItem => {
@@ -96,14 +93,16 @@ export default function ClientMenu() {
         .filter(i => i !== null && i.id !== item.id)
         .slice(0, 2);
 
-      setUpsellRecommendations(items);
-      setShowUpsell(true);
+      if (items.length > 0) {
+        setUpsellRecommendations(items);
+        setShowUpsell(true);
+      }
     } catch (error) {
       console.error("Error AI Recommendations:", error);
     }
   };
 
-  const addToCart = (item: any, silent = false) => {
+  const addToCart = async (item: any, silent = false) => {
     if (!checkStockAvailability(item, cart)) {
       toast({ variant: "destructive", title: "🚫 AGOTADO", description: `Sin insumos para preparar ${item.name}.` });
       return;
@@ -113,8 +112,9 @@ export default function ClientMenu() {
     
     if (!silent) {
       setLastAddedItem(item);
-      getAiRecommendations(item);
       toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
+      // Ejecutar recomendación después del toast
+      await getAiRecommendations(item);
     } else {
       setShowUpsell(false);
     }
@@ -127,7 +127,6 @@ export default function ClientMenu() {
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
     setCurrentOrderId(`#${orderId}`);
 
-    // Crear orden en Firestore
     const orderRef = doc(firestore, 'orders', orderId);
     await setDoc(orderRef, {
       id: orderId,
@@ -146,7 +145,6 @@ export default function ClientMenu() {
       }, [])
     });
 
-    // Descontar inventario global
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -168,7 +166,7 @@ export default function ClientMenu() {
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
-  if (isUserLoading) {
+  if (isUserLoading || (user && isInvLoading)) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -197,7 +195,7 @@ export default function ClientMenu() {
         {orderStatus !== 'idle' && (
           <div className="mb-8 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between shadow-2xl text-white mcd-gradient animate-in slide-in-from-top">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-white">
                 <Clock className="w-8 h-8 animate-spin" />
               </div>
               <div>
