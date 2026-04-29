@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -88,6 +87,7 @@ export default function ClientMenu() {
       message = "¡No olvides algo de tomar!";
     }
 
+    // Filtrar items de las categorías objetivo que NO estén en el carrito y tengan stock
     const suggestions = MENU_ITEMS.filter(m => 
       targetCategories.includes(m.category) && 
       m.id !== item.id &&
@@ -104,7 +104,7 @@ export default function ClientMenu() {
     }
   };
 
-  const addToCart = async (item: any, silent = false) => {
+  const addToCart = (item: any, silent = false) => {
     if (!checkStockAvailability(item, cart)) {
       toast({ variant: "destructive", title: "🚫 AGOTADO", description: `Sin insumos para preparar ${item.name}.` });
       return;
@@ -145,6 +145,7 @@ export default function ClientMenu() {
       }, [])
     });
 
+    // Descontar inventario en la nube
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -247,6 +248,7 @@ export default function ClientMenu() {
                     fill 
                     className="object-cover group-hover:scale-110 transition-transform duration-500" 
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    data-ai-hint="food item"
                   />
                   <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center shadow-xl">
                     $ {item.price.toFixed(2)}
@@ -279,7 +281,7 @@ export default function ClientMenu() {
         </div>
       )}
 
-      {/* DIALOGO DE RECOMENDACIÓN SIMPLE */}
+      {/* DIALOGO DE RECOMENDACIÓN SIMPLE (MCD-STYLE) */}
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg mx-4">
           <div className="bg-secondary p-8 text-black relative">
@@ -290,16 +292,23 @@ export default function ClientMenu() {
           <div className="p-8 space-y-4 bg-white">
             {upsellRecommendations.map((rec: any) => (
               <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 border-muted hover:border-primary/20 transition-all group">
-                <div className="w-20 h-20 relative rounded-2xl overflow-hidden shrink-0">
-                  <Image src={rec.imageUrl} alt={rec.name} fill className="object-cover" sizes="80px" />
+                <div className="w-24 h-24 relative rounded-2xl overflow-hidden shrink-0">
+                  <Image 
+                    src={rec.imageUrl} 
+                    alt={rec.name} 
+                    fill 
+                    className="object-cover" 
+                    sizes="96px"
+                    data-ai-hint="snack drink"
+                  />
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-sm">{rec.name}</p>
+                  <p className="font-black text-lg">{rec.name}</p>
                   <p className="text-[10px] text-muted-foreground font-bold leading-tight mt-1 italic">{rec.reason}</p>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-primary font-black text-sm">$ {rec.price.toFixed(2)}</p>
-                    <Button size="sm" className="h-8 rounded-full font-black px-4 text-[10px]" onClick={() => addToCart(rec, true)}>
-                      <Plus className="w-3 h-3 mr-1" /> AÑADIR
+                  <div className="flex justify-between items-center mt-3">
+                    <p className="text-primary font-black text-xl">$ {rec.price.toFixed(2)}</p>
+                    <Button size="sm" className="h-10 rounded-full font-black px-6 mcd-gradient border-none text-white" onClick={() => addToCart(rec, true)}>
+                      <Plus className="w-4 h-4 mr-2" /> AÑADIR
                     </Button>
                   </div>
                 </div>
