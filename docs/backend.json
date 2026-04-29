@@ -1,363 +1,56 @@
+
 {
   "entities": {
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the UniEats application, including clients (students, faculty, administrative staff) and internal personnel (cashiers, kitchen staff, administrators).",
+      "description": "Represents a user of the UniEats application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "The institutional email address of the user, used for login.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the user."
-        },
-        "role": {
-          "type": "string",
-          "description": "The role of the user within the system (e.g., Client, Cashier, KitchenStaff, Admin).",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the user account was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "email",
-        "firstName",
-        "lastName",
-        "role",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Categorizes menu items for better organization and browsing (e.g., 'Main Courses', 'Beverages', 'Desserts').",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the menu category."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the category."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
-    },
-    "MenuItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MenuItem",
-      "type": "object",
-      "description": "Represents a single item available for order on the cafeteria's menu.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MenuItem entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the menu item."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the menu item, including ingredients or preparation."
-        },
-        "price": {
-          "type": "number",
-          "description": "The current price of the menu item."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to an image of the menu item.",
-          "format": "uri"
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to the Category this menu item belongs to. (Relationship: Category 1:N MenuItem)"
-        },
-        "isAvailable": {
-          "type": "boolean",
-          "description": "Indicates whether the menu item is currently available for order."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the menu item was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the menu item was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "price",
-        "imageUrl",
-        "categoryId",
-        "isAvailable",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "email", "firstName", "lastName", "role"]
     },
     "Order": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents a customer's online order for food and beverages.",
+      "description": "Represents a customer's order.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Order entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User (client) who placed the order. (Relationship: User 1:N Order)"
-        },
-        "orderDate": {
-          "type": "string",
-          "description": "The date and time when the order was placed.",
-          "format": "date-time"
-        },
-        "pickupTime": {
-          "type": "string",
-          "description": "The chosen time for the customer to pick up the order.",
-          "format": "date-time"
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "The total monetary amount of the order."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the order (e.g., 'Pending', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Cancelled').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "specialInstructions": {
-          "type": "string",
-          "description": "Any special instructions or notes provided by the customer for the order."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the order record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the order record was last updated (e.g., status change).",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "orderDate": { "type": "string", "format": "date-time" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "isRated": { "type": "boolean", "description": "Whether the user has provided feedback for this order." },
+        "rating": { "type": "number", "description": "The service rating provided (1-5)." }
       },
-      "required": [
-        "id",
-        "userId",
-        "orderDate",
-        "pickupTime",
-        "totalAmount",
-        "status",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "OrderItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OrderItem",
-      "type": "object",
-      "description": "Details for a specific menu item included within an order.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the OrderItem entity."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to the Order this item belongs to. (Relationship: Order 1:N OrderItem)"
-        },
-        "menuItemId": {
-          "type": "string",
-          "description": "Reference to the MenuItem that was ordered. (Relationship: MenuItem 1:N OrderItem)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the menu item ordered."
-        },
-        "unitPrice": {
-          "type": "number",
-          "description": "The price of the menu item at the time the order was placed."
-        },
-        "customizationNotes": {
-          "type": "string",
-          "description": "Specific customization requests for this item (e.g., 'no onions', 'extra cheese')."
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "menuItemId",
-        "quantity",
-        "unitPrice"
-      ]
+      "required": ["id", "userId", "status", "totalAmount"]
     },
     "Review": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Review",
       "type": "object",
-      "description": "Represents a customer's rating and comment for a specific menu item.",
+      "description": "Represents a customer's rating for the service.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Review entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User (client) who left the review. (Relationship: User 1:N Review)"
-        },
-        "menuItemId": {
-          "type": "string",
-          "description": "Reference to the MenuItem that was reviewed. (Relationship: MenuItem 1:N Review)"
-        },
-        "rating": {
-          "type": "number",
-          "description": "The rating given by the user, typically on a scale (e.g., 1 to 5 stars)."
-        },
-        "comment": {
-          "type": "string",
-          "description": "The textual comment or feedback provided by the user."
-        },
-        "reviewDate": {
-          "type": "string",
-          "description": "The date and time when the review was submitted.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "userId",
-        "menuItemId",
-        "rating",
-        "comment",
-        "reviewDate"
-      ]
-    },
-    "Ingredient": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Ingredient",
-      "type": "object",
-      "description": "Represents a raw material or component used in the preparation of menu items, for inventory control.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Ingredient entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the ingredient (e.g., 'Milk', 'Coffee Beans', 'Lettuce')."
-        },
-        "unitOfMeasure": {
-          "type": "string",
-          "description": "The unit of measure for the ingredient (e.g., 'grams', 'ml', 'units', 'kg')."
-        },
-        "currentStock": {
-          "type": "number",
-          "description": "The current quantity of the ingredient available in stock."
-        },
-        "minStockLevel": {
-          "type": "number",
-          "description": "The minimum stock level for this ingredient, triggering low stock alerts."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the ingredient record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the ingredient record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "unitOfMeasure",
-        "currentStock",
-        "minStockLevel",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "RecipeItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RecipeItem",
-      "type": "object",
-      "description": "Links a MenuItem to its constituent Ingredients, specifying the quantity of each ingredient required. This forms the recipe for inventory deduction.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the RecipeItem entity."
-        },
-        "menuItemId": {
-          "type": "string",
-          "description": "Reference to the MenuItem for which this is an ingredient. (Relationship: MenuItem 1:N RecipeItem)"
-        },
-        "ingredientId": {
-          "type": "string",
-          "description": "Reference to the Ingredient required for the MenuItem. (Relationship: Ingredient 1:N RecipeItem)"
-        },
-        "quantityRequired": {
-          "type": "number",
-          "description": "The quantity of the ingredient (in its unit of measure) needed to prepare one unit of the menu item."
-        }
-      },
-      "required": [
-        "id",
-        "menuItemId",
-        "ingredientId",
-        "quantityRequired"
-      ]
+      "required": ["id", "orderId", "userId", "rating"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -365,161 +58,26 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile details. The document ID (`userId`) must match the `request.auth.uid` and the `id` field within the document for path-based authorization."
-        }
-      },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "AdminRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Identifies users with administrative privileges. Presence of a document here grants admin role. Used for DBAC (Database Access Control) checks via `exists()`."
-        }
-      },
-      {
-        "path": "/roles_cashier/{userId}",
-        "definition": {
-          "entityName": "CashierRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Identifies users with cashier privileges. Presence of a document here grants cashier role. Used for DBAC checks via `exists()`."
-        }
-      },
-      {
-        "path": "/roles_kitchenstaff/{userId}",
-        "definition": {
-          "entityName": "KitchenStaffRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Identifies users with kitchen staff privileges. Presence of a document here grants kitchen staff role. Used for DBAC checks via `exists()`."
-        }
-      },
-      {
-        "path": "/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Defines menu categories. Publicly readable by all clients, writeable by users with admin roles."
-        }
-      },
-      {
-        "path": "/menuItems/{menuItemId}",
-        "definition": {
-          "entityName": "MenuItem",
-          "schema": {
-            "$ref": "#/backend/entities/MenuItem"
-          },
-          "description": "Represents individual menu items. Publicly readable by all clients, writeable by users with admin roles.",
-          "params": [
-            {
-              "name": "menuItemId",
-              "description": "The unique identifier for a menu item."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/menuItems/{menuItemId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Reviews associated with a specific menu item. Includes denormalized `userId` of the reviewer for authorization independence, allowing review owner to modify. Publicly readable by all.",
-          "params": [
-            {
-              "name": "menuItemId",
-              "description": "The unique identifier for the parent menu item."
-            },
-            {
-              "name": "reviewId",
-              "description": "The unique identifier for the review."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/menuItems/{menuItemId}/recipeItems/{recipeItemId}",
-        "definition": {
-          "entityName": "RecipeItem",
-          "schema": {
-            "$ref": "#/backend/entities/RecipeItem"
-          },
-          "description": "Details linking a menu item to its constituent ingredients. Used for inventory tracking and recipe management. Readable/writeable by kitchen staff and administrators.",
-          "params": [
-            {
-              "name": "menuItemId",
-              "description": "The unique identifier for the parent menu item."
-            },
-            {
-              "name": "recipeItemId",
-              "description": "The unique identifier for the recipe item."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/ingredients/{ingredientId}",
-        "definition": {
-          "entityName": "Ingredient",
-          "schema": {
-            "$ref": "#/backend/entities/Ingredient"
-          },
-          "description": "Inventory of raw ingredients. Readable/writeable by kitchen staff and administrators.",
-          "params": [
-            {
-              "name": "ingredientId",
-              "description": "The unique identifier for the ingredient."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "User profiles."
         }
       },
       {
         "path": "/orders/{orderId}",
         "definition": {
           "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Top-level collection for all customer orders. Includes denormalized `userId` (owner) for client-specific authorization and `status` for efficient staff queries. Supports QAPs for listing orders by `userId` (client) or by `status` (staff).",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Order" },
+          "description": "Customer orders."
         }
       },
       {
-        "path": "/orders/{orderId}/orderItems/{orderItemId}",
+        "path": "/service_reviews/{reviewId}",
         "definition": {
-          "entityName": "OrderItem",
-          "schema": {
-            "$ref": "#/backend/entities/OrderItem"
-          },
-          "description": "Details for individual items within a specific order. Includes denormalized `userId` (from the parent order) for authorization independence, allowing direct security rule checks without fetching the parent order. This ensures client and relevant staff can access order item details.",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the parent order."
-            },
-            {
-              "name": "orderItemId",
-              "description": "The unique identifier for the order item."
-            }
-          ]
+          "entityName": "Review",
+          "schema": { "$ref": "#/backend/entities/Review" },
+          "description": "General service feedback."
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to facilitate real-time updates and shared access for orders across different user roles (clients, cashiers, kitchen staff), while strictly adhering to core security principles. Central to this is prioritizing **Authorization Independence** through strategic denormalization and **QAPs (Query as a Proxy for Security)** via structural segregation.\n\n**Authorization Independence via Denormalization:**\nCrucially, to enable atomic security rules and avoid inefficient `get()` calls, authorization-relevant fields are denormalized:\n*   **Orders (`/orders/{orderId}`):** Each order document includes the `userId` of the client who placed it. This allows rules to check `resource.data.userId == request.auth.uid` directly, ensuring a client can only access their own orders without needing to fetch data from a parent `User` document. This also enables staff to query and manage orders based on status or pickup time without complex cross-collection lookups.\n*   **Order Items (`/orders/{orderId}/orderItems/{orderItemId}`):** To maintain Authorization Independence even within subcollections, each `OrderItem` document will also contain the `userId` (or `orderOwnerId`) of the parent order's owner. This allows rules for `orderItems` to be atomic, checking `resource.data.userId == request.auth.uid` or `exists(/roles_kitchenstaff/$(request.auth.uid))` without needing to `get()` the parent `Order` document.\n*   **Reviews (`/menuItems/{menuItemId}/reviews/{reviewId}`):** Each review includes the `userId` of the author, allowing atomic checks for ownership when modifying or deleting a review.\n*   **DBAC (Database Access Control):** User roles (Admin, Cashier, KitchenStaff) are managed in dedicated top-level collections (e.g., `/roles_admin/{userId}`). Authorization for staff actions involves simple, efficient `exists(/roles_admin/$(request.auth.uid))` checks, completely decoupling role authorization from hierarchical data dependencies.\n\n**QAPs (Rules are not Filters):**\nThe structure ensures that common list queries can be secured efficiently:\n*   **Client Order History:** Clients can fetch their orders using `db.collection('orders').where('userId', '==', request.auth.uid)`. The `userId` field in the `Order` document ensures that security rules can validate this query efficiently without acting as a filter on an unindexed or overly broad dataset.\n*   **Staff Order Management:** Cashiers and Kitchen Staff can list orders based on `status` (e.g., `db.collection('orders').where('status', '==', 'Preparing')`) or `pickupTime`. This is secured by requiring the querying user to have an appropriate role (e.g., `exists(/roles_kitchenstaff/$(request.auth.uid))`) and allowing the specific query pattern.\n*   **Public Menu & Reviews:** `/categories` and `/menuItems` are designed for public read access, allowing efficient listing for all users. Reviews within `/menuItems/{menuItemId}/reviews` are also publicly readable, satisfying QAPs for displaying all reviews for a menu item.\n\n**Structural Segregation:**\n*   Data with different security postures is segregated. For example, public menu items are in `/menuItems`, while staff-only inventory is in `/ingredients` and `/menuItems/{menuItemId}/recipeItems`. User-specific data (like profile or owned orders) contains the `userId` for direct access control.\n\nThis design ensures that the application can efficiently display and manage orders across multiple devices and user roles, with a clear, robust, and easily debuggable set of Firestore security rules."
+    ]
   }
 }

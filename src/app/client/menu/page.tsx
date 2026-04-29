@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,8 @@ import {
   Wallet,
   MessageSquare,
   MapPin,
-  Sparkles
+  Sparkles,
+  Star
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useUser, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, query, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 
@@ -44,6 +45,12 @@ export default function ClientMenu() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   
+  // Rating State
+  const [showRating, setShowRating] = useState(false);
+  const [currentRating, setCurrentRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [orderToRate, setOrderToRate] = useState<any>(null);
+
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -53,6 +60,28 @@ export default function ClientMenu() {
   const accountNumber = useMemo(() => {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
   }, []);
+
+  // Monitor for delivered orders to rate
+  const userOrdersQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'orders'),
+      where('userId', '==', user.uid),
+      where('status', '==', 'Picked Up')
+    );
+  }, [firestore, user]);
+
+  const { data: deliveredOrders } = useCollection(userOrdersQuery);
+
+  useEffect(() => {
+    if (deliveredOrders && deliveredOrders.length > 0) {
+      const pendingRate = deliveredOrders.find(o => !o.isRated);
+      if (pendingRate) {
+        setOrderToRate(pendingRate);
+        setShowRating(true);
+      }
+    }
+  }, [deliveredOrders]);
 
   const ingredientsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -90,7 +119,6 @@ export default function ClientMenu() {
       title = "¿Algo para acompañar tu antojo?";
     }
 
-    // Pick up to 4 recommendations for more variety
     const suggestions = MENU_ITEMS.filter(m => 
       targetCategories.includes(m.category) && 
       m.id !== item.id &&
@@ -138,6 +166,7 @@ export default function ClientMenu() {
       status: 'Pending',
       method: paymentMethod,
       orderDate: new Date().toISOString(),
+      isRated: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       items: cart.reduce((acc: any[], item) => {
@@ -147,7 +176,6 @@ export default function ClientMenu() {
       }, [])
     });
 
-    // Reflection in inventory
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -165,6 +193,33 @@ export default function ClientMenu() {
     setShowPayment(false);
     setPaymentMethod(null);
     toast({ className: "uni-toast-success", title: "PEDIDO REALIZADO", description: `Orden #${orderId} enviada a cocina.` });
+  };
+
+  const handleSaveRating = async () => {
+    if (!orderToRate || currentRating === 0) return;
+
+    const reviewId = `REV-${Date.now()}`;
+    const reviewRef = doc(firestore, 'service_reviews', reviewId);
+    
+    await setDoc(reviewRef, {
+      id: reviewId,
+      orderId: orderToRate.id,
+      userId: user?.uid,
+      rating: currentRating,
+      createdAt: new Date().toISOString()
+    });
+
+    const orderRef = doc(firestore, 'orders', orderToRate.id);
+    updateDocumentNonBlocking(orderRef, {
+      isRated: true,
+      rating: currentRating,
+      updatedAt: serverTimestamp()
+    });
+
+    setShowRating(false);
+    setCurrentRating(0);
+    setOrderToRate(null);
+    toast({ className: "uni-toast-success", title: "¡GRACIAS!", description: "Tu opinión nos ayuda a mejorar." });
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
@@ -245,6 +300,54 @@ export default function ClientMenu() {
           })}
         </div>
       </main>
+
+      {/* RATING DIALOG */}
+      <Dialog open={showRating} onOpenChange={setShowRating}>
+        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-sm">
+          <DialogHeader className="bg-primary p-8 text-white text-center">
+            <DialogTitle className="text-2xl font-black">¡Pedido Entregado!</DialogTitle>
+          </DialogHeader>
+          <div className="p-8 space-y-8 text-center bg-white">
+            <div className="flex flex-col items-center gap-4">
+              <div className="bg-secondary/10 p-5 rounded-full">
+                <UtensilsCrossed size={40} className="text-secondary" />
+              </div>
+              <p className="font-black text-xl leading-tight">¿Qué tal estuvo tu servicio hoy?</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Tu opinión es muy importante para UniEats</p>
+            </div>
+            
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setCurrentRating(star)}
+                  className="transition-transform active:scale-90"
+                >
+                  <Star 
+                    size={44} 
+                    className={cn(
+                      "transition-colors",
+                      (hoverRating || currentRating) >= star 
+                        ? "fill-secondary text-secondary" 
+                        : "text-muted border-none"
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <Button 
+              className="w-full h-16 rounded-2xl text-lg font-black mcd-gradient shadow-xl"
+              onClick={handleSaveRating}
+              disabled={currentRating === 0}
+            >
+              ENVIAR CALIFICACIÓN
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {cart.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-2xl z-50 flex gap-3">
