@@ -22,7 +22,10 @@ import {
   Star,
   Clock,
   CheckCircle2,
-  Flame
+  Flame,
+  FileText,
+  Printer,
+  Download
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -49,6 +52,10 @@ export default function ClientMenu() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   
+  // Ticket State
+  const [showTicket, setShowTicket] = useState(false);
+  const [lastOrder, setLastOrder] = useState<any>(null);
+
   // Rating State
   const [showRating, setShowRating] = useState(false);
   const [currentRating, setCurrentRating] = useState(0);
@@ -167,25 +174,31 @@ export default function ClientMenu() {
     if (!user || cart.length === 0 || !paymentMethod) return;
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
+    const now = new Date();
 
-    const orderRef = doc(firestore, 'orders', orderId);
-    setDoc(orderRef, {
+    const orderItems = cart.reduce((acc: any[], item) => {
+      const ex = acc.find(i => i.name === item.name);
+      if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1, price: item.price });
+      return acc;
+    }, []);
+
+    const orderData = {
       id: orderId,
       userId: user.uid,
       user: user.displayName || 'Estudiante',
       totalAmount,
       status: 'Pending',
       method: paymentMethod,
-      orderDate: new Date().toISOString(),
+      orderDate: now.toISOString(),
       isRated: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      items: cart.reduce((acc: any[], item) => {
-        const ex = acc.find(i => i.name === item.name);
-        if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1, price: item.price });
-        return acc;
-      }, [])
-    });
+      items: orderItems,
+      attendant: "El mighty yael perez"
+    };
+
+    const orderRef = doc(firestore, 'orders', orderId);
+    await setDoc(orderRef, orderData);
 
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
@@ -200,9 +213,11 @@ export default function ClientMenu() {
       });
     });
 
+    setLastOrder({ ...orderData, formattedDate: now.toLocaleString() });
     setCart([]);
     setShowPayment(false);
     setPaymentMethod(null);
+    setShowTicket(true);
     toast({ className: "uni-toast-success", title: "PEDIDO REALIZADO", description: `Orden #${orderId} enviada a cocina.` });
   };
 
@@ -341,6 +356,68 @@ export default function ClientMenu() {
           })}
         </div>
       </main>
+
+      {/* VIRTUAL TICKET DIALOG */}
+      <Dialog open={showTicket} onOpenChange={setShowTicket}>
+        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-sm">
+          <div className="bg-white p-8 relative">
+            {/* Ticket Simulation Header */}
+            <div className="text-center space-y-2 mb-6 border-b-2 border-dashed pb-6">
+              <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg mb-2">
+                <UtensilsCrossed size={32} />
+              </div>
+              <h2 className="text-2xl font-black tracking-tighter uppercase">Cafetería UniEats</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Campus Sevilla Toledo 39</p>
+            </div>
+
+            {/* Ticket Content */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[9px] font-black text-muted-foreground uppercase">Ticket No.</p>
+                  <p className="text-2xl font-black text-primary">#{lastOrder?.id}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase">Fecha / Hora</p>
+                  <p className="text-[11px] font-bold">{lastOrder?.formattedDate}</p>
+                </div>
+              </div>
+
+              <div className="py-4 border-y-2 border-dashed space-y-2">
+                <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Artículos</p>
+                {lastOrder?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="flex justify-between text-sm font-bold">
+                    <span>{item.name} x{item.qty}</span>
+                    <span>$ {(item.price * item.qty).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center py-2">
+                <span className="text-lg font-black uppercase">Total</span>
+                <span className="text-3xl font-black text-primary">$ {lastOrder?.totalAmount?.toFixed(2)}</span>
+              </div>
+
+              <div className="bg-muted/30 p-4 rounded-2xl space-y-1">
+                <p className="text-[9px] font-black text-muted-foreground uppercase text-center">Información de Servicio</p>
+                <p className="text-xs font-bold text-center italic">Atendido por: {lastOrder?.attendant}</p>
+                <p className="text-[10px] font-black text-center mt-2 uppercase tracking-widest text-secondary-foreground">¡Gracias por tu compra!</p>
+              </div>
+            </div>
+
+            {/* Ticket Simulation Footer - Jagged Edge */}
+            <div className="absolute -bottom-2 left-0 right-0 h-4 bg-[radial-gradient(circle,transparent_8px,white_8px)] bg-[length:16px_16px] bg-repeat-x"></div>
+          </div>
+          <div className="p-6 bg-muted/10 flex gap-3">
+            <Button variant="outline" className="flex-1 rounded-xl font-black h-12 gap-2" onClick={() => window.print()}>
+              <Printer size={16} /> IMPRIMIR
+            </Button>
+            <Button className="flex-1 rounded-xl font-black h-12 mcd-gradient" onClick={() => setShowTicket(false)}>
+              ENTENDIDO
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* RATING DIALOG */}
       <Dialog open={showRating} onOpenChange={(open) => {
