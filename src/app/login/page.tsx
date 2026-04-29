@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { UtensilsCrossed, Mail, Lock, Loader2, UserPlus, LogIn, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { signInAnonymously, updateProfile } from 'firebase/auth';
 import { sendLoginConfirmationEmail } from '@/ai/flows/send-login-email-flow';
 import { cn } from '@/lib/utils';
@@ -30,15 +30,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('community');
   const auth = useAuth();
+  const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (user) {
+      if (email === 'admin') router.push('/admin/dashboard');
+      else if (email === 'cocinero') router.push('/admin/kitchen');
+      else router.push('/client/menu');
+    }
+  }, [user, email, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      // Autenticación Anónima para el MVP
+      // Autenticación Anónima para el MVP (Rápida y multi-dispositivo)
       const userCredential = await signInAnonymously(auth);
       const displayName = mode === 'login' ? (email || 'Usuario UniEats') : name;
       
@@ -59,15 +69,15 @@ export default function LoginPage() {
         }
       }
 
-      // Intentamos enviar el correo de confirmación (IA), pero no bloqueamos el inicio de sesión si falla
+      // IA Email (Opcional, no bloqueante)
       sendLoginConfirmationEmail({ 
         email: displayName, 
         role: userRoleName 
-      }).catch(err => console.warn("No se pudo generar el correo de bienvenida (IA):", err));
+      }).catch(() => {});
 
       toast({
         className: "uni-toast-success",
-        title: "BIENVENIDO",
+        title: "¡HOLA DE NUEVO!",
         description: `Sesión iniciada como ${displayName}.`,
       });
 
@@ -76,8 +86,8 @@ export default function LoginPage() {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "No se pudo iniciar sesión. Revisa tu conexión a internet.",
+        title: "ERROR DE CONEXIÓN",
+        description: "No se pudo sincronizar con la cafetería. Intenta de nuevo.",
       });
     } finally {
       setLoading(false);
@@ -117,7 +127,7 @@ export default function LoginPage() {
               </Button>
             </div>
             <CardTitle className="text-3xl font-black tracking-tight">
-              {mode === 'login' ? 'Acceso UniEats' : 'Registro Comunidad'}
+              {mode === 'login' ? 'Acceso Cafetería' : 'Registro UNI'}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-10 px-10">
@@ -125,26 +135,26 @@ export default function LoginPage() {
               {mode === 'login' ? (
                 <>
                   <div className="space-y-2">
-                    <Label className="font-black text-xs uppercase tracking-widest text-muted-foreground">Tipo de Usuario</Label>
+                    <Label className="font-black text-xs uppercase tracking-widest text-muted-foreground">Tu Perfil</Label>
                     <Select value={role} onValueChange={setRole}>
                       <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all">
-                        <SelectValue placeholder="Selecciona tu perfil" />
+                        <SelectValue placeholder="Selecciona" />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl">
-                        <SelectItem value="community">Estudiante / Profesor</SelectItem>
-                        <SelectItem value="staff">Personal de Cocina</SelectItem>
+                        <SelectItem value="community">Alumno / Docente</SelectItem>
+                        <SelectItem value="staff">Cocina</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Usuario</Label>
+                    <Label htmlFor="email" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Nombre / Usuario</Label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                       <Input 
                         id="email" 
-                        placeholder="admin, alumno, cocinero..." 
+                        placeholder="admin, cocinero, nombre..." 
                         className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -173,7 +183,7 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Contraseña</Label>
+                <Label htmlFor="password" className="font-black text-xs uppercase tracking-widest text-muted-foreground">PIN o Contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
@@ -188,12 +198,12 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/30" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : mode === 'login' ? 'Iniciar Sesión' : 'Registrarme'}
+                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : mode === 'login' ? 'ENTRAR' : 'REGISTRARME'}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="py-8 bg-muted/20 text-center text-xs text-muted-foreground flex flex-col gap-2">
-            <p className="font-bold opacity-60">Acceso Universitario Seguro</p>
+          <CardFooter className="py-8 bg-muted/20 text-center flex flex-col gap-2">
+            <p className="font-bold text-xs opacity-60 tracking-widest uppercase">Sistema de Gestión Institucional UniEats</p>
           </CardFooter>
         </Card>
       </div>
