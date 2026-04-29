@@ -1,10 +1,10 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   ChefHat,
   Clock, 
@@ -124,7 +124,6 @@ export default function KitchenPage() {
 
           <TabsContent value="orders" className="m-0 h-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Órdenes Pendientes */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-primary/10">
                   <h2 className="text-2xl font-black flex items-center gap-3">
@@ -173,7 +172,6 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* Órdenes en Preparación */}
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-secondary/20">
                   <h2 className="text-2xl font-black flex items-center gap-3">

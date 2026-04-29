@@ -35,7 +35,7 @@ export default function POSPage() {
   const firestore = useFirestore();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && (!user || user.displayName !== 'admin')) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
@@ -142,7 +142,7 @@ export default function POSPage() {
     );
   }
 
-  if (!user) {
+  if (!user || user.displayName !== 'admin') {
     return null;
   }
 

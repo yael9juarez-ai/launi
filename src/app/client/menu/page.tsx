@@ -222,7 +222,9 @@ export default function ClientMenu() {
 
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg">
-          <div className="bg-secondary p-8 text-black"><h2 className="text-3xl font-black">¿No quieres agregar algo más?</h2></div>
+          <DialogHeader className="bg-secondary p-8 text-black">
+            <DialogTitle className="text-3xl font-black">¿No quieres agregar algo más?</DialogTitle>
+          </DialogHeader>
           <div className="p-8 space-y-4 bg-white">
             {upsellRecommendations.map((rec: any) => (
               <div key={rec.id} className="flex gap-4 p-4 rounded-3xl border-2 hover:border-primary/20 transition-all">
@@ -241,7 +243,9 @@ export default function ClientMenu() {
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
-          <div className="bg-primary p-8 text-white"><h2 className="text-3xl font-black">Finalizar Pedido</h2></div>
+          <DialogHeader className="bg-primary p-8 text-white">
+            <DialogTitle className="text-3xl font-black">Finalizar Pedido</DialogTitle>
+          </DialogHeader>
           <div className="p-8 space-y-4">
             <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'transfer' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('transfer')}><CreditCard size={24} /> <p className="font-black">Transferencia / QR</p></Button>
             <Button variant="outline" className={cn("h-20 w-full rounded-2xl flex items-center justify-start gap-4 px-6 border-2", paymentMethod === 'cash' && "border-primary bg-primary/5")} onClick={() => setPaymentMethod('cash')}><Wallet size={24} /> <p className="font-black">Efectivo en Caja</p></Button>
