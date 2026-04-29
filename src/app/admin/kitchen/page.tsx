@@ -77,6 +77,7 @@ export default function KitchenPage() {
     );
   }
 
+  // Redirigir si no es cocinero para evitar que alumnos vean esto
   if (!user || user.displayName !== 'cocinero') {
     router.push('/login');
     return null;

@@ -18,7 +18,8 @@ import {
   Trash2,
   Tv,
   Loader2,
-  Sparkles
+  Sparkles,
+  UtensilsCrossed
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +43,6 @@ export default function ClientMenu() {
   const [upsellRecommendations, setUpsellRecommendations] = useState<any[]>([]);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
-  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -107,7 +107,6 @@ export default function ClientMenu() {
     if (!user || cart.length === 0 || !paymentMethod) return;
     const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
-    setCurrentOrderId(`#${orderId}`);
 
     const orderRef = doc(firestore, 'orders', orderId);
     await setDoc(orderRef, {
