@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +30,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
-import { smartMenuRecommendation } from '@/ai/flows/smart-menu-recommendation-flow';
 import { useFirestore, useCollection, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -46,7 +45,6 @@ export default function ClientMenu() {
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'preparing' | 'ready'>('idle');
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
   
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -76,36 +74,35 @@ export default function ClientMenu() {
     });
   };
 
-  const getAiRecommendations = async (item: MenuItem) => {
-    setIsAiLoading(true);
-    try {
-      const result = await smartMenuRecommendation({
-        availableMenuItems: MENU_ITEMS.map(m => ({ 
-          name: m.name, 
-          description: m.description, 
-          price: m.price, 
-          category: m.category 
-        })),
-        customerOrderHistory: [item.name],
-        currentPromotions: ["¡Combo Universitario! Agrega una bebida y ahorra.", "Postres frescos recién llegados."]
-      });
-      
-      const items = result.recommendations
-        .map(rec => {
-          const match = MENU_ITEMS.find(m => m.name === rec.item);
-          return match ? { ...match, reason: rec.reason } : null;
-        })
-        .filter(i => i !== null && i.id !== item.id)
-        .slice(0, 3);
+  // Lógica de recomendación simple basada en categorías
+  const getSimpleRecommendations = (item: MenuItem) => {
+    let targetCategories: string[] = [];
+    let message = "";
 
-      if (items.length > 0) {
-        setUpsellRecommendations(items);
-        setShowUpsell(true);
-      }
-    } catch (error) {
-      console.warn("IA no disponible temporalmente (Verifica API Key)");
-    } finally {
-      setIsAiLoading(false);
+    if (item.category === "Comida") {
+      targetCategories = ["Bebidas", "Golosinas"];
+      message = "¡Completa tu combo!";
+    } else if (item.category === "Bebidas") {
+      targetCategories = ["Comida", "Golosinas"];
+      message = "¡Algo para acompañar tu bebida!";
+    } else if (item.category === "Golosinas") {
+      targetCategories = ["Bebidas", "Comida"];
+      message = "¡No olvides algo de tomar!";
+    }
+
+    const suggestions = MENU_ITEMS.filter(m => 
+      targetCategories.includes(m.category) && 
+      m.id !== item.id &&
+      !cart.some(cartItem => cartItem.id === m.id) &&
+      checkStockAvailability(m, cart)
+    ).sort(() => 0.5 - Math.random()).slice(0, 3);
+
+    if (suggestions.length > 0) {
+      setUpsellRecommendations(suggestions.map(s => ({
+        ...s,
+        reason: message
+      })));
+      setShowUpsell(true);
     }
   };
 
@@ -120,8 +117,7 @@ export default function ClientMenu() {
     if (!silent) {
       setLastAddedItem(item);
       toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
-      // Ejecutar recomendación IA
-      getAiRecommendations(item);
+      getSimpleRecommendations(item);
     } else {
       setShowUpsell(false);
     }
@@ -134,6 +130,7 @@ export default function ClientMenu() {
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
     setCurrentOrderId(`#${orderId}`);
 
+    // Guardar en Firestore para sincronización multi-dispositivo
     const orderRef = doc(firestore, 'orders', orderId);
     await setDoc(orderRef, {
       id: orderId,
@@ -152,6 +149,7 @@ export default function ClientMenu() {
       }, [])
     });
 
+    // Descontar inventario en la nube
     cart.forEach(cartItem => {
       cartItem.recipe.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
@@ -194,7 +192,6 @@ export default function ClientMenu() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-           {isAiLoading && <Sparkles className="w-5 h-5 text-secondary animate-pulse" />}
            <Button variant="outline" className="rounded-xl h-10 px-4 font-black gap-2 border-2 text-xs" onClick={() => window.open('/queue', '_blank')}>
             <Tv size={16} className="text-primary" /> TURNOS
           </Button>
@@ -281,12 +278,13 @@ export default function ClientMenu() {
         </div>
       )}
 
+      {/* DIALOGO DE RECOMENDACIÓN SIMPLE */}
       <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
         <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-w-lg mx-4">
           <div className="bg-secondary p-8 text-black relative">
             <h2 className="text-3xl font-black leading-tight">¿Te gustaría algo más?</h2>
-            <p className="font-bold opacity-70">Sugerencias inteligentes para acompañar tu {lastAddedItem?.name}.</p>
-            <Sparkles className="absolute right-6 top-8 w-12 h-12 text-black/20" />
+            <p className="font-bold opacity-70">¡Añade un complemento a tu orden!</p>
+            <Plus className="absolute right-6 top-8 w-12 h-12 text-black/20" />
           </div>
           <div className="p-8 space-y-4 bg-white">
             {upsellRecommendations.map((rec: any) => (
@@ -296,7 +294,7 @@ export default function ClientMenu() {
                 </div>
                 <div className="flex-1">
                   <p className="font-black text-sm">{rec.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-bold leading-tight mt-1 line-clamp-2 italic">"{rec.reason}"</p>
+                  <p className="text-[10px] text-muted-foreground font-bold leading-tight mt-1 line-clamp-2 italic">{rec.reason}</p>
                   <div className="flex justify-between items-center mt-2">
                     <p className="text-primary font-black text-sm">$ {rec.price.toFixed(2)}</p>
                     <Button size="sm" className="h-8 rounded-full font-black px-4 text-[10px]" onClick={() => addToCart(rec, true)}>
