@@ -37,16 +37,18 @@ service cloud.firestore {
     match /ingredients/{ingredientId} {
       // Todos los alumnos necesitan ver los ingredientes para saber si hay stock
       allow read: if isSignedIn();
-      // Solo el staff puede ajustar el inventario
-      allow write: if isStaff();
+      // Permitir actualización de stock a todos los logueados para que el alumno descuente al comprar
+      allow update: if isSignedIn();
+      // Solo el staff puede crear o borrar insumos
+      allow create, delete: if isStaff();
     }
 
     match /orders/{orderId} {
-      // Todos los usuarios autenticados pueden ver órdenes (alumnos las suyas, staff todas)
+      // Todos los usuarios autenticados pueden ver órdenes
       allow read: if isSignedIn();
       // Cualquier alumno puede crear órdenes
       allow create: if isSignedIn();
-      // El staff actualiza estados, el alumno puede actualizar su propia orden (ej. confirmar pago)
+      // El staff actualiza estados, el alumno puede actualizar su propia orden
       allow update: if isSignedIn();
       // Solo admins pueden borrar registros históricos
       allow delete: if isAdmin();
@@ -63,7 +65,6 @@ service cloud.firestore {
     }
     
     // Roles (DBAC - Database Access Control)
-    // Se permite lectura y escritura propia al loguearse para inicializar el perfil
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && userId == request.auth.uid;
