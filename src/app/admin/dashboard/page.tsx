@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   CreditCard,
   Banknote,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -114,7 +115,7 @@ export default function AdminDashboard() {
 
     toast({
       className: "uni-toast-success",
-      title: "✅ PAGO LIBERADO",
+      title: "✅ PAGO RECIBIDO",
       description: `Pedido #${orderId} enviado a preparación.`,
     });
   };
@@ -186,7 +187,7 @@ export default function AdminDashboard() {
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-foreground">Panel Administrativo</h1>
-            <p className="text-muted-foreground font-medium">Verificación de ingresos y gestión global.</p>
+            <p className="text-muted-foreground font-medium">Control financiero y liberación de órdenes.</p>
           </div>
           <div className="flex gap-4">
             <Button variant="outline" className="rounded-xl h-12 px-6 font-bold border-2 gap-2" onClick={() => window.open('/queue', '_blank')}>
@@ -257,9 +258,9 @@ export default function AdminDashboard() {
         <Card className="border-none shadow-xl rounded-[2.5rem] bg-white mb-8 border-l-[1rem] border-l-secondary">
           <CardHeader className="p-8 pb-4">
             <CardTitle className="text-2xl font-black flex items-center gap-2">
-              <Clock className="text-secondary" /> PAGOS POR LIBERAR (CLOUD)
+              <Clock className="text-secondary" /> PAGOS POR LIBERAR
             </CardTitle>
-            <CardDescription className="font-bold">Valida el pago para permitir que el Cocinero empiece la preparación.</CardDescription>
+            <CardDescription className="font-bold">Confirma la recepción del dinero para autorizar la preparación en cocina.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
             {pendingOrders.length === 0 ? (
@@ -270,28 +271,35 @@ export default function AdminDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pendingOrders.map((order) => (
-                  <div key={order.id} className="bg-muted/30 p-6 rounded-[2rem] border-2 border-secondary/20 flex flex-col justify-between hover:border-secondary transition-all">
+                  <div key={order.id} className={cn(
+                    "p-6 rounded-[2rem] border-2 flex flex-col justify-between transition-all",
+                    order.method === 'cash' ? "bg-amber-50 border-amber-200" : "bg-muted/30 border-secondary/20 hover:border-secondary"
+                  )}>
                     <div>
                       <div className="flex justify-between items-start mb-4">
                         <span className="text-3xl font-black text-secondary">#{order.id}</span>
-                        <Badge variant="outline" className="rounded-full font-black gap-2">
+                        <Badge variant={order.method === 'cash' ? "default" : "outline"} className={cn("rounded-full font-black gap-2", order.method === 'cash' && "bg-amber-500")}>
                           {order.method === 'transfer' ? <CreditCard size={12} /> : <Banknote size={12} />}
                           {order.method === 'transfer' ? 'TRANS' : 'CASH'}
                         </Badge>
                       </div>
                       <p className="font-black text-lg">{order.user}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-1">
-                        {order.items?.map((it: any) => it.name).join(', ')}
-                      </p>
+                      <div className="mt-2 space-y-1">
+                        {order.items?.map((it: any, idx: number) => (
+                          <p key={idx} className="text-xs font-bold text-muted-foreground">• {it.name} (x{it.qty})</p>
+                        ))}
+                      </div>
                     </div>
-                    <div className="mt-6 flex items-center justify-between border-t pt-4">
-                      <p className="text-2xl font-black text-primary">$ {order.totalAmount?.toFixed(2)}</p>
+                    <div className="mt-6 flex flex-col gap-3 border-t pt-4">
+                      <div className="flex justify-between items-center">
+                        <p className="text-2xl font-black text-primary">$ {order.totalAmount?.toFixed(2)}</p>
+                        {order.method === 'cash' && <Badge variant="outline" className="text-[9px] font-black text-amber-600 border-amber-300 gap-1"><AlertCircle size={8} /> COBRO MANUAL</Badge>}
+                      </div>
                       <Button 
-                        size="sm" 
-                        className="rounded-xl font-black bg-secondary text-black hover:bg-secondary/80"
+                        className="w-full rounded-xl font-black bg-secondary text-black hover:bg-secondary/80 h-12"
                         onClick={() => handleLiberatePayment(order.id)}
                       >
-                        LIBERAR
+                        CONFIRMAR PAGO
                       </Button>
                     </div>
                   </div>

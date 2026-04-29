@@ -14,11 +14,12 @@ import {
   Plus,
   Minus,
   LogOut,
-  UtensilsCrossed,
-  ArrowRight,
   Send,
   BellRing,
-  LayoutDashboard
+  LayoutDashboard,
+  CreditCard,
+  Banknote,
+  AlertCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -56,7 +57,7 @@ export default function KitchenPage() {
   const { data: orders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
   const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
-  const updateOrderStatus = (id: string, newStatus: string, currentStatus?: string) => {
+  const updateOrderStatus = (id: string, newStatus: string, orderMethod?: string) => {
     const orderRef = doc(firestore, 'orders', id);
     updateDocumentNonBlocking(orderRef, {
       status: newStatus,
@@ -64,19 +65,17 @@ export default function KitchenPage() {
     });
     
     let title = "ACTUALIZADO";
-    let description = `Pedido #${id} actualizado en la nube.`;
+    let description = `Pedido #${id} actualizado.`;
 
     if (newStatus === 'Preparing') {
       title = "👨‍🍳 PREPARACIÓN INICIADA";
-      if (currentStatus === 'Pending') {
-        description = `Pedido #${id} iniciado. Pago liberado automáticamente.`;
-      }
+      description = `Pedido #${id} en cocina.`;
     } else if (newStatus === 'Ready for Pickup') {
-      title = "✅ PEDIDO LISTO EN BARRA";
-      description = `El alumno ya puede ver que su pedido #${id} está listo.`;
+      title = "✅ PEDIDO LISTO";
+      description = `El alumno ya puede recoger el pedido #${id}.`;
     } else if (newStatus === 'Picked Up') {
-      title = "📦 PEDIDO ENTREGADO";
-      description = `Pedido #${id} finalizado con éxito.`;
+      title = "📦 ENTREGADO";
+      description = `Pedido #${id} finalizado.`;
     }
 
     toast({
@@ -125,8 +124,8 @@ export default function KitchenPage() {
             <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase">Panel del Cocinero</h1>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Gestión de Producción y Pagos Automáticos</p>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase">Panel de Producción</h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Gestión de Cocina e Inventario</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -140,7 +139,7 @@ export default function KitchenPage() {
             </Button>
           )}
           <Badge variant="outline" className="h-9 px-4 rounded-xl font-black border-2 hidden md:flex uppercase">
-            {isAdmin ? 'VISTA ADMIN' : `OPERADOR: ${user.displayName}`}
+            {isAdmin ? 'ADMINISTRADOR' : `COCINERO: ${user.displayName}`}
           </Badge>
           <Button variant="outline" className="rounded-xl font-black border-2 h-10 gap-2 text-destructive hover:bg-destructive/10" onClick={handleLogout}>
             <LogOut size={16} /> SALIR
@@ -173,32 +172,49 @@ export default function KitchenPage() {
 
                 <ScrollArea className="h-[calc(100vh-280px)]">
                   <div className="space-y-4 pr-3">
-                    {incomingOrders.map(order => (
-                      <Card key={order.id} className="border-none shadow-md rounded-[2rem] bg-white border-l-8 border-l-primary overflow-hidden">
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <span className="text-3xl font-black text-primary">#{order.id}</span>
-                            <Badge variant="secondary" className="font-bold text-[10px] uppercase">
-                              {order.status === 'Pending' ? 'POR LIBERAR' : 'PAGADO'}
-                            </Badge>
-                          </div>
-                          <div className="space-y-2 mb-6">
-                            {order.items?.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between items-center text-sm">
-                                <span className="font-bold">{item.name}</span>
-                                <span className="font-black bg-muted px-2 py-1 rounded-lg">x{item.qty}</span>
+                    {incomingOrders.map(order => {
+                      const needsAdminLiberation = order.method === 'cash' && order.status === 'Pending';
+                      return (
+                        <Card key={order.id} className={cn(
+                          "border-none shadow-md rounded-[2rem] bg-white border-l-8 overflow-hidden",
+                          needsAdminLiberation ? "border-l-slate-300 opacity-80" : "border-l-primary"
+                        )}>
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="text-3xl font-black text-primary">#{order.id}</span>
+                              <Badge variant="secondary" className="font-bold text-[10px] uppercase gap-1">
+                                {order.method === 'cash' ? <Banknote size={10} /> : <CreditCard size={10} />}
+                                {order.method === 'cash' ? 'EFECTIVO' : 'TRANSF'}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2 mb-6">
+                              {order.items?.map((item: any, i: number) => (
+                                <div key={i} className="flex justify-between items-center text-sm">
+                                  <span className="font-bold">{item.name}</span>
+                                  <span className="font-black bg-muted px-2 py-1 rounded-lg">x{item.qty}</span>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {needsAdminLiberation ? (
+                              <div className="flex flex-col gap-2">
+                                <Button disabled className="w-full h-14 rounded-2xl font-black bg-slate-100 text-slate-400 border-2 border-dashed gap-2">
+                                  <AlertCircle size={18} /> ESPERANDO CAJA
+                                </Button>
+                                <p className="text-[10px] text-center font-bold text-muted-foreground uppercase">El alumno debe pagar en caja primero</p>
                               </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="w-full h-14 rounded-2xl font-black mcd-gradient shadow-lg gap-2 text-sm"
-                            onClick={() => updateOrderStatus(order.id, 'Preparing', order.status)}
-                          >
-                            <Flame size={18} /> EMPEZAR COCINA
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            ) : (
+                              <Button 
+                                className="w-full h-14 rounded-2xl font-black mcd-gradient shadow-lg gap-2"
+                                onClick={() => updateOrderStatus(order.id, 'Preparing', order.method)}
+                              >
+                                <Flame size={18} /> EMPEZAR COCINA
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </div>
@@ -227,7 +243,7 @@ export default function KitchenPage() {
                             ))}
                           </div>
                           <Button 
-                            className="w-full h-14 rounded-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg gap-2 text-sm"
+                            className="w-full h-14 rounded-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg gap-2"
                             onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
                           >
                             <CheckCircle2 size={18} /> MARCAR LISTO
@@ -264,7 +280,7 @@ export default function KitchenPage() {
                             ))}
                           </div>
                           <Button 
-                            className="w-full h-14 rounded-2xl font-black bg-slate-800 hover:bg-slate-900 text-white shadow-lg gap-2 text-sm"
+                            className="w-full h-14 rounded-2xl font-black bg-slate-800 hover:bg-slate-900 text-white shadow-lg gap-2"
                             onClick={() => updateOrderStatus(order.id, 'Picked Up')}
                           >
                             <Send size={18} /> ENTREGAR PEDIDO
@@ -283,9 +299,9 @@ export default function KitchenPage() {
               <CardHeader className="p-8 border-b-2 bg-muted/5 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-2xl font-black flex items-center gap-3">
-                    <Box className="text-secondary" /> STOCK DE COCINA
+                    <Box className="text-secondary" /> STOCK DISPONIBLE
                   </CardTitle>
-                  <p className="text-muted-foreground font-bold text-xs">Inventario disponible para preparación</p>
+                  <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">Insumos críticos para cocina</p>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
