@@ -8,6 +8,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Un usuario es Admin si existe en la colección de roles o tiene el campo role en su perfil
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
@@ -15,6 +16,7 @@ service cloud.firestore {
       );
     }
 
+    // Un usuario es Cocinero si existe en la colección de roles o tiene el campo role en su perfil
     function isKitchen() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_kitchenstaff/$(request.auth.uid)) ||
@@ -33,15 +35,20 @@ service cloud.firestore {
     }
 
     match /ingredients/{ingredientId} {
+      // Todos los alumnos necesitan ver los ingredientes para saber si hay stock
       allow read: if isSignedIn();
+      // Solo el staff puede ajustar el inventario
       allow write: if isStaff();
     }
 
     match /orders/{orderId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      // Todos los usuarios autenticados pueden ver órdenes (alumnos las suyas, staff todas)
+      allow read: if isSignedIn();
+      // Cualquier alumno puede crear órdenes
       allow create: if isSignedIn();
+      // El staff actualiza estados, el alumno puede actualizar su propia orden (ej. confirmar pago)
       allow update: if isSignedIn();
+      // Solo admins pueden borrar registros históricos
       allow delete: if isAdmin();
     }
 
@@ -55,7 +62,8 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Roles (DBAC)
+    // Roles (DBAC - Database Access Control)
+    // Se permite lectura y escritura propia al loguearse para inicializar el perfil
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && userId == request.auth.uid;

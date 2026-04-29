@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,8 @@ import {
   Plus,
   Minus,
   LogOut,
-  UtensilsCrossed
+  UtensilsCrossed,
+  ArrowRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +34,7 @@ export default function KitchenPage() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  // Redirección si no es cocinero
+  // Protección de ruta y redirección
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'cocinero')) {
       router.push('/login');
@@ -60,10 +61,15 @@ export default function KitchenPage() {
       updatedAt: serverTimestamp()
     });
     
+    const messages = {
+      'Preparing': "👨‍🍳 COMENZANDO PREPARACIÓN",
+      'Ready for Pickup': "✅ ¡ORDEN LISTA PARA ENTREGA!",
+    };
+
     toast({
       className: newStatus === 'Ready for Pickup' ? "uni-toast-success" : "uni-toast-info",
-      title: newStatus === 'Ready for Pickup' ? "✅ ¡ORDEN LISTA!" : "👨‍🍳 PREPARANDO",
-      description: `Pedido #${id} actualizado.`,
+      title: messages[newStatus as keyof typeof messages] || "ACTUALIZADO",
+      description: `Pedido #${id} actualizado en la nube.`,
     });
   };
 
@@ -92,80 +98,95 @@ export default function KitchenPage() {
     return null;
   }
 
-  // Filtrar órdenes por estado
-  const pendingOrders = orders?.filter(o => o.status === 'Pending').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
+  // Filtrado de órdenes operativas
+  const incomingOrders = orders?.filter(o => o.status === 'Pending' || o.status === 'Confirmed').sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds) || [];
   const preparingOrders = orders?.filter(o => o.status === 'Preparing').sort((a, b) => a.updatedAt?.seconds - b.updatedAt?.seconds) || [];
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col">
-      <header className="bg-white border-b-4 px-6 md:px-10 h-20 md:h-24 flex items-center justify-between shadow-xl z-10">
-        <div className="flex items-center gap-4 md:gap-6">
-          <div className="w-12 h-12 md:w-16 md:h-16 mcd-gradient rounded-2xl md:rounded-3xl flex items-center justify-center text-white shadow-lg">
-            <ChefHat className="w-8 h-8 md:w-10 md:h-10" />
+      <header className="bg-white border-b-4 px-6 md:px-10 h-24 flex items-center justify-between shadow-xl z-20">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 mcd-gradient rounded-3xl flex items-center justify-center text-white shadow-lg">
+            <ChefHat className="w-10 h-10" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter">Cocina UniEats</h1>
-            <p className="hidden md:block text-[10px] font-black text-muted-foreground uppercase tracking-widest">Panel Operativo de Producción</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">Panel de Cocina</h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Gestión de Producción en Tiempo Real</p>
           </div>
         </div>
-        <Button variant="outline" className="rounded-xl font-black border-2 h-12 gap-2" onClick={handleLogout}>
-          <LogOut size={18} /> SALIR
-        </Button>
+        <div className="flex items-center gap-4">
+          <Badge variant="outline" className="h-10 px-4 rounded-xl font-black border-2 hidden md:flex">USUARIO: {user.displayName?.toUpperCase()}</Badge>
+          <Button variant="outline" className="rounded-xl font-black border-2 h-12 gap-2 text-destructive hover:bg-destructive/10" onClick={handleLogout}>
+            <LogOut size={18} /> SALIR
+          </Button>
+        </div>
       </header>
 
       <main className="flex-1 p-4 md:p-8 bg-muted/20">
         <Tabs defaultValue="orders" className="h-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto h-14 bg-white rounded-2xl p-1 shadow-md mb-8">
-            <TabsTrigger value="orders" className="rounded-xl font-black text-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-              ÓRDENES ({pendingOrders.length + preparingOrders.length})
+          <TabsList className="grid w-full grid-cols-2 max-w-xl mx-auto h-16 bg-white rounded-2xl p-1 shadow-lg mb-8 border-2">
+            <TabsTrigger value="orders" className="rounded-xl font-black text-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+              GESTIÓN DE ÓRDENES
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="rounded-xl font-black text-lg data-[state=active]:bg-secondary data-[state=active]:text-black">
-              ALMACÉN
+            <TabsTrigger value="inventory" className="rounded-xl font-black text-xl data-[state=active]:bg-secondary data-[state=active]:text-black transition-all">
+              ALMACÉN / STOCK
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="m-0 h-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* ÓRDENES PENDIENTES */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {/* COLUMNA 1: ÓRDENES ENTRANTE */}
               <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-primary/10">
-                  <h2 className="text-2xl font-black flex items-center gap-3">
-                    <Clock className="text-primary animate-pulse" /> ENTRANTES
-                  </h2>
-                  <Badge className="bg-primary text-white font-black text-xl px-4 py-1 rounded-full">{pendingOrders.length}</Badge>
+                <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-primary/10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                      <Clock size={32} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase">Entrantes</h2>
+                      <p className="text-xs font-bold text-muted-foreground">Esperando preparación</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-primary text-white font-black text-4xl px-6 py-2 rounded-2xl shadow-lg">{incomingOrders.length}</Badge>
                 </div>
-                <ScrollArea className="h-[calc(100vh-320px)]">
-                  <div className="space-y-6 pr-2">
-                    {pendingOrders.length === 0 ? (
-                      <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-4 border-dashed">
-                        <p className="font-black text-muted-foreground opacity-30 italic">SIN ÓRDENES NUEVAS</p>
+
+                <ScrollArea className="h-[calc(100vh-350px)]">
+                  <div className="space-y-6 pr-4">
+                    {incomingOrders.length === 0 ? (
+                      <div className="bg-white/50 p-16 rounded-[3rem] text-center border-4 border-dashed">
+                        <UtensilsCrossed size={64} className="mx-auto mb-4 opacity-10" />
+                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">SIN ÓRDENES NUEVAS</p>
                       </div>
                     ) : (
-                      pendingOrders.map(order => (
-                        <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-primary overflow-hidden">
+                      incomingOrders.map(order => (
+                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-primary overflow-hidden hover:scale-[1.01] transition-transform">
                           <CardHeader className="p-8 pb-4">
                             <div className="flex justify-between items-start">
-                              <span className="text-4xl font-black text-primary">#{order.id}</span>
-                              <Badge variant="outline" className="font-black uppercase">{order.method || 'CASH'}</Badge>
+                              <div>
+                                <span className="text-5xl font-black text-primary leading-none">#{order.id}</span>
+                                <p className="font-black text-muted-foreground uppercase text-sm mt-2">CLIENTE: {order.user}</p>
+                              </div>
+                              <Badge variant="secondary" className="font-black h-10 px-4 rounded-full text-lg uppercase">
+                                {order.method || 'Caja'}
+                              </Badge>
                             </div>
-                            <p className="font-bold text-muted-foreground uppercase text-xs">CLIENTE: {order.user}</p>
                           </CardHeader>
                           <CardContent className="p-8 pt-0">
-                            <div className="space-y-2 mb-6">
+                            <div className="space-y-3 mb-8">
                               {order.items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center bg-muted/30 p-4 rounded-xl">
-                                  <span className="font-black text-xl">{item.name}</span>
-                                  <span className="bg-primary text-white w-10 h-10 flex items-center justify-center rounded-full font-black text-lg">
+                                <div key={i} className="flex justify-between items-center bg-muted/30 p-5 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
+                                  <span className="font-black text-2xl">{item.name}</span>
+                                  <span className="bg-primary text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-md">
                                     {item.qty}
                                   </span>
                                 </div>
                               ))}
                             </div>
                             <Button 
-                              className="w-full h-16 rounded-2xl text-xl font-black mcd-gradient shadow-xl"
+                              className="w-full h-20 rounded-[2rem] text-2xl font-black mcd-gradient shadow-xl hover:shadow-primary/20 transition-all gap-4"
                               onClick={() => updateOrderStatus(order.id, 'Preparing')}
                             >
-                              <Flame className="mr-2" /> COMENZAR PREPARACIÓN
+                              <Flame className="w-8 h-8" /> COMENZAR COCINA <ArrowRight />
                             </Button>
                           </CardContent>
                         </Card>
@@ -175,43 +196,51 @@ export default function KitchenPage() {
                 </ScrollArea>
               </div>
 
-              {/* ÓRDENES EN PREPARACIÓN */}
+              {/* COLUMNA 2: ÓRDENES EN PREPARACIÓN */}
               <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border-2 border-secondary/20">
-                  <h2 className="text-2xl font-black flex items-center gap-3">
-                    <Flame className="text-secondary" /> EN FUEGO
-                  </h2>
-                  <Badge className="bg-secondary text-black font-black text-xl px-4 py-1 rounded-full">{preparingOrders.length}</Badge>
+                <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-secondary/20">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center text-secondary">
+                      <Flame size={32} />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase">En Fuego</h2>
+                      <p className="text-xs font-bold text-muted-foreground">Preparando ahora mismo</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-secondary text-black font-black text-4xl px-6 py-2 rounded-2xl shadow-lg">{preparingOrders.length}</Badge>
                 </div>
-                <ScrollArea className="h-[calc(100vh-320px)]">
-                  <div className="space-y-6 pr-2">
+
+                <ScrollArea className="h-[calc(100vh-350px)]">
+                  <div className="space-y-6 pr-4">
                     {preparingOrders.length === 0 ? (
-                      <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-4 border-dashed">
-                        <p className="font-black text-muted-foreground opacity-30 italic">ESTUFA VACÍA</p>
+                      <div className="bg-white/50 p-16 rounded-[3rem] text-center border-4 border-dashed">
+                        <Flame size={64} className="mx-auto mb-4 opacity-10" />
+                        <p className="font-black text-muted-foreground opacity-30 italic text-2xl">COCINA DISPONIBLE</p>
                       </div>
                     ) : (
                       preparingOrders.map(order => (
-                        <Card key={order.id} className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-[1rem] border-l-secondary overflow-hidden">
+                        <Card key={order.id} className="border-none shadow-xl rounded-[3rem] bg-white border-l-[1.5rem] border-l-secondary overflow-hidden hover:scale-[1.01] transition-transform">
                           <CardHeader className="p-8 pb-4">
-                            <span className="text-4xl font-black text-secondary">#{order.id}</span>
-                            <p className="font-bold text-muted-foreground uppercase text-xs">CLIENTE: {order.user}</p>
+                            <span className="text-5xl font-black text-secondary">#{order.id}</span>
+                            <p className="font-black text-muted-foreground uppercase text-sm mt-2">CLIENTE: {order.user}</p>
                           </CardHeader>
                           <CardContent className="p-8 pt-0">
-                            <div className="space-y-2 mb-6">
+                            <div className="space-y-3 mb-8">
                               {order.items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center bg-secondary/5 p-4 rounded-xl border-2 border-secondary/10">
-                                  <span className="font-black text-xl">{item.name}</span>
-                                  <span className="bg-secondary text-black w-10 h-10 flex items-center justify-center rounded-full font-black text-lg">
+                                <div key={i} className="flex justify-between items-center bg-secondary/5 p-5 rounded-2xl border-2 border-secondary/20">
+                                  <span className="font-black text-2xl">{item.name}</span>
+                                  <span className="bg-secondary text-black w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl">
                                     {item.qty}
                                   </span>
                                 </div>
                               ))}
                             </div>
                             <Button 
-                              className="w-full h-16 rounded-2xl text-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl"
+                              className="w-full h-20 rounded-[2rem] text-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl transition-all gap-4"
                               onClick={() => updateOrderStatus(order.id, 'Ready for Pickup')}
                             >
-                              <CheckCircle2 className="mr-2" /> MARCAR LISTO PARA ENTREGA
+                              <CheckCircle2 className="w-8 h-8" /> MARCAR LISTO / AUTORIZAR
                             </Button>
                           </CardContent>
                         </Card>
@@ -224,43 +253,68 @@ export default function KitchenPage() {
           </TabsContent>
 
           <TabsContent value="inventory" className="m-0 h-full">
-            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden">
-              <CardHeader className="p-10 border-b flex flex-row items-center justify-between">
+            <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white overflow-hidden border-t-8 border-t-secondary">
+              <CardHeader className="p-12 border-b-2 flex flex-row items-center justify-between bg-muted/5">
                 <div>
-                  <CardTitle className="text-3xl font-black flex items-center gap-4">
-                    <Box className="text-secondary w-10 h-10" /> CONTROL DE INSUMOS
+                  <CardTitle className="text-4xl font-black flex items-center gap-6">
+                    <Box className="text-secondary w-12 h-12" /> CONTROL DE INSUMOS
                   </CardTitle>
-                  <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest mt-1">Sincronización Cloud Real-Time</p>
+                  <p className="text-muted-foreground font-black uppercase text-xs tracking-[0.3em] mt-2">Sincronización Cloud UniEats</p>
                 </div>
+                <Badge variant="outline" className="h-12 px-6 rounded-2xl font-black border-2 bg-white">ALMACÉN ACTIVO</Badge>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-350px)]">
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-10">
+                <ScrollArea className="h-[calc(100vh-380px)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-12">
                     {inventory?.map((item: any) => {
                       const isLow = item.currentStock <= item.minStockLevel;
                       return (
                         <div key={item.id} className={cn(
-                          "p-6 rounded-[2rem] border-4 transition-all flex flex-col justify-between",
-                          isLow ? "bg-primary/5 border-primary/20 shadow-[0_0_15px_rgba(227,6,19,0.1)]" : "bg-muted/10 border-transparent"
+                          "p-8 rounded-[2.5rem] border-4 transition-all flex flex-col justify-between shadow-sm",
+                          isLow ? "bg-primary/5 border-primary/20 shadow-[0_0_30px_rgba(227,6,19,0.1)]" : "bg-white border-muted/50"
                         )}>
-                          <div className="flex justify-between items-start mb-4">
+                          <div className="flex justify-between items-start mb-6">
                             <div>
-                              <h3 className="text-xl font-black leading-tight">{item.name}</h3>
-                              <Badge className={cn("mt-1 rounded-full font-black text-[10px]", isLow ? "bg-primary text-white" : "bg-secondary text-black")}>
-                                {isLow ? "REBASTECER" : "DISPONIBLE"}
+                              <h3 className="text-2xl font-black leading-tight mb-2">{item.name}</h3>
+                              <Badge className={cn("rounded-full font-black text-[10px] uppercase px-3", isLow ? "bg-primary text-white" : "bg-secondary text-black")}>
+                                {isLow ? "STOCK CRÍTICO" : "ÓPTIMO"}
                               </Badge>
                             </div>
                             <div className="text-right">
-                              <span className={cn("text-3xl font-black block", isLow ? "text-primary" : "text-foreground")}>
+                              <span className={cn("text-5xl font-black block leading-none", isLow ? "text-primary" : "text-foreground")}>
                                 {item.currentStock}
                               </span>
-                              <span className="text-[10px] font-bold uppercase text-muted-foreground">{item.unitOfMeasure}</span>
+                              <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{item.unitOfMeasure}</span>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-2" onClick={() => updateStock(item.id, item.currentStock - 1)}><Minus /></Button>
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-2" onClick={() => updateStock(item.id, item.currentStock + 1)}><Plus /></Button>
-                            <div className="flex-1 bg-white border-2 rounded-xl flex items-center justify-center font-black uppercase text-[10px] text-muted-foreground">Manual</div>
+                          
+                          <div className="flex flex-col gap-4">
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-14 w-14 rounded-2xl border-4 hover:bg-destructive/10"
+                                onClick={() => updateStock(item.id, item.currentStock - 1)}
+                              >
+                                <Minus className="w-6 h-6" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-14 w-14 rounded-2xl border-4 hover:bg-primary/10"
+                                onClick={() => updateStock(item.id, item.currentStock + 1)}
+                              >
+                                <Plus className="w-6 h-6" />
+                              </Button>
+                              <div className="flex-1 bg-muted/30 rounded-2xl flex items-center justify-center font-black uppercase text-[10px] text-muted-foreground border-2">
+                                Ajuste
+                              </div>
+                            </div>
+                            {isLow && (
+                              <p className="text-[10px] font-black text-primary text-center uppercase animate-pulse">
+                                Reabastecimiento Urgente
+                              </p>
+                            )}
                           </div>
                         </div>
                       );
