@@ -38,7 +38,7 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      // Para efectos del MVP, usamos Anonymous Auth con perfiles mockeados
+      // Autenticación Anónima para el MVP
       const userCredential = await signInAnonymously(auth);
       const displayName = mode === 'login' ? (email || 'Usuario UniEats') : name;
       
@@ -59,10 +59,11 @@ export default function LoginPage() {
         }
       }
 
-      await sendLoginConfirmationEmail({ 
+      // Intentamos enviar el correo de confirmación (IA), pero no bloqueamos el inicio de sesión si falla
+      sendLoginConfirmationEmail({ 
         email: displayName, 
         role: userRoleName 
-      });
+      }).catch(err => console.warn("No se pudo generar el correo de bienvenida (IA):", err));
 
       toast({
         className: "uni-toast-success",
@@ -76,7 +77,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo iniciar sesión. Revisa tu conexión.",
+        description: "No se pudo iniciar sesión. Revisa tu conexión a internet.",
       });
     } finally {
       setLoading(false);
