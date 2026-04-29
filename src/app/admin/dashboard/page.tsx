@@ -49,6 +49,7 @@ import {
   AreaChart, Area 
 } from 'recharts';
 import { signOut } from 'firebase/auth';
+import { cn } from '@/lib/utils';
 
 const chartData = [
   { name: 'Lun', sales: 4000 },
