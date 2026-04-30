@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -557,7 +556,7 @@ export default function ClientMenu() {
                   <div className="bg-emerald-500 p-2 rounded-lg text-white shadow-lg"><MessageSquare size={20} /></div>
                   <div>
                     <p className="text-xs font-black text-emerald-900 uppercase">INSTRUCCIÓN</p>
-                    <p className="text-[11px] font-medium text-emerald-800 leading-tight">Envía tu comprobante al WhatsApp: <span className="font-black">+52 55 1234 5678</span> con tu número de pedido.</p>
+                    <p className="text-[11px] font-medium text-emerald-800 leading-tight">Envía tu comprobante al WhatsApp: <span className="font-black">+52 55 8468 9834</span> con tu número de pedido.</p>
                   </div>
                 </div>
 
