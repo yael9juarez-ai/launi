@@ -61,7 +61,6 @@ export default function ClientMenu() {
   const [showRating, setShowRating] = useState(false);
   const [serviceRating, setServiceRating] = useState(0);
   const [productRatings, setProductRatings] = useState<Record<string, number>>({});
-  const [hoverRating, setHoverRating] = useState(0);
   const [orderToRate, setOrderToRate] = useState<any>(null);
 
   const { user, isUserLoading } = useUser();
@@ -79,7 +78,31 @@ export default function ClientMenu() {
     return collection(firestore, 'menu_items');
   }, [firestore, user]);
 
+  const reviewsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'product_reviews');
+  }, [firestore, user]);
+
   const { data: menuItems, isLoading: isMenuLoading } = useCollection(menuQuery);
+  const { data: allReviews, isLoading: isReviewsLoading } = useCollection(reviewsQuery);
+
+  // Calcular promedios de calificación por producto
+  const productAverages = useMemo(() => {
+    if (!allReviews) return {};
+    const stats: Record<string, { sum: number, count: number }> = {};
+    allReviews.forEach(rev => {
+      const name = rev.menuItemName;
+      if (!stats[name]) stats[name] = { sum: 0, count: 0 };
+      stats[name].sum += rev.rating;
+      stats[name].count += 1;
+    });
+    
+    const averages: Record<string, number> = {};
+    Object.keys(stats).forEach(name => {
+      averages[name] = stats[name].sum / stats[name].count;
+    });
+    return averages;
+  }, [allReviews]);
 
   const activeOrdersQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -278,7 +301,7 @@ export default function ClientMenu() {
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
-  if (isUserLoading || (user && (isInvLoading || isMenuLoading))) {
+  if (isUserLoading || (user && (isInvLoading || isMenuLoading || isReviewsLoading))) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -365,11 +388,19 @@ export default function ClientMenu() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {menuItems?.filter(item => (selectedCategory === "Todas" || item.category === selectedCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => {
             const avail = checkStockAvailability(item, cart);
+            const rating = productAverages[item.name] || 0;
+            
             return (
               <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white flex flex-col transition-all hover:shadow-2xl hover:-translate-y-1", !avail && "opacity-50 grayscale")}>
                 <div className="aspect-video relative overflow-hidden">
                   <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="(max-width: 768px) 100vw, 25vw" />
                   <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center shadow-xl">$ {item.price.toFixed(2)}</div>
+                  {rating > 0 && (
+                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-2xl flex items-center gap-1 shadow-md border border-secondary/20">
+                      <Star className="fill-secondary text-secondary" size={14} />
+                      <span className="text-xs font-black">{rating.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
                 <CardHeader className="p-6">
                   <div className="flex justify-between items-start">
@@ -377,6 +408,18 @@ export default function ClientMenu() {
                     <Badge variant="outline" className="text-[8px] font-black uppercase gap-1"><Tag size={8}/> {item.unit}</Badge>
                   </div>
                   <CardTitle className="text-xl font-black line-clamp-1">{item.name}</CardTitle>
+                  <div className="flex gap-0.5 mt-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star 
+                        key={s} 
+                        size={12} 
+                        className={cn(
+                          "transition-colors",
+                          s <= Math.round(rating) ? "fill-secondary text-secondary" : "text-muted-foreground/20"
+                        )} 
+                      />
+                    ))}
+                  </div>
                 </CardHeader>
                 <CardFooter className="p-6 pt-0 mt-auto">
                   <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-lg" onClick={() => addToCart(item)} disabled={!avail}>{avail ? 'Añadir al Carrito' : 'Agotado'}</Button>
