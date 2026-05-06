@@ -128,16 +128,16 @@ export default function MenuManagementPage() {
   };
 
   const handleDeleteProduct = (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de quitar "${name}" del menú?`)) return;
-
-    const docRef = doc(firestore, 'menu_items', id);
-    deleteDocumentNonBlocking(docRef);
-    
-    toast({
-      className: "uni-toast-info",
-      title: "🗑️ ELIMINADO",
-      description: `${name} ha sido retirado del menú.`,
-    });
+    if (typeof window !== 'undefined' && window.confirm(`¿Estás seguro de quitar "${name}" del menú?`)) {
+      const docRef = doc(firestore, 'menu_items', id);
+      deleteDocumentNonBlocking(docRef);
+      
+      toast({
+        className: "uni-toast-info",
+        title: "🗑️ ELIMINADO",
+        description: `${name} ha sido retirado del menú.`,
+      });
+    }
   };
 
   const syncMenu = async () => {
@@ -149,7 +149,7 @@ export default function MenuManagementPage() {
         const docRef = doc(firestore, 'menu_items', item.id);
         batch.set(docRef, {
           ...item,
-          unit: item.category === 'Bebidas' ? 'ml' : 'pza',
+          unit: item.unit || (item.category === 'Bebidas' ? 'ml' : 'pza'),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -385,16 +385,17 @@ export default function MenuManagementPage() {
                             <DollarSign size={16} /> {item.price.toFixed(2)}
                             <span className="text-[10px] text-muted-foreground ml-1 uppercase">/ {item.unit}</span>
                           </div>
-                          <Badge className="bg-secondary/20 text-secondary-foreground font-black text-[10px] gap-1">
-                            <Tag size={10} /> {item.unit}
-                          </Badge>
                         </div>
                       </div>
                       <Button 
                         variant="ghost" 
                         size="icon" 
                         className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteProduct(item.id, item.name)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteProduct(item.id, item.name);
+                        }}
                       >
                         <Trash2 size={24} />
                       </Button>

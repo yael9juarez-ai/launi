@@ -20,6 +20,7 @@ export interface MenuItem {
   price: number;
   category: string;
   imageUrl: string;
+  unit: string;
   recipe: RecipeItem[];
   nutrition: {
     calories: number;
@@ -59,9 +60,9 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 35.00,
     category: "Comida",
     imageUrl: "/images/marucha.jpg",
+    unit: "pza",
     recipe: [
-      { ingredientId: "i7", quantity: 1 },
-      { ingredientId: "i9", quantity: 1 }
+      { ingredientId: "i7", quantity: 1 }
     ],
     nutrition: { calories: 300, protein: 5, fat: 12, carbs: 45 }
   },
@@ -72,6 +73,7 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 95.00,
     category: "Comida",
     imageUrl: "/images/hamburguesa.png",
+    unit: "pza",
     recipe: [
       { ingredientId: "i1", quantity: 1 },
       { ingredientId: "i2", quantity: 150 },
@@ -80,42 +82,15 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 580, protein: 28, fat: 32, carbs: 42 }
   },
   {
-    id: "m7",
-    name: "Hot Cakes Caseros (Orden 3)",
-    description: "Harina, azúcar, mantequilla, huevos, leche, polvo hornear y vainilla.",
-    price: 65.00,
-    category: "Comida",
-    imageUrl: "/images/hotcakes.jpg",
-    recipe: [
-      { ingredientId: "i24", quantity: 250 },
-      { ingredientId: "i31", quantity: 125 },
-      { ingredientId: "i27", quantity: 60 },
-      { ingredientId: "i26", quantity: 3 },
-      { ingredientId: "i25", quantity: 240 },
-      { ingredientId: "i32", quantity: 10 },
-      { ingredientId: "i33", quantity: 5 }
-    ],
-    nutrition: { calories: 550, protein: 15, fat: 22, carbs: 75 }
-  },
-  {
     id: "m9",
     name: "Pan de Dulce (La Esperanza)",
     description: "Pieza de pan dulce fresco de recompra.",
     price: 30.00,
     category: "Golosinas",
     imageUrl: "/images/dona.png",
+    unit: "pza",
     recipe: [{ ingredientId: "i30", quantity: 1 }],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
-  },
-  {
-    id: "g1",
-    name: "Gomitas Pinguino (150g)",
-    description: "Deliciosas gomitas en forma de pingüino.",
-    price: 30.00,
-    category: "Golosinas",
-    imageUrl: "/images/gomitas-pinguino.jpg",
-    recipe: [{ ingredientId: "i13", quantity: 150 }],
-    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
   },
   {
     id: "b1",
@@ -124,18 +99,9 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 20.00,
     category: "Bebidas",
     imageUrl: "/images/bonafont.jpg",
+    unit: "pza",
     recipe: [{ ingredientId: "i9", quantity: 1 }],
     nutrition: { calories: 0, protein: 0, fat: 0, carbs: 0 }
-  },
-  {
-    id: "b5",
-    name: "Agua de Jamaica (600ml)",
-    description: "Botella de agua fresca de jamaica.",
-    price: 35.00,
-    category: "Bebidas",
-    imageUrl: "/images/agua-jamaica.jpg",
-    recipe: [{ ingredientId: "i14", quantity: 1 }],
-    nutrition: { calories: 180, protein: 0, fat: 0, carbs: 45 }
   },
   {
     id: "b6",
@@ -144,6 +110,7 @@ export const MENU_ITEMS: MenuItem[] = [
     price: 25.00,
     category: "Bebidas",
     imageUrl: "/images/cocacola.png",
+    unit: "pza",
     recipe: [{ ingredientId: "i8", quantity: 1 }],
     nutrition: { calories: 240, protein: 0, fat: 0, carbs: 65 }
   }
