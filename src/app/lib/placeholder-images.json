@@ -29,6 +29,12 @@
       "description": "Botella de agua Bonafont 600ml",
       "imageUrl": "/images/bonafont.jpg",
       "imageHint": "water bottle"
+    },
+    {
+      "id": "cocacola",
+      "description": "Coca Cola 600ml",
+      "imageUrl": "/images/cocacola.png",
+      "imageHint": "coca cola soda"
     }
   ]
 }

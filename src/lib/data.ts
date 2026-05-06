@@ -136,6 +136,16 @@ export const MENU_ITEMS: MenuItem[] = [
     imageUrl: "/images/agua-jamaica.jpg",
     recipe: [{ ingredientId: "i14", quantity: 1 }],
     nutrition: { calories: 180, protein: 0, fat: 0, carbs: 45 }
+  },
+  {
+    id: "b6",
+    name: "Coca-Cola (600ml)",
+    description: "Refresco de cola clásico, botella de plástico.",
+    price: 25.00,
+    category: "Bebidas",
+    imageUrl: "/images/cocacola.png",
+    recipe: [{ ingredientId: "i8", quantity: 1 }],
+    nutrition: { calories: 240, protein: 0, fat: 0, carbs: 65 }
   }
 ];
 
