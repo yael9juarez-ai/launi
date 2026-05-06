@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,7 +24,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { MENU_ITEMS as INITIAL_MENU } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -127,23 +127,17 @@ export default function MenuManagementPage() {
     }
   };
 
-  const handleDeleteProduct = async (id: string, name: string) => {
+  const handleDeleteProduct = (id: string, name: string) => {
     if (!confirm(`¿Estás seguro de quitar "${name}" del menú?`)) return;
 
-    try {
-      await deleteDoc(doc(firestore, 'menu_items', id));
-      toast({
-        className: "uni-toast-info",
-        title: "🗑️ ELIMINADO",
-        description: `${name} ha sido retirado del menú.`,
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "❌ ERROR",
-        description: "No se pudo eliminar el producto.",
-      });
-    }
+    const docRef = doc(firestore, 'menu_items', id);
+    deleteDocumentNonBlocking(docRef);
+    
+    toast({
+      className: "uni-toast-info",
+      title: "🗑️ ELIMINADO",
+      description: `${name} ha sido retirado del menú.`,
+    });
   };
 
   const syncMenu = async () => {
