@@ -33,6 +33,32 @@
       },
       "required": ["id", "userId", "status", "totalAmount"]
     },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Represents a product in the cafeteria menu.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "unit": { "type": "string", "enum": ["pza", "orden", "kg", "gr", "ml", "lt"] },
+        "recipe": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ingredientId": { "type": "string" },
+              "quantity": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["id", "name", "price", "category", "unit"]
+    },
     "Review": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Review",
@@ -68,6 +94,14 @@
           "entityName": "Order",
           "schema": { "$ref": "#/backend/entities/Order" },
           "description": "Customer orders."
+        }
+      },
+      {
+        "path": "/menu_items/{itemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": { "$ref": "#/backend/entities/MenuItem" },
+          "description": "Products available in the menu."
         }
       },
       {

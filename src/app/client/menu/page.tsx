@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
+import { CATEGORIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,8 @@ import {
   Clock,
   CheckCircle2,
   Flame,
-  Printer
+  Printer,
+  Tag
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +71,14 @@ export default function ClientMenu() {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
   }, []);
 
+  // Monitor real-time menu items from Firestore
+  const menuQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'menu_items');
+  }, [firestore, user]);
+
+  const { data: menuItems, isLoading: isMenuLoading } = useCollection(menuQuery);
+
   // Monitor real-time status of current and recent orders
   const activeOrdersQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -81,13 +91,11 @@ export default function ClientMenu() {
 
   const { data: userOrdersRaw } = useCollection(activeOrdersQuery);
 
-  // Sort orders in memory to avoid index requirements
   const userOrders = useMemo(() => {
     if (!userOrdersRaw) return [];
     return [...userOrdersRaw].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }, [userOrdersRaw]);
 
-  // Logic to trigger rating dialog when an order is picked up
   useEffect(() => {
     if (userOrders && userOrders.length > 0) {
       const justDelivered = userOrders.find(o => o.status === 'Picked Up' && (o.isRated === false || o.isRated === undefined));
@@ -105,11 +113,11 @@ export default function ClientMenu() {
   
   const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
-  const checkStockAvailability = (newItem: MenuItem, currentCart: any[]) => {
-    if (!inventory) return true;
+  const checkStockAvailability = (newItem: any, currentCart: any[]) => {
+    if (!inventory || !newItem.recipe || newItem.recipe.length === 0) return true;
     const requirements: Record<string, number> = {};
     [...currentCart, newItem].forEach(cartItem => {
-      cartItem.recipe.forEach((r: any) => {
+      cartItem.recipe?.forEach((r: any) => {
         requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
       });
     });
@@ -119,7 +127,8 @@ export default function ClientMenu() {
     });
   };
 
-  const getSimpleRecommendations = (item: MenuItem) => {
+  const getSimpleRecommendations = (item: any) => {
+    if (!menuItems) return;
     let targetCategories: string[] = [];
     let title = "¿No quieres agregar algo más?";
 
@@ -134,7 +143,7 @@ export default function ClientMenu() {
       title = "¿Algo para acompañar tu antojo?";
     }
 
-    const suggestions = MENU_ITEMS.filter(m => 
+    const suggestions = menuItems.filter(m => 
       targetCategories.includes(m.category) && 
       m.id !== item.id &&
       !cart.some(cartItem => cartItem.id === m.id) &&
@@ -198,7 +207,7 @@ export default function ClientMenu() {
     await setDoc(orderRef, orderData);
 
     cart.forEach(cartItem => {
-      cartItem.recipe.forEach((r: any) => {
+      cartItem.recipe?.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
         if (ing) {
           const ingRef = doc(firestore, 'ingredients', ing.id);
@@ -247,7 +256,7 @@ export default function ClientMenu() {
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
-  if (isUserLoading || (user && isInvLoading)) {
+  if (isUserLoading || (user && (isInvLoading || isMenuLoading))) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -333,7 +342,7 @@ export default function ClientMenu() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {MENU_ITEMS.filter(item => (selectedCategory === "Todas" || item.category === selectedCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => {
+          {menuItems?.filter(item => (selectedCategory === "Todas" || item.category === selectedCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => {
             const avail = checkStockAvailability(item, cart);
             return (
               <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white flex flex-col transition-all hover:shadow-2xl hover:-translate-y-1", !avail && "opacity-50 grayscale")}>
@@ -342,7 +351,10 @@ export default function ClientMenu() {
                   <div className="absolute top-4 right-4 bg-secondary text-black h-10 px-4 rounded-full text-lg font-black flex items-center shadow-xl">$ {item.price.toFixed(2)}</div>
                 </div>
                 <CardHeader className="p-6">
-                  <p className="text-[10px] font-black text-primary uppercase mb-1">{item.category}</p>
+                  <div className="flex justify-between items-start">
+                    <p className="text-[10px] font-black text-primary uppercase mb-1">{item.category}</p>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase gap-1"><Tag size={8}/> {item.unit}</Badge>
+                  </div>
                   <CardTitle className="text-xl font-black line-clamp-1">{item.name}</CardTitle>
                 </CardHeader>
                 <CardFooter className="p-6 pt-0 mt-auto">
@@ -361,7 +373,6 @@ export default function ClientMenu() {
             <DialogTitle>Ticket de Compra - UniEats</DialogTitle>
           </DialogHeader>
           <div className="bg-white p-8 relative">
-            {/* Ticket Simulation Header */}
             <div className="text-center space-y-2 mb-6 border-b-2 border-dashed pb-6">
               <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg mb-2">
                 <UtensilsCrossed size={32} />
@@ -370,7 +381,6 @@ export default function ClientMenu() {
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Campus Sevilla Toledo 39</p>
             </div>
 
-            {/* Ticket Content */}
             <div className="space-y-4">
               <div className="flex justify-between items-end">
                 <div>
@@ -405,7 +415,6 @@ export default function ClientMenu() {
               </div>
             </div>
 
-            {/* Ticket Simulation Footer - Jagged Edge */}
             <div className="absolute -bottom-2 left-0 right-0 h-4 bg-[radial-gradient(circle,transparent_8px,white_8px)] bg-[length:16px_16px] bg-repeat-x"></div>
           </div>
           <div className="p-6 bg-muted/10 flex gap-3">

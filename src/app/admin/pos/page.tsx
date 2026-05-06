@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { MENU_ITEMS, CATEGORIES, MenuItem } from '@/lib/data';
+import { CATEGORIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,8 @@ import {
   Minus,
   ShoppingCart,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Tag
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -39,6 +41,14 @@ export default function POSPage() {
     }
   }, [user, isUserLoading, router]);
 
+  // Fetch dynamic menu items from Firestore
+  const menuQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'menu_items');
+  }, [firestore, user]);
+
+  const { data: menuItems, isLoading: isMenuLoading } = useCollection(menuQuery);
+
   const ingredientsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'ingredients');
@@ -46,15 +56,15 @@ export default function POSPage() {
 
   const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
-  const checkStockAvailability = (item: MenuItem, quantity: number = 1) => {
-    if (!inventory) return true;
-    return item.recipe.every(r => {
+  const checkStockAvailability = (item: any, quantity: number = 1) => {
+    if (!inventory || !item.recipe || item.recipe.length === 0) return true;
+    return item.recipe.every((r: any) => {
       const ing = inventory.find((i: any) => i.id === r.ingredientId);
       return ing && ing.currentStock >= (r.quantity * quantity);
     });
   };
 
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (item: any) => {
     const existing = cart.find(i => i.id === item.id);
     const currentQty = existing ? existing.quantity : 0;
     
@@ -75,7 +85,7 @@ export default function POSPage() {
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    const item = MENU_ITEMS.find(m => m.id === id);
+    const item = menuItems?.find(m => m.id === id);
     if (!item) return;
 
     setCart(cart.map(i => {
@@ -117,7 +127,7 @@ export default function POSPage() {
     });
 
     cart.forEach(cartItem => {
-      cartItem.recipe.forEach((r: any) => {
+      cartItem.recipe?.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);
         if (ing) {
           const ingRef = doc(firestore, 'ingredients', ing.id);
@@ -133,7 +143,7 @@ export default function POSPage() {
     setCart([]);
   };
 
-  if (isUserLoading || (user && isInvLoading)) {
+  if (isUserLoading || (user && (isInvLoading || isMenuLoading))) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -185,7 +195,7 @@ export default function POSPage() {
 
         <ScrollArea className="flex-1">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {MENU_ITEMS.filter(item => (activeCategory === 'Todas' || item.category === activeCategory) && item.name.toLowerCase().includes(search.toLowerCase())).map((item) => {
+            {menuItems?.filter(item => (activeCategory === 'Todas' || item.category === activeCategory) && item.name.toLowerCase().includes(search.toLowerCase())).map((item) => {
               const avail = checkStockAvailability(item);
               return (
                 <Card 
@@ -204,6 +214,9 @@ export default function POSPage() {
                       className="object-cover group-hover:scale-110 transition-transform duration-300" 
                       sizes="(max-width: 768px) 50vw, 20vw" 
                     />
+                    <div className="absolute top-2 right-2">
+                      <Badge className="bg-white/90 text-black text-[8px] font-black uppercase"><Tag size={8} className="mr-1"/> {item.unit}</Badge>
+                    </div>
                   </div>
                   <CardContent className="p-4">
                     <p className="font-black text-sm line-clamp-1 leading-tight">{item.name}</p>

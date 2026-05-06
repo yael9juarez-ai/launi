@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Star,
   ExternalLink,
-  MonitorPlay
+  MonitorPlay,
+  ClipboardList
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -178,6 +179,9 @@ export default function AdminDashboard() {
           <p className="text-[10px] font-black text-muted-foreground uppercase px-4 mb-2 tracking-widest">Navegación</p>
           <Button variant="ghost" className="w-full justify-start gap-3 text-primary bg-primary/5 font-bold rounded-xl">
             <BarChart3 size={20} /> Dashboard
+          </Button>
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/menu')}>
+            <ClipboardList size={20} /> Gestionar Menú
           </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-muted" onClick={() => router.push('/admin/kitchen')}>
             <ChefHat size={20} /> Cocinero
