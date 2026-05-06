@@ -150,7 +150,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Gomitas clásicas con forma de dientes (150g).",
     price: 30.00,
     category: "Golosinas",
-    imageUrl: "/images/diente.png",
+    imageUrl: "/images/dientes.png",
     unit: "150g",
     recipe: [{ ingredientId: "i13", quantity: 150 }],
     nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
