@@ -40,7 +40,7 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i8", name: "Coca Cola 600ml", stock: 120, unit: "pzas", minStock: 24 },
   { id: "i9", name: "Agua Bonafont 600ml", stock: 150, unit: "pzas", minStock: 24 },
   { id: "i13", name: "Gomitas Varias (Stock)", stock: 50000, unit: "gr", minStock: 5000 },
-  { id: "i14", name: "Botella Agua Jamaica", stock: 60, unit: "pzas", minStock: 12 },
+  { id: "i14", name: "Botella Agua Jamaica 600ml", stock: 60, unit: "pzas", minStock: 12 },
   { id: "i15", name: "Botella Agua Horchata", stock: 60, unit: "pzas", minStock: 12 },
   { id: "i16", name: "Botella Agua Limón", stock: 60, unit: "pzas", minStock: 12 },
   { id: "i24", name: "Harina de Trigo", stock: 25000, unit: "gr", minStock: 2000 },
@@ -154,6 +154,17 @@ export const MENU_ITEMS: MenuItem[] = [
     unit: "150g",
     recipe: [{ ingredientId: "i13", quantity: 150 }],
     nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
+  },
+  {
+    id: "m15",
+    name: "Agua de Jamaica (600ml)",
+    description: "Botella de agua de Jamaica refrescante 600ml.",
+    price: 22.00,
+    category: "Bebidas",
+    imageUrl: "/images/jamaica.png",
+    unit: "pza",
+    recipe: [{ ingredientId: "i14", quantity: 1 }],
+    nutrition: { calories: 120, protein: 0, fat: 0, carbs: 30 }
   },
   {
     id: "b1",

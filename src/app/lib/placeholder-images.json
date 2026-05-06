@@ -66,6 +66,12 @@
       "description": "Gomitas de dientes",
       "imageUrl": "/images/dientes.png",
       "imageHint": "teeth candy"
+    },
+    {
+      "id": "jamaica",
+      "description": "Agua de Jamaica 600ml",
+      "imageUrl": "/images/jamaica.png",
+      "imageHint": "hibiscus water"
     }
   ]
 }
