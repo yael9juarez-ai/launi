@@ -71,7 +71,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Carne de res, queso amarillo, lechuga y tomate.",
     price: 95.00,
     category: "Comida",
-    imageUrl: "/images/hamburguesa.jpg",
+    imageUrl: "/images/hamburguesa.png",
     recipe: [
       { ingredientId: "i1", quantity: 1 },
       { ingredientId: "i2", quantity: 150 },

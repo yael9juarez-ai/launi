@@ -9,7 +9,7 @@
     {
       "id": "hamburguesa",
       "description": "Hamburguesa clásica con queso",
-      "imageUrl": "/images/hamburguesa.jpg",
+      "imageUrl": "/images/hamburguesa.png",
       "imageHint": "hamburger cheese"
     },
     {
