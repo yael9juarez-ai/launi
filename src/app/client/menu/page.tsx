@@ -40,7 +40,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useUser, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, query, where, limit, writeBatch } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, query, where, limit, writeBatch, increment } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 
@@ -239,22 +239,20 @@ export default function ClientMenu() {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       items: cart.map(i => ({ name: i.name, qty: i.quantity || 1, price: i.price })),
-      attendant: "El mighty yael perez"
+      attendant: "Ventanilla UniEats"
     };
 
     const orderRef = doc(firestore, 'orders', orderId);
     await setDoc(orderRef, orderData);
 
+    // DESCUENTO ROBUSTO DE INVENTARIO USANDO increment()
     cart.forEach(cartItem => {
       cartItem.recipe?.forEach((r: any) => {
-        const ing = inventory?.find(i => i.id === r.ingredientId);
-        if (ing) {
-          const ingRef = doc(firestore, 'ingredients', ing.id);
-          updateDocumentNonBlocking(ingRef, {
-            currentStock: ing.currentStock - (r.quantity * (cartItem.quantity || 1)),
-            updatedAt: serverTimestamp()
-          });
-        }
+        const ingRef = doc(firestore, 'ingredients', r.ingredientId);
+        updateDocumentNonBlocking(ingRef, {
+          currentStock: increment(-(r.quantity * (cartItem.quantity || 1))),
+          updatedAt: serverTimestamp()
+        });
       });
     });
 

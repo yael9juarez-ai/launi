@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function POSPage() {
@@ -126,21 +126,18 @@ export default function POSPage() {
       }))
     });
 
-    // DESCONTAR INVENTARIO SEGÚN RECETA
+    // DESCUENTO ROBUSTO DE INVENTARIO USANDO increment()
     cart.forEach(cartItem => {
       cartItem.recipe?.forEach((r: any) => {
-        const ing = inventory?.find(i => i.id === r.ingredientId);
-        if (ing) {
-          const ingRef = doc(firestore, 'ingredients', ing.id);
-          updateDocumentNonBlocking(ingRef, {
-            currentStock: ing.currentStock - (r.quantity * cartItem.quantity),
-            updatedAt: serverTimestamp()
-          });
-        }
+        const ingRef = doc(firestore, 'ingredients', r.ingredientId);
+        updateDocumentNonBlocking(ingRef, {
+          currentStock: increment(-(r.quantity * cartItem.quantity)),
+          updatedAt: serverTimestamp()
+        });
       });
     });
     
-    toast({ className: "uni-toast-success", title: "✅ VENTA COMPLETADA", description: "Venta registrada e insumos descontados en la nube." });
+    toast({ className: "uni-toast-success", title: "✅ VENTA COMPLETADA", description: "Venta registrada e insumos descontados automáticamente." });
     setCart([]);
   };
 
