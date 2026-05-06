@@ -113,14 +113,14 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "m11",
-    name: "Gomitas de Frutas",
-    description: "Bolsa de gomitas de sabores frutales variados.",
-    price: 15.00,
+    name: "Gomitas de Frutas (150gr)",
+    description: "Bolsa de gomitas de sabores frutales variados (150gr).",
+    price: 30.00,
     category: "Golosinas",
     imageUrl: "/images/fruta.png",
-    unit: "pza",
-    recipe: [{ ingredientId: "i35", quantity: 1 }],
-    nutrition: { calories: 150, protein: 2, fat: 0, carbs: 35 }
+    unit: "150gr",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
   },
   {
     id: "b1",
