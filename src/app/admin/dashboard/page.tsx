@@ -56,7 +56,16 @@ import {
 import { signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
-const chartData = [
+const dailyChartData = [
+  { name: '08:00', sales: 1200 },
+  { name: '10:00', sales: 4500 },
+  { name: '12:00', sales: 8900 },
+  { name: '14:00', sales: 6200 },
+  { name: '16:00', sales: 2100 },
+  { name: '18:00', sales: 900 },
+];
+
+const weeklyChartData = [
   { name: 'Lun', sales: 4000 },
   { name: 'Mar', sales: 3200 },
   { name: 'Mie', sales: 6500 },
@@ -65,12 +74,20 @@ const chartData = [
   { name: 'Sab', sales: 2100 },
 ];
 
+const monthlyChartData = [
+  { name: 'Sem 1', sales: 25000 },
+  { name: 'Sem 2', sales: 32000 },
+  { name: 'Sem 3', sales: 28000 },
+  { name: 'Sem 4', sales: 41000 },
+];
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+  const [chartPeriod, setChartPeriod] = useState("weekly");
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'admin')) {
@@ -152,6 +169,12 @@ export default function AdminDashboard() {
     weekly: calculateReportData(5),
     monthly: calculateReportData(20),
   }), [confirmedSalesTotal, confirmedItemsStats, confirmedOrders]);
+
+  const currentChartData = useMemo(() => {
+    if (chartPeriod === "daily") return dailyChartData;
+    if (chartPeriod === "monthly") return monthlyChartData;
+    return weeklyChartData;
+  }, [chartPeriod]);
 
   if (isUserLoading || isOrdersLoading) {
     return (
@@ -346,13 +369,20 @@ export default function AdminDashboard() {
         </Card>
 
         <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-2">
-          <CardHeader className="p-8 pb-2">
+          <CardHeader className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="text-2xl font-black">Histórico de Ventas</CardTitle>
+            <Tabs defaultValue="weekly" className="w-full md:w-auto" onValueChange={setChartPeriod}>
+              <TabsList className="bg-muted/50 rounded-xl p-1 h-10">
+                <TabsTrigger value="daily" className="rounded-lg text-[10px] font-black px-4">DIARIO</TabsTrigger>
+                <TabsTrigger value="weekly" className="rounded-lg text-[10px] font-black px-4">SEMANAL</TabsTrigger>
+                <TabsTrigger value="monthly" className="rounded-lg text-[10px] font-black px-4">MENSUAL</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent className="p-8 pt-0">
-            <div className="h-[300px]">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart data={currentChartData}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#E30613" stopOpacity={0.1}/>
@@ -360,9 +390,12 @@ export default function AdminDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                  <Tooltip 
+                    contentStyle={{borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                    itemStyle={{fontWeight: '900', color: '#E30613'}}
+                  />
                   <Area type="monotone" dataKey="sales" stroke="#E30613" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
                 </AreaChart>
               </ResponsiveContainer>
