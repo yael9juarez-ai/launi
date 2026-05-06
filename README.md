@@ -23,46 +23,54 @@ Este proyecto es una aplicación web full-stack construida con **Next.js 15**, *
 - **`src/ai` (Capa de Inteligencia Artifical - Genkit)**:
     - `flows/`: Lógica de negocio avanzada (Recomendaciones, Pronóstico de Inventario, Análisis de Ventas).
 
-- **`src/lib` (Capa de Utilidades y Tipos)**:
-    - `data.ts`: Definición de interfaces y datos semilla.
-    - `utils.ts`: Funciones auxiliares de estilo.
-
 ## 2. Diagrama de Clases (Entidades Principales)
-
-Estas son las interfaces de datos (modelos) que definen el sistema:
 
 ### `User`
 - `id`: string
 - `displayName`: string
 - `role`: 'admin' | 'cocinero' | 'alumno'
-- `email`: string
 
-### `MenuItem` (Producto del Menú)
+### `MenuItem`
 - `id`: string
 - `name`: string
 - `price`: number
-- `category`: 'Comida' | 'Bebidas' | 'Golosinas'
-- `unit`: 'pza' | 'kg' | 'ml' | 'orden'
-- `recipe`: `RecipeItem[]`
-- `imageUrl`: string
+- `recipe`: `RecipeItem[]` (Vínculo con Ingredients)
+- `unit`: string (pza, kg, etc.)
 
-### `Ingredient` (Insumo/Almacén)
+### `Ingredient`
 - `id`: string
 - `name`: string
 - `currentStock`: number
 - `minStockLevel`: number
-- `unitOfMeasure`: string
 
-### `Order` (Pedido)
+### `Order`
 - `id`: string
-- `userId`: string
-- `items`: `OrderItem[]`
-- `totalAmount`: number
 - `status`: 'Pending' | 'Preparing' | 'Ready for Pickup' | 'Picked Up'
 - `method`: 'cash' | 'transfer'
-- `isRated`: boolean
+- `items`: `OrderItem[]`
 
-## 3. Relaciones Clave para Diagramas
-1. **Composición**: Un `MenuItem` tiene una `Recipe` compuesta por múltiples `Ingredients`.
-2. **Asociación**: Un `User` crea múltiples `Orders`.
-3. **Flujo**: Una `Order` cambia de estado a través del panel de `Kitchen` y afecta el stock de `Ingredients`.
+## 3. Arquitectura de Procesos (Para Diagramas de Flujo)
+
+### A. Flujo de Pedido y Venta (Venta Ciclo de Vida)
+1. **Inicio**: El Alumno selecciona productos. El sistema valida stock en tiempo real consultando `ingredients`.
+2. **Selección de Pago**:
+    - **Efectivo**: El pedido queda en `Pending`. El Admin debe buscarlo en el Dashboard y presionar "Confirmar Pago".
+    - **Transferencia**: El Alumno visualiza QR/CLABE, realiza el pago y envía comprobante. El Admin confirma en sistema.
+3. **Producción**: Una vez pagado, el estado cambia a `Preparing`. Aparece automáticamente en el panel de `Kitchen`.
+4. **Finalización**: El Cocinero marca como `Ready for Pickup`. El sistema notifica al Monitor Público (`Queue`).
+5. **Entrega**: El Alumno muestra su Ticket Virtual. El Cocinero marca como `Picked Up`.
+
+### B. Proceso de Gestión de Inventario (Descuento Automático)
+1. Al confirmar una venta (`Order`), el sistema itera sobre el arreglo `recipe` de cada `MenuItem` vendido.
+2. Por cada ingrediente, ejecuta una resta: `currentStock = currentStock - (cantidad_receta * cantidad_pedida)`.
+3. Si un ingrediente llega a su `minStockLevel`, el sistema resalta el ítem en el panel de Inventario y lo bloquea en el Menú del Alumno si no hay suficiente para una ración completa.
+
+### C. Proceso de Inteligencia Artificial (Upselling)
+1. Mientras el Alumno añade productos, Genkit analiza la categoría.
+2. Si añade "Comida", el flujo `smartMenuRecommendation` sugiere "Bebidas" o "Golosinas" para aumentar el ticket promedio.
+3. Se genera un mensaje persuasivo basado en el contexto actual del carrito.
+
+## 4. Relaciones Clave
+1. **Composición**: Un `MenuItem` contiene una receta (`RecipeItem`).
+2. **Asociación**: Un `User` posee múltiples `Orders`.
+3. **Dependencia**: La disponibilidad de un `MenuItem` depende del estado del stock de sus `Ingredients`.
