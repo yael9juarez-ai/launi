@@ -1,4 +1,3 @@
-
 export const CATEGORIES = ["Comida", "Bebidas", "Golosinas"];
 
 export interface Ingredient {
@@ -204,7 +203,7 @@ export const MENU_ITEMS: MenuItem[] = [
 export const SALES_RECORDS = [
   {
     transactionId: "T-START",
-    timestamp: new Date().toISOString(),
+    timestamp: "2024-01-01T00:00:00Z",
     items: [{ itemId: "m2", itemName: "Hamburguesa con Queso", quantity: 1, price: 95.00 }],
     totalAmount: 95.00,
   }

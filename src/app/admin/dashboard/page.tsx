@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -89,6 +88,11 @@ export default function AdminDashboard() {
   const auth = useAuth();
   const firestore = useFirestore();
   const [chartPeriod, setChartPeriod] = useState("weekly");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.displayName !== 'admin')) {
@@ -122,11 +126,9 @@ export default function AdminDashboard() {
     return rated.reduce((sum, o) => sum + o.rating, 0) / rated.length;
   }, [confirmedOrders]);
 
-  // Cálculo de estadísticas de productos incluyendo valoraciones
   const confirmedItemsStats = useMemo(() => {
     const stats: Record<string, any> = {};
     
-    // Contar pedidos y ventas
     confirmedOrders.forEach(order => {
       order.items?.forEach((item: any) => {
         const key = item.name || 'Desconocido';
@@ -138,7 +140,6 @@ export default function AdminDashboard() {
       });
     });
 
-    // Sumar valoraciones dinámicas
     allProdReviews?.forEach(rev => {
       const key = rev.menuItemName;
       if (stats[key]) {
@@ -147,7 +148,6 @@ export default function AdminDashboard() {
       }
     });
 
-    // Calcular promedios
     Object.keys(stats).forEach(key => {
       stats[key].avgRating = stats[key].ratingsCount > 0 
         ? stats[key].ratingsSum / stats[key].ratingsCount 
@@ -157,14 +157,12 @@ export default function AdminDashboard() {
     return stats;
   }, [confirmedOrders, allProdReviews]);
 
-  // Identificar el "Producto Estrella"
   const starProduct = useMemo(() => {
     const items = Object.values(confirmedItemsStats);
     if (items.length === 0) return null;
     
-    // Criterio: Combinación de más pedido y mejor calificado (Score = qty * avgRating)
     return items.reduce((best: any, current: any) => {
-      const currentScore = current.qty * (current.avgRating || 3); // Default 3 si no hay rating
+      const currentScore = current.qty * (current.avgRating || 3);
       const bestScore = best ? best.qty * (best.avgRating || 3) : -1;
       return currentScore > bestScore ? current : best;
     }, null);
@@ -216,7 +214,7 @@ export default function AdminDashboard() {
     return weeklyChartData;
   }, [chartPeriod]);
 
-  if (isUserLoading || isOrdersLoading || isReviewsLoading) {
+  if (isUserLoading || isOrdersLoading || isReviewsLoading || !mounted) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -405,7 +403,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* TARJETA PRODUCTO ESTRELLA */}
           <Card className="border-none shadow-xl rounded-[2.5rem] bg-secondary text-secondary-foreground overflow-hidden">
              <CardHeader className="p-8 pb-0">
                <div className="flex justify-between items-center">
