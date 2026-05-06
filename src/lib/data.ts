@@ -1,4 +1,3 @@
-
 export const CATEGORIES = ["Comida", "Bebidas", "Golosinas"];
 
 export interface Ingredient {
@@ -59,7 +58,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Sopa instantánea con salsa, limón y agua caliente.",
     price: 35.00,
     category: "Comida",
-    imageUrl: "/images/maruchan.jpg",
+    imageUrl: "/images/marucha.jpg",
     recipe: [
       { ingredientId: "i7", quantity: 1 },
       { ingredientId: "i9", quantity: 1 }

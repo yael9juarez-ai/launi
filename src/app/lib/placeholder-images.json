@@ -1,10 +1,9 @@
-
 {
   "placeholderImages": [
     {
       "id": "maruchan",
       "description": "Sopa Maruchan preparada",
-      "imageUrl": "/images/maruchan.jpg",
+      "imageUrl": "/images/marucha.jpg",
       "imageHint": "instant noodles"
     },
     {
