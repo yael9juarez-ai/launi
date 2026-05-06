@@ -50,6 +50,7 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i32", name: "Polvo para Hornear", stock: 2000, unit: "gr", minStock: 100 },
   { id: "i33", name: "Extracto de Vainilla", stock: 2000, unit: "ml", minStock: 50 },
   { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 150, unit: "pzas", minStock: 10 },
+  { id: "i34", name: "Leche de Chocolate (Pza)", stock: 100, unit: "pzas", minStock: 15 },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -113,6 +114,17 @@ export const MENU_ITEMS: MenuItem[] = [
     unit: "pza",
     recipe: [{ ingredientId: "i8", quantity: 1 }],
     nutrition: { calories: 240, protein: 0, fat: 0, carbs: 65 }
+  },
+  {
+    id: "b7",
+    name: "Leche de Chocolate",
+    description: "Leche de chocolate individual, fría y deliciosa.",
+    price: 22.00,
+    category: "Bebidas",
+    imageUrl: "/images/leche.png",
+    unit: "pza",
+    recipe: [{ ingredientId: "i34", quantity: 1 }],
+    nutrition: { calories: 190, protein: 8, fat: 5, carbs: 26 }
   }
 ];
 

@@ -35,6 +35,12 @@
       "description": "Coca Cola 600ml",
       "imageUrl": "/images/cocacola.png",
       "imageHint": "coca cola soda"
+    },
+    {
+      "id": "leche",
+      "description": "Leche de chocolate",
+      "imageUrl": "/images/leche.png",
+      "imageHint": "chocolate milk"
     }
   ]
 }
