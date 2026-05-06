@@ -55,7 +55,7 @@ export const INGREDIENTS: Ingredient[] = [
 export const MENU_ITEMS: MenuItem[] = [
   {
     id: "m1",
-    name: "Sopa Maruchan",
+    name: "Sopa Maruchan Preparada",
     description: "Sopa instantánea con salsa, limón y agua caliente.",
     price: 35.00,
     category: "Comida",
