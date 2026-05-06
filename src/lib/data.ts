@@ -128,7 +128,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Gomitas con un intenso sabor a mango (150gr).",
     price: 30.00,
     category: "Golosinas",
-    imageUrl: "/images/fruta.png",
+    imageUrl: "/images/mango.png",
     unit: "150gr",
     recipe: [{ ingredientId: "i13", quantity: 150 }],
     nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }

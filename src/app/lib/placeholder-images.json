@@ -48,6 +48,12 @@
       "description": "Gomitas de frutas",
       "imageUrl": "/images/fruta.png",
       "imageHint": "fruit gummies"
+    },
+    {
+      "id": "mango",
+      "description": "Gomitas de mango",
+      "imageUrl": "/images/mango.png",
+      "imageHint": "mango candy"
     }
   ]
 }
