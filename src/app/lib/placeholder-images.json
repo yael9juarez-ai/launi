@@ -1,7 +1,8 @@
+
 {
   "placeholderImages": [
     {
-      "id": "maruchan",
+      "id": "marucha",
       "description": "Sopa Maruchan preparada",
       "imageUrl": "/images/marucha.jpg",
       "imageHint": "instant noodles"
@@ -15,7 +16,7 @@
     {
       "id": "hotcakes",
       "description": "Hot cakes esponjosos",
-      "imageUrl": "/images/hotcakes.jpg",
+      "imageUrl": "/images/hotcakes.png",
       "imageHint": "pancakes breakfast"
     },
     {

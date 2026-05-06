@@ -84,6 +84,22 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 580, protein: 28, fat: 32, carbs: 42 }
   },
   {
+    id: "m10",
+    name: "Hot Cakes Caseros",
+    description: "Tres hot cakes esponjosos con mantequilla y miel.",
+    price: 60.00,
+    category: "Comida",
+    imageUrl: "/images/hotcakes.png",
+    unit: "orden",
+    recipe: [
+      { ingredientId: "i24", quantity: 100 },
+      { ingredientId: "i26", quantity: 1 },
+      { ingredientId: "i25", quantity: 150 },
+      { ingredientId: "i27", quantity: 20 }
+    ],
+    nutrition: { calories: 450, protein: 12, fat: 18, carbs: 60 }
+  },
+  {
     id: "m9",
     name: "Pan de Dulce (La Esperanza)",
     description: "Pieza de pan dulce fresco de recompra.",
