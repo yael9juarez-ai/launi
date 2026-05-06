@@ -126,6 +126,7 @@ export default function POSPage() {
       }))
     });
 
+    // DESCONTAR INVENTARIO SEGÚN RECETA
     cart.forEach(cartItem => {
       cartItem.recipe?.forEach((r: any) => {
         const ing = inventory?.find(i => i.id === r.ingredientId);

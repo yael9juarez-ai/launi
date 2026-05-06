@@ -18,7 +18,9 @@ import {
   RotateCcw,
   Loader2,
   Search,
-  Scale
+  Scale,
+  ChefHat,
+  X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +30,12 @@ import { MENU_ITEMS as INITIAL_MENU } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface RecipeEntry {
+  ingredientId: string;
+  quantity: number;
+}
 
 export default function MenuManagementPage() {
   const [search, setSearch] = useState("");
@@ -39,6 +47,7 @@ export default function MenuManagementPage() {
   const [newPrice, setNewPrice] = useState("");
   const [newCategory, setNewCategory] = useState("Comida");
   const [newUnit, setNewUnit] = useState("pza");
+  const [recipe, setRecipe] = useState<RecipeEntry[]>([]);
 
   const router = useRouter();
   const firestore = useFirestore();
@@ -56,7 +65,26 @@ export default function MenuManagementPage() {
     return collection(firestore, 'menu_items');
   }, [firestore, user]);
 
+  const ingredientsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'ingredients');
+  }, [firestore, user]);
+
   const { data: menuItems, isLoading: isDataLoading } = useCollection(menuQuery);
+  const { data: availableIngredients } = useCollection(ingredientsQuery);
+
+  const addIngredientToRecipe = (id: string) => {
+    if (recipe.find(r => r.ingredientId === id)) return;
+    setRecipe([...recipe, { ingredientId: id, quantity: 1 }]);
+  };
+
+  const removeIngredientFromRecipe = (id: string) => {
+    setRecipe(recipe.filter(r => r.ingredientId !== id));
+  };
+
+  const updateRecipeQuantity = (id: string, qty: number) => {
+    setRecipe(recipe.map(r => r.ingredientId === id ? { ...r, quantity: qty } : r));
+  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +103,14 @@ export default function MenuManagementPage() {
         unit: newUnit,
         description: `Producto de la cafetería (${newCategory})`,
         imageUrl: `https://picsum.photos/seed/${id}/400/300`,
-        recipe: [], // Iniciar con receta vacía
+        recipe: recipe,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
       setNewName("");
       setNewPrice("");
+      setRecipe([]);
       toast({
         className: "uni-toast-success",
         title: "✅ PRODUCTO AÑADIDO",
@@ -169,7 +198,7 @@ export default function MenuManagementPage() {
           </Button>
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-foreground">Gestión de Menú</h1>
-            <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Configura lo que ven los alumnos</p>
+            <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Configura productos e ingredientes</p>
           </div>
         </div>
         <Button 
@@ -190,7 +219,7 @@ export default function MenuManagementPage() {
             <CardTitle className="text-2xl font-black flex items-center gap-2">
               <Plus className="text-primary" /> Nuevo Producto
             </CardTitle>
-            <CardDescription className="font-bold">Añade productos individuales al menú.</CardDescription>
+            <CardDescription className="font-bold">Define el producto y sus insumos.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
             <form onSubmit={handleAddProduct} className="space-y-6">
@@ -247,6 +276,61 @@ export default function MenuManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* RECETA / INGREDIENTES */}
+              <div className="space-y-4 border-2 p-4 rounded-2xl bg-muted/5">
+                <Label className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                  <ChefHat size={14} className="text-primary" /> Receta / Insumos
+                </Label>
+                
+                <div className="space-y-2">
+                  {recipe.length === 0 ? (
+                    <p className="text-[10px] font-bold text-muted-foreground text-center py-2">Sin ingredientes asignados</p>
+                  ) : (
+                    recipe.map((item) => {
+                      const ing = availableIngredients?.find(i => i.id === item.ingredientId);
+                      return (
+                        <div key={item.ingredientId} className="flex items-center justify-between gap-2 bg-white p-2 rounded-xl border shadow-sm">
+                          <span className="text-xs font-bold truncate flex-1">{ing?.name}</span>
+                          <Input 
+                            type="number" 
+                            className="w-16 h-8 text-center text-xs font-black p-1"
+                            value={item.quantity}
+                            onChange={(e) => updateRecipeQuantity(item.ingredientId, parseFloat(e.target.value) || 0)}
+                          />
+                          <span className="text-[9px] font-bold text-muted-foreground w-8">{ing?.unitOfMeasure}</span>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-destructive"
+                            onClick={() => removeIngredientFromRecipe(item.ingredientId)}
+                          >
+                            <X size={14} />
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="pt-2 border-t">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase mb-2">Añadir Insumo:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableIngredients?.map((ing) => (
+                      <Badge 
+                        key={ing.id} 
+                        variant="secondary" 
+                        className="cursor-pointer hover:bg-primary hover:text-white transition-colors"
+                        onClick={() => addIngredientToRecipe(ing.id)}
+                      >
+                        + {ing.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <Button type="submit" className="w-full h-14 rounded-2xl font-black mcd-gradient shadow-lg" disabled={isAdding}>
                 {isAdding ? <Loader2 className="animate-spin" /> : 'AÑADIR AL MENÚ'}
               </Button>
@@ -274,45 +358,57 @@ export default function MenuManagementPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y-2">
-              {filteredItems.length === 0 ? (
-                <div className="p-20 text-center opacity-20">
-                  <Box size={80} className="mx-auto mb-4" />
-                  <p className="text-2xl font-black">MENÚ VACÍO</p>
-                </div>
-              ) : (
-                filteredItems.map((item) => (
-                  <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-muted/5 transition-colors">
-                    <div className="w-20 h-20 relative rounded-2xl overflow-hidden shadow-md shrink-0">
-                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-black leading-tight">{item.name}</h3>
-                        <Badge variant="outline" className="text-[9px] uppercase font-black">{item.category}</Badge>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center text-primary font-black text-xl">
-                          <DollarSign size={16} /> {item.price.toFixed(2)}
-                          <span className="text-[10px] text-muted-foreground ml-1 uppercase">/ {item.unit}</span>
-                        </div>
-                        <Badge className="bg-secondary/20 text-secondary-foreground font-black text-[10px] gap-1">
-                          <Tag size={10} /> {item.unit}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteProduct(item.id, item.name)}
-                    >
-                      <Trash2 size={24} />
-                    </Button>
+            <ScrollArea className="h-[calc(100vh-280px)]">
+              <div className="divide-y-2">
+                {filteredItems.length === 0 ? (
+                  <div className="p-20 text-center opacity-20">
+                    <Box size={80} className="mx-auto mb-4" />
+                    <p className="text-2xl font-black">MENÚ VACÍO</p>
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  filteredItems.map((item) => (
+                    <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-muted/5 transition-colors">
+                      <div className="w-20 h-20 relative rounded-2xl overflow-hidden shadow-md shrink-0">
+                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-black leading-tight">{item.name}</h3>
+                          <Badge variant="outline" className="text-[9px] uppercase font-black">{item.category}</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {item.recipe?.map((r: any, idx: number) => {
+                            const ing = availableIngredients?.find(i => i.id === r.ingredientId);
+                            return (
+                              <Badge key={idx} variant="secondary" className="text-[8px] h-4 bg-muted/50">
+                                {ing?.name} ({r.quantity}{ing?.unitOfMeasure})
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center text-primary font-black text-xl">
+                            <DollarSign size={16} /> {item.price.toFixed(2)}
+                            <span className="text-[10px] text-muted-foreground ml-1 uppercase">/ {item.unit}</span>
+                          </div>
+                          <Badge className="bg-secondary/20 text-secondary-foreground font-black text-[10px] gap-1">
+                            <Tag size={10} /> {item.unit}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteProduct(item.id, item.name)}
+                      >
+                        <Trash2 size={24} />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
