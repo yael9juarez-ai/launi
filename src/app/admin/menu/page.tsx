@@ -22,13 +22,16 @@ import {
   ChefHat,
   X,
   AlertTriangle,
-  Eraser
+  Eraser,
+  Pencil,
+  Check,
+  Ban
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, serverTimestamp, setDoc, writeBatch, getDocs } from 'firebase/firestore';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { MENU_ITEMS as INITIAL_MENU } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -56,6 +59,10 @@ export default function MenuManagementPage() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   
+  // Edit State
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempPrice, setTempPrice] = useState<string>("");
+
   // Form State
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -139,6 +146,41 @@ export default function MenuManagementPage() {
     } finally {
       setIsAdding(false);
     }
+  };
+
+  const startEditing = (id: string, currentPrice: number) => {
+    setEditingId(id);
+    setTempPrice(currentPrice.toString());
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setTempPrice("");
+  };
+
+  const handleUpdatePrice = (id: string) => {
+    const price = parseFloat(tempPrice);
+    if (isNaN(price)) {
+      toast({
+        variant: "destructive",
+        title: "❌ VALOR INVÁLIDO",
+        description: "El precio debe ser un número válido.",
+      });
+      return;
+    }
+
+    const docRef = doc(firestore, 'menu_items', id);
+    updateDocumentNonBlocking(docRef, {
+      price: price,
+      updatedAt: serverTimestamp()
+    });
+
+    setEditingId(null);
+    toast({
+      className: "uni-toast-success",
+      title: "💰 PRECIO ACTUALIZADO",
+      description: "El cambio se ha guardado correctamente.",
+    });
   };
 
   const handleDeleteProduct = (id: string, name: string) => {
@@ -441,41 +483,80 @@ export default function MenuManagementPage() {
                           })}
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center text-primary font-black text-xl">
-                            <DollarSign size={16} /> {item.price.toFixed(2)}
-                            <span className="text-[10px] text-muted-foreground ml-1 uppercase">/ {item.unit}</span>
-                          </div>
+                          {editingId === item.id ? (
+                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                              <DollarSign size={20} className="text-primary" />
+                              <Input 
+                                type="number" 
+                                className="w-24 h-9 font-black text-lg rounded-xl border-2 border-primary" 
+                                value={tempPrice}
+                                onChange={(e) => setTempPrice(e.target.value)}
+                                autoFocus
+                              />
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 text-emerald-500 hover:bg-emerald-50"
+                                onClick={() => handleUpdatePrice(item.id)}
+                              >
+                                <Check size={20} />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 text-muted-foreground hover:bg-muted"
+                                onClick={cancelEditing}
+                              >
+                                <Ban size={20} />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-primary font-black text-xl gap-2">
+                              <DollarSign size={16} /> {item.price.toFixed(2)}
+                              <span className="text-[10px] text-muted-foreground ml-1 uppercase">/ {item.unit}</span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => startEditing(item.id, item.price)}
+                              >
+                                <Pencil size={14} />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 size={24} />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="rounded-[2rem]">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="font-black">¿Quitar "{item.name}"?</AlertDialogTitle>
-                            <AlertDialogDescription className="font-bold">
-                              El producto ya no será visible para los alumnos.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="rounded-xl font-bold">No, mantener</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteProduct(item.id, item.name)}
-                              className="rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
+                      <div className="flex items-center gap-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
                             >
-                              SÍ, ELIMINAR
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 size={24} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-[2rem]">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="font-black">¿Quitar "{item.name}"?</AlertDialogTitle>
+                              <AlertDialogDescription className="font-bold">
+                                El producto ya no será visible para los alumnos.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-xl font-bold">No, mantener</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteProduct(item.id, item.name)}
+                                className="rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
+                              >
+                                SÍ, ELIMINAR
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   ))
                 )}
