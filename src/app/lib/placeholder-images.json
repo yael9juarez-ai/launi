@@ -17,6 +17,12 @@
       "description": "Hot cakes esponjosos",
       "imageUrl": "/images/hotcakes.jpg",
       "imageHint": "pancakes breakfast"
+    },
+    {
+      "id": "dona",
+      "description": "Pan de dulce o dona",
+      "imageUrl": "/images/dona.png",
+      "imageHint": "donut sweet bread"
     }
   ]
 }

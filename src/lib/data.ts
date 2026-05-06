@@ -103,7 +103,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Pieza de pan dulce fresco de recompra.",
     price: 30.00,
     category: "Golosinas",
-    imageUrl: "/images/pan-dulce.jpg",
+    imageUrl: "/images/dona.png",
     recipe: [{ ingredientId: "i30", quantity: 1 }],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
   },
