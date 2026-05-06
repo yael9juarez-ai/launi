@@ -55,11 +55,11 @@ export const INGREDIENTS: Ingredient[] = [
 export const MENU_ITEMS: MenuItem[] = [
   {
     id: "m1",
-    name: "Maruchan Preparada",
+    name: "Sopa Maruchan",
     description: "Sopa instantánea con salsa, limón y agua caliente.",
     price: 35.00,
     category: "Comida",
-    imageUrl: "https://picsum.photos/seed/maruchan/400/300",
+    imageUrl: "/images/maruchan.jpg",
     recipe: [
       { ingredientId: "i7", quantity: 1 },
       { ingredientId: "i9", quantity: 1 }
@@ -72,7 +72,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Carne de res, queso amarillo, lechuga y tomate.",
     price: 95.00,
     category: "Comida",
-    imageUrl: "https://picsum.photos/seed/burger-mex/400/300",
+    imageUrl: "/images/hamburguesa.jpg",
     recipe: [
       { ingredientId: "i1", quantity: 1 },
       { ingredientId: "i2", quantity: 150 },
@@ -86,7 +86,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Harina, azúcar, mantequilla, huevos, leche, polvo hornear y vainilla.",
     price: 65.00,
     category: "Comida",
-    imageUrl: "https://picsum.photos/seed/hotcakes/400/300",
+    imageUrl: "/images/hotcakes.jpg",
     recipe: [
       { ingredientId: "i24", quantity: 250 },
       { ingredientId: "i31", quantity: 125 },
@@ -104,7 +104,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Pieza de pan dulce fresco de recompra.",
     price: 30.00,
     category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/sweetbread/400/300",
+    imageUrl: "/images/pan-dulce.jpg",
     recipe: [{ ingredientId: "i30", quantity: 1 }],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
   },
@@ -114,37 +114,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Deliciosas gomitas en forma de pingüino.",
     price: 30.00,
     category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/g-pinguino/400/300",
-    recipe: [{ ingredientId: "i13", quantity: 150 }],
-    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
-  },
-  {
-    id: "g2",
-    name: "Gomitas Dientes (150g)",
-    description: "Las clásicas gomitas de dentadura.",
-    price: 30.00,
-    category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/g-dientes/400/300",
-    recipe: [{ ingredientId: "i13", quantity: 150 }],
-    nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
-  },
-  {
-    id: "g3",
-    name: "Gomitas Mango Fuego (150g)",
-    description: "Gomitas de mango con toque picosito.",
-    price: 30.00,
-    category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/g-mango/400/300",
-    recipe: [{ ingredientId: "i13", quantity: 150 }],
-    nutrition: { calories: 490, protein: 2, fat: 0, carbs: 120 }
-  },
-  {
-    id: "g4",
-    name: "Gomitas de Frutas (150g)",
-    description: "Mix variado de sabores frutales.",
-    price: 30.00,
-    category: "Golosinas",
-    imageUrl: "https://picsum.photos/seed/g-frutas/400/300",
+    imageUrl: "/images/gomitas-pinguino.jpg",
     recipe: [{ ingredientId: "i13", quantity: 150 }],
     nutrition: { calories: 480, protein: 3, fat: 0, carbs: 115 }
   },
@@ -154,7 +124,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Botella fría de agua natural purificada.",
     price: 20.00,
     category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/water-bottle/400/300",
+    imageUrl: "/images/agua-bonafont.jpg",
     recipe: [{ ingredientId: "i9", quantity: 1 }],
     nutrition: { calories: 0, protein: 0, fat: 0, carbs: 0 }
   },
@@ -164,39 +134,9 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Botella de agua fresca de jamaica.",
     price: 35.00,
     category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/jamaica/400/300",
+    imageUrl: "/images/agua-jamaica.jpg",
     recipe: [{ ingredientId: "i14", quantity: 1 }],
     nutrition: { calories: 180, protein: 0, fat: 0, carbs: 45 }
-  },
-  {
-    id: "b6",
-    name: "Agua de Horchata (600ml)",
-    description: "Botella de agua fresca de horchata.",
-    price: 35.00,
-    category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/horchata/400/300",
-    recipe: [{ ingredientId: "i15", quantity: 1 }],
-    nutrition: { calories: 250, protein: 2, fat: 4, carbs: 55 }
-  },
-  {
-    id: "b7",
-    name: "Agua de Limón (600ml)",
-    description: "Botella de agua fresca de limón.",
-    price: 35.00,
-    category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/lemonade/400/300",
-    recipe: [{ ingredientId: "i16", quantity: 1 }],
-    nutrition: { calories: 160, protein: 0, fat: 0, carbs: 40 }
-  },
-  {
-    id: "b2",
-    name: "Coca Cola (600ml)",
-    description: "Refresco frío de botella.",
-    price: 28.00,
-    category: "Bebidas",
-    imageUrl: "https://picsum.photos/seed/cola-bottle/400/300",
-    recipe: [{ ingredientId: "i8", quantity: 1 }],
-    nutrition: { calories: 210, protein: 0, fat: 0, carbs: 54 }
   }
 ];
 

@@ -3,63 +3,21 @@
   "placeholderImages": [
     {
       "id": "maruchan",
-      "description": "Maruchan preparada con salsa y limón",
-      "imageUrl": "https://picsum.photos/seed/maruchan/400/300",
+      "description": "Sopa Maruchan preparada",
+      "imageUrl": "/images/maruchan.jpg",
       "imageHint": "instant noodles"
     },
     {
       "id": "hamburguesa",
       "description": "Hamburguesa clásica con queso",
-      "imageUrl": "https://picsum.photos/seed/burger-mex/400/300",
+      "imageUrl": "/images/hamburguesa.jpg",
       "imageHint": "hamburger cheese"
-    },
-    {
-      "id": "aguas-sabor",
-      "description": "Agua fresca de sabor frutal",
-      "imageUrl": "https://picsum.photos/seed/fresh-water/400/300",
-      "imageHint": "fruit water"
-    },
-    {
-      "id": "gomitas",
-      "description": "Bolsa de gomitas de colores",
-      "imageUrl": "https://picsum.photos/seed/gummies/400/300",
-      "imageHint": "gummy candies"
-    },
-    {
-      "id": "coca",
-      "description": "Botella de Coca Cola",
-      "imageUrl": "https://picsum.photos/seed/cola-bottle/400/300",
-      "imageHint": "soda bottle"
-    },
-    {
-      "id": "agua-natural",
-      "description": "Botella de agua natural",
-      "imageUrl": "https://picsum.photos/seed/water-bottle/400/300",
-      "imageHint": "water bottle"
-    },
-    {
-      "id": "sincronizadas",
-      "description": "Sincronizadas de jamón y queso",
-      "imageUrl": "https://picsum.photos/seed/quesadilla/400/300",
-      "imageHint": "quesadilla ham"
-    },
-    {
-      "id": "tacos",
-      "description": "Tacos de guisado mexicanos",
-      "imageUrl": "https://picsum.photos/seed/mexican-tacos/400/300",
-      "imageHint": "mexican tacos"
     },
     {
       "id": "hotcakes",
       "description": "Hot cakes esponjosos",
-      "imageUrl": "https://picsum.photos/seed/hotcakes/400/300",
+      "imageUrl": "/images/hotcakes.jpg",
       "imageHint": "pancakes breakfast"
-    },
-    {
-      "id": "sweetbread",
-      "description": "Pan dulce variado",
-      "imageUrl": "https://picsum.photos/seed/sweetbread/400/300",
-      "imageHint": "mexican pan dulce"
     }
   ]
 }
