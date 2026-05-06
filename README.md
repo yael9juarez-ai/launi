@@ -2,7 +2,7 @@
 
 Este proyecto es una aplicación web full-stack construida con **Next.js 15**, **Firebase** y **Genkit AI**. A continuación, se detalla la estructura necesaria para la creación de tus diagramas.
 
-## 1. Estructura de Paquetes (Arquitectura)
+## 1. Estructura de Paquetes (Arquitectura de Software)
 
 - **`src/app` (Capa de Presentación / Routing)**:
     - `layout.tsx`: Layout raíz que inyecta los proveedores globales.
@@ -23,7 +23,26 @@ Este proyecto es una aplicación web full-stack construida con **Next.js 15**, *
 - **`src/ai` (Capa de Inteligencia Artifical - Genkit)**:
     - `flows/`: Lógica de negocio avanzada (Recomendaciones, Pronóstico de Inventario, Análisis de Ventas).
 
-## 2. Diagrama de Clases (Entidades Principales)
+## 2. Arquitectura de Información (Navegación de Ventas)
+
+Este mapa describe cómo viaja la información de una venta a través de las vistas del sistema:
+
+### A. Nodo de Entrada (Generación del Pedido)
+1.  **Canal Digital (Alumno)**: Navega por el catálogo en `/client/menu`. La información del carrito reside en el estado local hasta que se confirma el método de pago.
+2.  **Canal Físico (Admin/Caja)**: El administrador genera la venta directamente en `/admin/pos`.
+
+### B. Nodo de Validación (Control de Pago)
+-   **Monitor de Transacciones**: La venta llega al Dashboard del Administrador (`/admin/dashboard`) en el componente "Pagos por Liberar". La navegación aquí se centra en la verificación financiera.
+
+### C. Nodo de Transformación (Producción en Cocina)
+-   **Panel de Órdenes**: Una vez pagada, la orden "viaja" al panel de `/admin/kitchen`. La información se organiza por prioridad y tiempo de espera.
+
+### D. Nodo de Salida (Entrega y Feedback)
+-   **Monitor Público**: La información del estatus (ID del pedido) se proyecta en `/queue` para visualización masiva.
+-   **Ticket Final**: El alumno recibe la confirmación en un diálogo de "Ticket Virtual" dentro de su misma ruta de menú.
+-   **Encuesta de Satisfacción**: Al finalizar, la navegación fuerza un diálogo de "Rating" para capturar la métrica de servicio.
+
+## 3. Diagrama de Clases (Entidades Principales)
 
 ### `User`
 - `id`: string
@@ -49,13 +68,13 @@ Este proyecto es una aplicación web full-stack construida con **Next.js 15**, *
 - `method`: 'cash' | 'transfer'
 - `items`: `OrderItem[]`
 
-## 3. Arquitectura de Procesos (Para Diagramas de Flujo)
+## 4. Arquitectura de Procesos (Lógica de Negocio)
 
 ### A. Flujo de Pedido y Venta (Venta Ciclo de Vida)
 1. **Inicio**: El Alumno selecciona productos. El sistema valida stock en tiempo real consultando `ingredients`.
 2. **Selección de Pago**:
     - **Efectivo**: El pedido queda en `Pending`. El Admin debe buscarlo en el Dashboard y presionar "Confirmar Pago".
-    - **Transferencia**: El Alumno visualiza QR/CLABE, realiza el pago y envía comprobante. El Admin confirma en sistema.
+    - **Transferencia**: El Alumno visualiza QR, realiza el pago y envía comprobante. El Admin confirma en sistema.
 3. **Producción**: Una vez pagado, el estado cambia a `Preparing`. Aparece automáticamente en el panel de `Kitchen`.
 4. **Finalización**: El Cocinero marca como `Ready for Pickup`. El sistema notifica al Monitor Público (`Queue`).
 5. **Entrega**: El Alumno muestra su Ticket Virtual. El Cocinero marca como `Picked Up`.
@@ -63,14 +82,8 @@ Este proyecto es una aplicación web full-stack construida con **Next.js 15**, *
 ### B. Proceso de Gestión de Inventario (Descuento Automático)
 1. Al confirmar una venta (`Order`), el sistema itera sobre el arreglo `recipe` de cada `MenuItem` vendido.
 2. Por cada ingrediente, ejecuta una resta: `currentStock = currentStock - (cantidad_receta * cantidad_pedida)`.
-3. Si un ingrediente llega a su `minStockLevel`, el sistema resalta el ítem en el panel de Inventario y lo bloquea en el Menú del Alumno si no hay suficiente para una ración completa.
+3. Si un ingrediente llega a su `minStockLevel`, el sistema resalta el ítem en el panel de Inventario y lo bloquea en el Menú del Alumno.
 
 ### C. Proceso de Inteligencia Artificial (Upselling)
 1. Mientras el Alumno añade productos, Genkit analiza la categoría.
 2. Si añade "Comida", el flujo `smartMenuRecommendation` sugiere "Bebidas" o "Golosinas" para aumentar el ticket promedio.
-3. Se genera un mensaje persuasivo basado en el contexto actual del carrito.
-
-## 4. Relaciones Clave
-1. **Composición**: Un `MenuItem` contiene una receta (`RecipeItem`).
-2. **Asociación**: Un `User` posee múltiples `Orders`.
-3. **Dependencia**: La disponibilidad de un `MenuItem` depende del estado del stock de sus `Ingredients`.
