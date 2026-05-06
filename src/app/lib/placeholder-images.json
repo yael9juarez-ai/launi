@@ -54,6 +54,12 @@
       "description": "Gomitas de mango",
       "imageUrl": "/images/mango.png",
       "imageHint": "mango candy"
+    },
+    {
+      "id": "pinguino",
+      "description": "Gomitas de pinguino",
+      "imageUrl": "/images/pinguino.png",
+      "imageHint": "penguin candy"
     }
   ]
 }
