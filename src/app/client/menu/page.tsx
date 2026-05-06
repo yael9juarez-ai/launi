@@ -25,7 +25,8 @@ import {
   Flame,
   Printer,
   Tag,
-  Heart
+  Plus,
+  Minus
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -86,7 +87,6 @@ export default function ClientMenu() {
   const { data: menuItems, isLoading: isMenuLoading } = useCollection(menuQuery);
   const { data: allReviews, isLoading: isReviewsLoading } = useCollection(reviewsQuery);
 
-  // Calcular promedios de calificación por producto
   const productAverages = useMemo(() => {
     if (!allReviews) return {};
     const stats: Record<string, { sum: number, count: number }> = {};
@@ -137,14 +137,23 @@ export default function ClientMenu() {
   
   const { data: inventory, isLoading: isInvLoading } = useCollection(ingredientsQuery);
 
-  const checkStockAvailability = (newItem: any, currentCart: any[]) => {
+  const checkStockAvailability = (newItem: any, currentCart: any[], qtyToAdd: number = 1) => {
     if (!inventory || !newItem.recipe || newItem.recipe.length === 0) return true;
+    
     const requirements: Record<string, number> = {};
-    [...currentCart, newItem].forEach(cartItem => {
+    
+    // Sum requirements of existing cart
+    currentCart.forEach(cartItem => {
       cartItem.recipe?.forEach((r: any) => {
-        requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + r.quantity;
+        requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + (r.quantity * (cartItem.quantity || 1));
       });
     });
+
+    // Add requirements of new quantity
+    newItem.recipe?.forEach((r: any) => {
+      requirements[r.ingredientId] = (requirements[r.ingredientId] || 0) + (r.quantity * qtyToAdd);
+    });
+
     return Object.entries(requirements).every(([ingId, qty]) => {
       const ing = inventory.find((i: any) => i.id === ingId);
       return !ing || ing.currentStock >= qty;
@@ -181,18 +190,30 @@ export default function ClientMenu() {
     }
   };
 
-  const addToCart = (item: any, silent = false) => {
-    if (!checkStockAvailability(item, cart)) {
-      toast({ variant: "destructive", title: "🚫 AGOTADO", description: `Sin insumos para ${item.name}.` });
+  const updateCartQuantity = (item: any, delta: number, silent = false) => {
+    const existing = cart.find(i => i.id === item.id);
+    
+    if (delta > 0 && !checkStockAvailability(item, cart, delta)) {
+      toast({ variant: "destructive", title: "🚫 LIMITE DE INSUMOS", description: `No hay suficientes ingredientes para más ${item.name}.` });
       return;
     }
-    setCart(prev => [...prev, item]);
-    if (!silent) {
-      toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
-      getSimpleRecommendations(item);
-    } else {
-      setShowUpsell(false);
+
+    if (existing) {
+      const newQty = (existing.quantity || 1) + delta;
+      if (newQty <= 0) {
+        setCart(prev => prev.filter(i => i.id !== item.id));
+      } else {
+        setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: newQty } : i));
+      }
+    } else if (delta > 0) {
+      setCart(prev => [...prev, { ...item, quantity: delta }]);
+      if (!silent) {
+        toast({ className: "uni-toast-info", title: "AÑADIDO", description: `${item.name} en el carrito.` });
+        getSimpleRecommendations(item);
+      }
     }
+    
+    if (silent) setShowUpsell(false);
   };
 
   const handleLogout = async () => {
@@ -202,15 +223,9 @@ export default function ClientMenu() {
 
   const handlePayment = async () => {
     if (!user || cart.length === 0 || !paymentMethod) return;
-    const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
+    const totalAmount = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
     const orderId = `${Math.floor(100 + Math.random() * 899)}`;
     const now = new Date();
-
-    const orderItems = cart.reduce((acc: any[], item) => {
-      const ex = acc.find(i => i.name === item.name);
-      if (ex) ex.qty += 1; else acc.push({ name: item.name, qty: 1, price: item.price });
-      return acc;
-    }, []);
 
     const orderData = {
       id: orderId,
@@ -223,7 +238,7 @@ export default function ClientMenu() {
       isRated: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      items: orderItems,
+      items: cart.map(i => ({ name: i.name, qty: i.quantity || 1, price: i.price })),
       attendant: "El mighty yael perez"
     };
 
@@ -236,7 +251,7 @@ export default function ClientMenu() {
         if (ing) {
           const ingRef = doc(firestore, 'ingredients', ing.id);
           updateDocumentNonBlocking(ingRef, {
-            currentStock: ing.currentStock - r.quantity,
+            currentStock: ing.currentStock - (r.quantity * (cartItem.quantity || 1)),
             updatedAt: serverTimestamp()
           });
         }
@@ -257,7 +272,6 @@ export default function ClientMenu() {
     const batch = writeBatch(firestore);
     const now = new Date().toISOString();
 
-    // Guardar reseña de servicio
     const serviceReviewId = `SRV-${Date.now()}`;
     const serviceReviewRef = doc(firestore, 'service_reviews', serviceReviewId);
     batch.set(serviceReviewRef, {
@@ -268,7 +282,6 @@ export default function ClientMenu() {
       createdAt: now
     });
 
-    // Guardar reseñas de productos
     Object.entries(productRatings).forEach(([itemName, rating], idx) => {
       const prodReviewId = `PRD-${Date.now()}-${idx}`;
       const prodReviewRef = doc(firestore, 'product_reviews', prodReviewId);
@@ -282,7 +295,6 @@ export default function ClientMenu() {
       });
     });
 
-    // Actualizar pedido como calificado
     const orderRef = doc(firestore, 'orders', orderToRate.id);
     batch.update(orderRef, {
       isRated: true,
@@ -299,7 +311,8 @@ export default function ClientMenu() {
     toast({ className: "uni-toast-success", title: "¡GRACIAS!", description: "Tu opinión nos ayuda a mejorar." });
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  const total = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
   if (isUserLoading || (user && (isInvLoading || isMenuLoading || isReviewsLoading))) {
     return (
@@ -322,7 +335,7 @@ export default function ClientMenu() {
         <div className="flex items-center gap-2">
            <Button variant="ghost" size="icon" className="rounded-full relative" onClick={() => { if(cart.length > 0) setShowPayment(true) }}>
              <ShoppingCart size={24} />
-             {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">{cart.length}</span>}
+             {cartItemCount > 0 && <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">{cartItemCount}</span>}
            </Button>
            <Button variant="outline" className="rounded-xl h-10 font-black gap-2 border-2 text-xs" onClick={handleLogout}>SALIR</Button>
         </div>
@@ -389,6 +402,7 @@ export default function ClientMenu() {
           {menuItems?.filter(item => (selectedCategory === "Todas" || item.category === selectedCategory) && item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => {
             const avail = checkStockAvailability(item, cart);
             const rating = productAverages[item.name] || 0;
+            const inCart = cart.find(i => i.id === item.id);
             
             return (
               <Card key={item.id} className={cn("group border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white flex flex-col transition-all hover:shadow-2xl hover:-translate-y-1", !avail && "opacity-50 grayscale")}>
@@ -402,13 +416,15 @@ export default function ClientMenu() {
                     </div>
                   )}
                 </div>
-                <CardHeader className="p-6">
+                <CardHeader className="p-6 pb-2">
                   <div className="flex justify-between items-start">
                     <p className="text-[10px] font-black text-primary uppercase mb-1">{item.category}</p>
                     <Badge variant="outline" className="text-[8px] font-black uppercase gap-1"><Tag size={8}/> {item.unit}</Badge>
                   </div>
                   <CardTitle className="text-xl font-black line-clamp-1">{item.name}</CardTitle>
-                  <div className="flex gap-0.5 mt-1">
+                </CardHeader>
+                <CardContent className="px-6 py-0">
+                  <div className="flex gap-0.5 mb-2">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star 
                         key={s} 
@@ -420,9 +436,33 @@ export default function ClientMenu() {
                       />
                     ))}
                   </div>
-                </CardHeader>
-                <CardFooter className="p-6 pt-0 mt-auto">
-                  <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-lg" onClick={() => addToCart(item)} disabled={!avail}>{avail ? 'Añadir al Carrito' : 'Agotado'}</Button>
+                </CardContent>
+                <CardFooter className="p-6 pt-4 mt-auto">
+                  {inCart ? (
+                    <div className="flex items-center justify-between w-full bg-muted/30 rounded-2xl p-1 border-2 border-primary/10">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl h-12 w-12 text-primary"
+                        onClick={() => updateCartQuantity(item, -1)}
+                      >
+                        <Minus size={20} />
+                      </Button>
+                      <span className="font-black text-xl">{inCart.quantity}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl h-12 w-12 text-primary"
+                        onClick={() => updateCartQuantity(item, 1)}
+                      >
+                        <Plus size={20} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-lg" onClick={() => updateCartQuantity(item, 1)} disabled={!avail}>
+                      {avail ? 'Añadir al Carrito' : 'Agotado'}
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             );
@@ -503,7 +543,6 @@ export default function ClientMenu() {
           </DialogHeader>
           <ScrollArea className="max-h-[80vh]">
             <div className="p-8 space-y-8 bg-white">
-              {/* Calificación de Servicio */}
               <div className="text-center space-y-4">
                 <div className="bg-secondary/10 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto">
                   <UtensilsCrossed size={40} className="text-secondary" />
@@ -532,7 +571,6 @@ export default function ClientMenu() {
 
               <div className="h-px bg-muted w-full" />
 
-              {/* Calificación de Productos */}
               <div className="space-y-6">
                 <p className="font-black text-lg text-center leading-tight">¿Te gustó lo que pediste?</p>
                 {orderToRate?.items?.map((item: any, idx: number) => (
@@ -576,11 +614,11 @@ export default function ClientMenu() {
         </DialogContent>
       </Dialog>
 
-      {cart.length > 0 && (
+      {cartItemCount > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-2xl z-50 flex gap-3">
           <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full shadow-2xl border-4 border-white" onClick={() => setCart([])}><Trash2 size={24} /></Button>
           <Button className="flex-1 h-16 rounded-2xl shadow-2xl text-lg font-black flex justify-between px-8 mcd-gradient" onClick={() => setShowPayment(true)}>
-            <span>{cart.length} productos</span>
+            <span>{cartItemCount} productos</span>
             <span className="flex items-center gap-2">PEDIR $ {total.toFixed(2)} <ChevronRight size={24} /></span>
           </Button>
         </div>
@@ -608,7 +646,7 @@ export default function ClientMenu() {
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-primary font-black text-lg">$ {rec.price.toFixed(2)}</p>
-                      <Button size="sm" className="rounded-full font-black mcd-gradient px-4 h-8" onClick={() => addToCart(rec, true)}>Añadir</Button>
+                      <Button size="sm" className="rounded-full font-black mcd-gradient px-4 h-8" onClick={() => updateCartQuantity(rec, 1, true)}>Añadir</Button>
                     </div>
                   </div>
                 </div>
