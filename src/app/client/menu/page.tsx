@@ -53,6 +53,7 @@ export default function ClientMenu() {
   const [upsellTitle, setUpsellTitle] = useState("");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | null>(null);
+  const [accountNumber, setAccountNumber] = useState<string>("");
   
   // Ticket State
   const [showTicket, setShowTicket] = useState(false);
@@ -70,8 +71,9 @@ export default function ClientMenu() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const accountNumber = useMemo(() => {
-    return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+  // Fix hydration error for account number
+  useEffect(() => {
+    setAccountNumber(Math.floor(1000000000 + Math.random() * 9000000000).toString());
   }, []);
 
   const menuQuery = useMemoFirebase(() => {
