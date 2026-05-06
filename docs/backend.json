@@ -73,6 +73,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "orderId", "userId", "rating"]
+    },
+    "ProductReview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProductReview",
+      "type": "object",
+      "description": "Represents a customer's rating for a specific menu item.",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "menuItemName": { "type": "string" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderId", "userId", "menuItemName", "rating"]
     }
   },
   "auth": {
@@ -110,6 +125,14 @@
           "entityName": "Review",
           "schema": { "$ref": "#/backend/entities/Review" },
           "description": "General service feedback."
+        }
+      },
+      {
+        "path": "/product_reviews/{reviewId}",
+        "definition": {
+          "entityName": "ProductReview",
+          "schema": { "$ref": "#/backend/entities/ProductReview" },
+          "description": "Individual ratings for specific food/drink items."
         }
       }
     ]

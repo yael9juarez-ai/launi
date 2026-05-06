@@ -24,7 +24,8 @@ import {
   CheckCircle2,
   Flame,
   Printer,
-  Tag
+  Tag,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -35,9 +36,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useUser, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, query, where, limit } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, query, where, limit, writeBatch } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 
@@ -57,7 +59,8 @@ export default function ClientMenu() {
 
   // Rating State
   const [showRating, setShowRating] = useState(false);
-  const [currentRating, setCurrentRating] = useState(0);
+  const [serviceRating, setServiceRating] = useState(0);
+  const [productRatings, setProductRatings] = useState<Record<string, number>>({});
   const [hoverRating, setHoverRating] = useState(0);
   const [orderToRate, setOrderToRate] = useState<any>(null);
 
@@ -71,7 +74,6 @@ export default function ClientMenu() {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
   }, []);
 
-  // Monitor real-time menu items from Firestore
   const menuQuery = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'menu_items');
@@ -79,7 +81,6 @@ export default function ClientMenu() {
 
   const { data: menuItems, isLoading: isMenuLoading } = useCollection(menuQuery);
 
-  // Monitor real-time status of current and recent orders
   const activeOrdersQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -228,28 +229,49 @@ export default function ClientMenu() {
   };
 
   const handleSaveRating = async () => {
-    if (!orderToRate || currentRating === 0) return;
+    if (!orderToRate || serviceRating === 0) return;
 
-    const reviewId = `REV-${Date.now()}`;
-    const reviewRef = doc(firestore, 'service_reviews', reviewId);
-    
-    await setDoc(reviewRef, {
-      id: reviewId,
+    const batch = writeBatch(firestore);
+    const now = new Date().toISOString();
+
+    // Guardar reseña de servicio
+    const serviceReviewId = `SRV-${Date.now()}`;
+    const serviceReviewRef = doc(firestore, 'service_reviews', serviceReviewId);
+    batch.set(serviceReviewRef, {
+      id: serviceReviewId,
       orderId: orderToRate.id,
       userId: user?.uid,
-      rating: currentRating,
-      createdAt: new Date().toISOString()
+      rating: serviceRating,
+      createdAt: now
     });
 
+    // Guardar reseñas de productos
+    Object.entries(productRatings).forEach(([itemName, rating], idx) => {
+      const prodReviewId = `PRD-${Date.now()}-${idx}`;
+      const prodReviewRef = doc(firestore, 'product_reviews', prodReviewId);
+      batch.set(prodReviewRef, {
+        id: prodReviewId,
+        orderId: orderToRate.id,
+        userId: user?.uid,
+        menuItemName: itemName,
+        rating: rating,
+        createdAt: now
+      });
+    });
+
+    // Actualizar pedido como calificado
     const orderRef = doc(firestore, 'orders', orderToRate.id);
-    updateDocumentNonBlocking(orderRef, {
+    batch.update(orderRef, {
       isRated: true,
-      rating: currentRating,
+      rating: serviceRating,
       updatedAt: serverTimestamp()
     });
 
+    await batch.commit();
+
     setShowRating(false);
-    setCurrentRating(0);
+    setServiceRating(0);
+    setProductRatings({});
     setOrderToRate(null);
     toast({ className: "uni-toast-success", title: "¡GRACIAS!", description: "Tu opinión nos ayuda a mejorar." });
   };
@@ -284,7 +306,6 @@ export default function ClientMenu() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Active Order Status Bar */}
         {userOrders && userOrders.length > 0 && userOrders.some(o => o.status !== 'Picked Up' && o.status !== 'Cancelled') && (
           <div className="mb-8 space-y-4">
             <h2 className="text-xs font-black text-muted-foreground uppercase tracking-widest px-2">Estatus de mi Pedido</h2>
@@ -366,7 +387,6 @@ export default function ClientMenu() {
         </div>
       </main>
 
-      {/* VIRTUAL TICKET DIALOG */}
       <Dialog open={showTicket} onOpenChange={setShowTicket}>
         <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-sm">
           <DialogHeader className="sr-only">
@@ -428,56 +448,88 @@ export default function ClientMenu() {
         </DialogContent>
       </Dialog>
 
-      {/* RATING DIALOG */}
       <Dialog open={showRating} onOpenChange={(open) => {
         if (!open) {
           setShowRating(false);
           setOrderToRate(null);
         }
       }}>
-        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-sm">
-          <DialogHeader className="bg-primary p-8 text-white text-center">
-            <DialogTitle className="text-2xl font-black">¡Pedido Entregado!</DialogTitle>
+        <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl max-w-md">
+          <DialogHeader className="bg-primary p-6 text-white text-center">
+            <DialogTitle className="text-2xl font-black tracking-tighter">¡PEDIDO ENTREGADO!</DialogTitle>
           </DialogHeader>
-          <div className="p-8 space-y-8 text-center bg-white">
-            <div className="flex flex-col items-center gap-4">
-              <div className="bg-secondary/10 p-5 rounded-full">
-                <UtensilsCrossed size={40} className="text-secondary" />
+          <ScrollArea className="max-h-[80vh]">
+            <div className="p-8 space-y-8 bg-white">
+              {/* Calificación de Servicio */}
+              <div className="text-center space-y-4">
+                <div className="bg-secondary/10 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto">
+                  <UtensilsCrossed size={40} className="text-secondary" />
+                </div>
+                <p className="font-black text-xl leading-tight">¿Qué tal el servicio?</p>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setServiceRating(star)}
+                      className="transition-transform active:scale-90"
+                    >
+                      <Star 
+                        size={36} 
+                        className={cn(
+                          "transition-colors",
+                          serviceRating >= star 
+                            ? "fill-secondary text-secondary" 
+                            : "text-muted border-none"
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="font-black text-xl leading-tight">¿Qué tal estuvo tu servicio hoy?</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">Tu opinión es muy importante para UniEats</p>
-            </div>
-            
-            <div className="flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setCurrentRating(star)}
-                  className="transition-transform active:scale-90"
-                >
-                  <Star 
-                    size={44} 
-                    className={cn(
-                      "transition-colors",
-                      (hoverRating || currentRating) >= star 
-                        ? "fill-secondary text-secondary" 
-                        : "text-muted border-none"
-                    )}
-                  />
-                </button>
-              ))}
-            </div>
 
-            <Button 
-              className="w-full h-16 rounded-2xl text-lg font-black mcd-gradient shadow-xl"
-              onClick={handleSaveRating}
-              disabled={currentRating === 0}
-            >
-              ENVIAR CALIFICACIÓN
-            </Button>
-          </div>
+              <div className="h-px bg-muted w-full" />
+
+              {/* Calificación de Productos */}
+              <div className="space-y-6">
+                <p className="font-black text-lg text-center leading-tight">¿Te gustó lo que pediste?</p>
+                {orderToRate?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="bg-muted/10 p-4 rounded-3xl border-2 border-transparent">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-bold text-sm truncate pr-2">{item.name}</span>
+                      <Badge variant="outline" className="text-[10px] font-black h-5">x{item.qty}</Badge>
+                    </div>
+                    <div className="flex justify-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setProductRatings(prev => ({ ...prev, [item.name]: star }))}
+                          className="transition-transform active:scale-90"
+                        >
+                          <Star 
+                            size={28} 
+                            className={cn(
+                              "transition-colors",
+                              (productRatings[item.name] || 0) >= star 
+                                ? "fill-primary text-primary" 
+                                : "text-muted-foreground/20 border-none"
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Button 
+                className="w-full h-16 rounded-2xl text-lg font-black mcd-gradient shadow-xl"
+                onClick={handleSaveRating}
+                disabled={serviceRating === 0}
+              >
+                ENVIAR VALORACIÓN
+              </Button>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

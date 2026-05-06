@@ -25,7 +25,8 @@ import {
   Star,
   ExternalLink,
   MonitorPlay,
-  ClipboardList
+  ClipboardList,
+  Heart
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -100,7 +101,13 @@ export default function AdminDashboard() {
     return collection(firestore, 'orders');
   }, [firestore, user]);
 
+  const productReviewsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'product_reviews');
+  }, [firestore, user]);
+
   const { data: allOrders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
+  const { data: allProdReviews, isLoading: isReviewsLoading } = useCollection(productReviewsQuery);
 
   const pendingOrders = allOrders?.filter(o => o.status === 'Pending') || [];
   const confirmedOrders = allOrders?.filter(o => o.status !== 'Pending' && o.status !== 'Cancelled') || [];
@@ -115,20 +122,53 @@ export default function AdminDashboard() {
     return rated.reduce((sum, o) => sum + o.rating, 0) / rated.length;
   }, [confirmedOrders]);
 
+  // Cálculo de estadísticas de productos incluyendo valoraciones
   const confirmedItemsStats = useMemo(() => {
     const stats: Record<string, any> = {};
+    
+    // Contar pedidos y ventas
     confirmedOrders.forEach(order => {
       order.items?.forEach((item: any) => {
         const key = item.name || 'Desconocido';
         if (!stats[key]) {
-          stats[key] = { name: key, qty: 0, total: 0 };
+          stats[key] = { name: key, qty: 0, total: 0, ratingsCount: 0, ratingsSum: 0 };
         }
         stats[key].qty += item.qty || 1;
         stats[key].total += (item.price || 0) * (item.qty || 1);
       });
     });
+
+    // Sumar valoraciones dinámicas
+    allProdReviews?.forEach(rev => {
+      const key = rev.menuItemName;
+      if (stats[key]) {
+        stats[key].ratingsCount += 1;
+        stats[key].ratingsSum += rev.rating;
+      }
+    });
+
+    // Calcular promedios
+    Object.keys(stats).forEach(key => {
+      stats[key].avgRating = stats[key].ratingsCount > 0 
+        ? stats[key].ratingsSum / stats[key].ratingsCount 
+        : 0;
+    });
+
     return stats;
-  }, [confirmedOrders]);
+  }, [confirmedOrders, allProdReviews]);
+
+  // Identificar el "Producto Estrella"
+  const starProduct = useMemo(() => {
+    const items = Object.values(confirmedItemsStats);
+    if (items.length === 0) return null;
+    
+    // Criterio: Combinación de más pedido y mejor calificado (Score = qty * avgRating)
+    return items.reduce((best: any, current: any) => {
+      const currentScore = current.qty * (current.avgRating || 3); // Default 3 si no hay rating
+      const bestScore = best ? best.qty * (best.avgRating || 3) : -1;
+      return currentScore > bestScore ? current : best;
+    }, null);
+  }, [confirmedItemsStats]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -176,7 +216,7 @@ export default function AdminDashboard() {
     return weeklyChartData;
   }, [chartPeriod]);
 
-  if (isUserLoading || isOrdersLoading) {
+  if (isUserLoading || isOrdersLoading || isReviewsLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -292,6 +332,7 @@ export default function AdminDashboard() {
                             <TableRow className="border-b-2">
                               <TableHead className="font-black">Producto</TableHead>
                               <TableHead className="font-black text-center">Cant.</TableHead>
+                              <TableHead className="font-black text-center">Valoración</TableHead>
                               <TableHead className="font-black text-right">Total</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -300,6 +341,12 @@ export default function AdminDashboard() {
                               <TableRow key={idx} className="hover:bg-muted/20">
                                 <TableCell className="font-bold">{item.name}</TableCell>
                                 <TableCell className="text-center font-black text-primary">{item.qty}</TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <span className="font-black">{item.avgRating?.toFixed(1) || '-'}</span>
+                                    {item.avgRating > 0 && <Star size={10} className="fill-secondary text-secondary" />}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-right font-black">$ {item.total.toFixed(2)}</TableCell>
                               </TableRow>
                             ))}
@@ -314,59 +361,92 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white mb-8 border-l-[1rem] border-l-secondary">
-          <CardHeader className="p-8 pb-4">
-            <CardTitle className="text-2xl font-black flex items-center gap-2">
-              <Clock className="text-secondary" /> PAGOS POR LIBERAR
-            </CardTitle>
-            <CardDescription className="font-bold">Confirma la recepción del dinero para autorizar la preparación en cocina.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8 pt-0">
-            {pendingOrders.length === 0 ? (
-              <div className="py-10 text-center opacity-40">
-                <CheckCircle2 size={48} className="mx-auto mb-2" />
-                <p className="font-black">Sin pagos pendientes.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingOrders.map((order) => (
-                  <div key={order.id} className={cn(
-                    "p-6 rounded-[2rem] border-2 flex flex-col justify-between transition-all",
-                    order.method === 'cash' ? "bg-amber-50 border-amber-200" : "bg-muted/30 border-secondary/20 hover:border-secondary"
-                  )}>
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-3xl font-black text-secondary">#{order.id}</span>
-                        <Badge variant={order.method === 'cash' ? "default" : "outline"} className={cn("rounded-full font-black gap-2", order.method === 'cash' && "bg-amber-500")}>
-                          {order.method === 'transfer' ? <CreditCard size={12} /> : <Banknote size={12} />}
-                          {order.method === 'transfer' ? 'TRANS' : 'CASH'}
-                        </Badge>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="border-none shadow-xl rounded-[2.5rem] bg-white border-l-[1rem] border-l-primary md:col-span-2">
+            <CardHeader className="p-8 pb-4">
+              <CardTitle className="text-2xl font-black flex items-center gap-2">
+                <Clock className="text-primary" /> PAGOS POR LIBERAR
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              {pendingOrders.length === 0 ? (
+                <div className="py-10 text-center opacity-40">
+                  <CheckCircle2 size={48} className="mx-auto mb-2" />
+                  <p className="font-black">Sin pagos pendientes.</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[250px]">
+                  <div className="space-y-4 pr-3">
+                    {pendingOrders.map((order) => (
+                      <div key={order.id} className="p-6 rounded-[2rem] border-2 bg-muted/10 flex justify-between items-center transition-all">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl font-black text-primary">#{order.id}</span>
+                            <Badge variant="outline" className="rounded-full font-black text-[9px] uppercase tracking-widest">
+                              {order.method}
+                            </Badge>
+                          </div>
+                          <p className="font-bold text-sm text-muted-foreground mt-1">{order.items?.map((it:any) => it.name).join(', ')}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <p className="text-xl font-black">$ {order.totalAmount?.toFixed(2)}</p>
+                          <Button 
+                            className="rounded-xl font-black h-10 px-4"
+                            onClick={() => handleLiberatePayment(order.id)}
+                          >
+                            LIBERAR
+                          </Button>
+                        </div>
                       </div>
-                      <p className="font-black text-lg">{order.user}</p>
-                      <div className="mt-2 space-y-1">
-                        {order.items?.map((it: any, idx: number) => (
-                          <p key={idx} className="text-xs font-bold text-muted-foreground">• {it.name} (x{it.qty})</p>
-                        ))}
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* TARJETA PRODUCTO ESTRELLA */}
+          <Card className="border-none shadow-xl rounded-[2.5rem] bg-secondary text-secondary-foreground overflow-hidden">
+             <CardHeader className="p-8 pb-0">
+               <div className="flex justify-between items-center">
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Insight de IA</p>
+                 <Heart className="fill-primary text-primary" size={24} />
+               </div>
+               <CardTitle className="text-3xl font-black leading-tight mt-2">PRODUCTO ESTRELLA</CardTitle>
+             </CardHeader>
+             <CardContent className="p-8 pt-6">
+                {starProduct ? (
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <p className="text-2xl font-black tracking-tighter truncate uppercase">{starProduct.name}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} size={14} className={cn(s <= Math.round(starProduct.avgRating || 4) ? "fill-primary text-primary" : "text-primary/20")} />
+                          ))}
+                        </div>
+                        <span className="text-xs font-bold opacity-60">({starProduct.ratingsCount} reviews)</span>
                       </div>
                     </div>
-                    <div className="mt-6 flex flex-col gap-3 border-t pt-4">
-                      <div className="flex justify-between items-center">
-                        <p className="text-2xl font-black text-primary">$ {order.totalAmount?.toFixed(2)}</p>
-                        {order.method === 'cash' && <Badge variant="outline" className="text-[9px] font-black text-amber-600 border-amber-300 gap-1"><AlertCircle size={8} /> COBRO MANUAL</Badge>}
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-secondary-foreground/10">
+                      <div>
+                        <p className="text-[9px] font-black uppercase opacity-60">Vendidos</p>
+                        <p className="text-2xl font-black">{starProduct.qty}</p>
                       </div>
-                      <Button 
-                        className="w-full rounded-xl font-black bg-secondary text-black hover:bg-secondary/80 h-12"
-                        onClick={() => handleLiberatePayment(order.id)}
-                      >
-                        CONFIRMAR PAGO
-                      </Button>
+                      <div>
+                        <p className="text-[9px] font-black uppercase opacity-60">Generado</p>
+                        <p className="text-2xl font-black">$ {starProduct.total.toFixed(0)}</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                ) : (
+                  <div className="h-full flex items-center justify-center py-10 opacity-40">
+                    <p className="font-black italic">Esperando datos...</p>
+                  </div>
+                )}
+             </CardContent>
+          </Card>
+        </div>
 
         <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-2">
           <CardHeader className="p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
