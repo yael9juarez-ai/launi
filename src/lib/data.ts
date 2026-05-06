@@ -123,6 +123,17 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
   },
   {
+    id: "m12",
+    name: "Gomitas de Mango (150gr)",
+    description: "Gomitas con un intenso sabor a mango (150gr).",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "/images/fruta.png",
+    unit: "150gr",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
+  },
+  {
     id: "b1",
     name: "Agua Bonafont (600ml)",
     description: "Botella fría de agua natural purificada.",
