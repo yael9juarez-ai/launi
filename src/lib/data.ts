@@ -52,6 +52,7 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "i33", name: "Extracto de Vainilla", stock: 2000, unit: "ml", minStock: 50 },
   { id: "i30", name: "Pan de Dulce (La Esperanza)", stock: 150, unit: "pzas", minStock: 10 },
   { id: "i34", name: "Leche de Chocolate (Pza)", stock: 100, unit: "pzas", minStock: 15 },
+  { id: "i35", name: "Gomitas de Frutas (Pza)", stock: 100, unit: "pzas", minStock: 10 },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -109,6 +110,17 @@ export const MENU_ITEMS: MenuItem[] = [
     unit: "pza",
     recipe: [{ ingredientId: "i30", quantity: 1 }],
     nutrition: { calories: 280, protein: 4, fat: 12, carbs: 38 }
+  },
+  {
+    id: "m11",
+    name: "Gomitas de Frutas",
+    description: "Bolsa de gomitas de sabores frutales variados.",
+    price: 15.00,
+    category: "Golosinas",
+    imageUrl: "/images/fruta.png",
+    unit: "pza",
+    recipe: [{ ingredientId: "i35", quantity: 1 }],
+    nutrition: { calories: 150, protein: 2, fat: 0, carbs: 35 }
   },
   {
     id: "b1",

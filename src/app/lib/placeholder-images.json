@@ -42,6 +42,12 @@
       "description": "Leche de chocolate",
       "imageUrl": "/images/leche.png",
       "imageHint": "chocolate milk"
+    },
+    {
+      "id": "fruta",
+      "description": "Gomitas de frutas",
+      "imageUrl": "/images/fruta.png",
+      "imageHint": "fruit gummies"
     }
   ]
 }
