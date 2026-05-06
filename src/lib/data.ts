@@ -123,7 +123,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: "Botella fría de agua natural purificada.",
     price: 20.00,
     category: "Bebidas",
-    imageUrl: "/images/agua-bonafont.jpg",
+    imageUrl: "/images/bonafont.jpg",
     recipe: [{ ingredientId: "i9", quantity: 1 }],
     nutrition: { calories: 0, protein: 0, fat: 0, carbs: 0 }
   },

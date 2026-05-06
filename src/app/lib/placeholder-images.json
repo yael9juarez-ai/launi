@@ -23,6 +23,12 @@
       "description": "Pan de dulce o dona",
       "imageUrl": "/images/dona.png",
       "imageHint": "donut sweet bread"
+    },
+    {
+      "id": "bonafont",
+      "description": "Botella de agua Bonafont 600ml",
+      "imageUrl": "/images/bonafont.jpg",
+      "imageHint": "water bottle"
     }
   ]
 }
