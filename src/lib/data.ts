@@ -1,3 +1,4 @@
+
 export const CATEGORIES = ["Comida", "Bebidas", "Golosinas"];
 
 export interface Ingredient {

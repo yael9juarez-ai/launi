@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,18 +20,31 @@ import {
   Search,
   Scale,
   ChefHat,
-  X
+  X,
+  AlertTriangle,
+  Eraser
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { MENU_ITEMS as INITIAL_MENU } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface RecipeEntry {
   ingredientId: string;
@@ -128,15 +142,38 @@ export default function MenuManagementPage() {
   };
 
   const handleDeleteProduct = (id: string, name: string) => {
-    if (typeof window !== 'undefined' && window.confirm(`¿Estás seguro de quitar "${name}" del menú?`)) {
-      const docRef = doc(firestore, 'menu_items', id);
-      deleteDocumentNonBlocking(docRef);
-      
+    const docRef = doc(firestore, 'menu_items', id);
+    deleteDocumentNonBlocking(docRef);
+    
+    toast({
+      className: "uni-toast-info",
+      title: "🗑️ ELIMINADO",
+      description: `${name} ha sido retirado del menú.`,
+    });
+  };
+
+  const clearAllMenu = async () => {
+    setIsInitializing(true);
+    try {
+      const querySnapshot = await getDocs(collection(firestore, 'menu_items'));
+      const batch = writeBatch(firestore);
+      querySnapshot.forEach((d) => {
+        batch.delete(d.ref);
+      });
+      await batch.commit();
       toast({
         className: "uni-toast-info",
-        title: "🗑️ ELIMINADO",
-        description: `${name} ha sido retirado del menú.`,
+        title: "🧹 MENÚ VACIADO",
+        description: "Se han eliminado todos los productos del menú.",
       });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "❌ ERROR",
+        description: "No se pudo vaciar el menú.",
+      });
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -195,15 +232,38 @@ export default function MenuManagementPage() {
             <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Configura productos e ingredientes</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          className="rounded-xl h-12 px-6 font-bold gap-2" 
-          onClick={syncMenu}
-          disabled={isInitializing}
-        >
-          {isInitializing ? <Loader2 className="animate-spin" /> : <RotateCcw size={20} />}
-          Sincronizar Menú Base
-        </Button>
+        <div className="flex gap-3">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="rounded-xl h-12 px-6 font-bold gap-2 text-destructive hover:bg-destructive/10 border-destructive/20">
+                <Eraser size={20} /> Vaciar Menú
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-[2rem]">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-2xl font-black">¿Estás completamente seguro?</AlertDialogTitle>
+                <AlertDialogDescription className="font-bold">
+                  Esta acción eliminará TODOS los productos que tienes actualmente en el menú. Tendrás que volver a sincronizar o añadirlos manualmente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl font-bold">Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={clearAllMenu} className="rounded-xl font-black bg-destructive text-white hover:bg-destructive/90">
+                  SÍ, VACIAR TODO
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button 
+            variant="outline" 
+            className="rounded-xl h-12 px-6 font-bold gap-2" 
+            onClick={syncMenu}
+            disabled={isInitializing}
+          >
+            {isInitializing ? <Loader2 className="animate-spin" /> : <RotateCcw size={20} />}
+            Sincronizar Menú Base
+          </Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -361,7 +421,7 @@ export default function MenuManagementPage() {
                   </div>
                 ) : (
                   filteredItems.map((item) => (
-                    <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-muted/5 transition-colors">
+                    <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-muted/5 transition-colors group">
                       <div className="w-20 h-20 relative rounded-2xl overflow-hidden shadow-md shrink-0">
                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                       </div>
@@ -387,18 +447,35 @@ export default function MenuManagementPage() {
                           </div>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDeleteProduct(item.id, item.name);
-                        }}
-                      >
-                        <Trash2 size={24} />
-                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 size={24} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-[2rem]">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-black">¿Quitar "{item.name}"?</AlertDialogTitle>
+                            <AlertDialogDescription className="font-bold">
+                              El producto ya no será visible para los alumnos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-xl font-bold">No, mantener</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteProduct(item.id, item.name)}
+                              className="rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
+                            >
+                              SÍ, ELIMINAR
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   ))
                 )}
