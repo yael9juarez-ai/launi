@@ -145,6 +145,17 @@ export const MENU_ITEMS: MenuItem[] = [
     nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
   },
   {
+    id: "m14",
+    name: "Gomitas Dientes (150g)",
+    description: "Gomitas clásicas con forma de dientes (150g).",
+    price: 30.00,
+    category: "Golosinas",
+    imageUrl: "/images/diente.png",
+    unit: "150g",
+    recipe: [{ ingredientId: "i13", quantity: 150 }],
+    nutrition: { calories: 450, protein: 2, fat: 0, carbs: 100 }
+  },
+  {
     id: "b1",
     name: "Agua Bonafont (600ml)",
     description: "Botella fría de agua natural purificada.",

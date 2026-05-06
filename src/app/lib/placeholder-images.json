@@ -60,6 +60,12 @@
       "description": "Gomitas de pinguino",
       "imageUrl": "/images/pinguino.png",
       "imageHint": "penguin candy"
+    },
+    {
+      "id": "diente",
+      "description": "Gomitas de dientes",
+      "imageUrl": "/images/diente.png",
+      "imageHint": "teeth candy"
     }
   ]
 }
