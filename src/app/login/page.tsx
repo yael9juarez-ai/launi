@@ -37,11 +37,23 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
+      const name = username.trim().toLowerCase();
+
+      // Validación de contraseña exclusiva para el rol de administrador
+      if (name === 'admin' && password !== 'delia5') {
+        toast({
+          variant: "destructive",
+          title: "ACCESO DENEGADO",
+          description: "La contraseña de administrador es incorrecta.",
+        });
+        setLoading(false);
+        return;
+      }
+      
       // Forzar cierre de sesión previo para evitar conflictos de caché
       await signOut(auth);
       
       const userCredential = await signInAnonymously(auth);
-      const name = username.trim().toLowerCase();
       const uid = userCredential.user.uid;
       
       // Actualizar el perfil del usuario de Firebase Auth
@@ -50,7 +62,6 @@ export default function LoginPage() {
       });
 
       // Registrar el usuario y su rol en Firestore para Security Rules
-      // Esto asegura que el sistema reconozca el rol inmediatamente
       const role = name === 'admin' ? 'admin' : name === 'cocinero' ? 'cocinero' : 'alumno';
       
       await setDoc(doc(firestore, 'users', uid), {
@@ -69,16 +80,16 @@ export default function LoginPage() {
 
       toast({
         className: "uni-toast-success",
-        title: "¡SESIÓN INICIADA!",
-        description: `Bienvenido al sistema UniEats, ${name}.`,
+        title: "¡BIENVENIDO!",
+        description: `Sesión iniciada correctamente como ${name}.`,
       });
 
     } catch (error: any) {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "ERROR DE ACCESO",
-        description: "No se pudo conectar con el servidor. Revisa tu internet.",
+        title: "ERROR DE CONEXIÓN",
+        description: "No se pudo validar el acceso. Revisa tu conexión.",
       });
     } finally {
       setLoading(false);
@@ -120,7 +131,7 @@ export default function LoginPage() {
                   <User className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="username" 
-                    placeholder="Escribe 'cocinero', 'admin' o tu nombre" 
+                    placeholder="Escribe 'admin', 'cocinero' o tu nombre" 
                     className="pl-12 h-14 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary transition-all text-base" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -130,7 +141,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Contraseña de Red</Label>
+                <Label htmlFor="password" className="font-black text-xs uppercase tracking-widest text-muted-foreground">Contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                   <Input 
@@ -146,12 +157,12 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/30" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : 'INGRESAR'}
+                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : 'ENTRAR AL SISTEMA'}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="py-8 bg-muted/20 text-center">
-            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase italic">Servicio de Alimentación UNI</p>
+            <p className="w-full font-bold text-xs opacity-60 tracking-widest uppercase italic">Gestión de Alimentación UNI</p>
           </CardFooter>
         </Card>
       </div>
