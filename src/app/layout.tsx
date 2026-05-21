@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
+import Script from 'next/script';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -21,9 +22,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={inter.variable} suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Google tag (gtag.js) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-E9XFK85D69"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-E9XFK85D69');
+          `}
+        </Script>
+      </head>
       <body 
-        className={`${inter.className} font-body antialiased bg-background`} 
+        className={`${inter.variable} font-body antialiased bg-background`} 
         suppressHydrationWarning
       >
         <FirebaseClientProvider>
