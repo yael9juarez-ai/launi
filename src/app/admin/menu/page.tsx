@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,19 +12,17 @@ import {
   Trash2, 
   ClipboardList, 
   DollarSign, 
-  Tag, 
   Box, 
   RotateCcw,
   Loader2,
   Search,
-  Scale,
   ChefHat,
   X,
-  AlertTriangle,
   Eraser,
   Pencil,
   Check,
-  Ban
+  Ban,
+  Utensils
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -123,7 +120,7 @@ export default function MenuManagementPage() {
         category: newCategory,
         unit: newUnit,
         description: `Producto de la cafetería (${newCategory})`,
-        imageUrl: `https://picsum.photos/seed/${id}/400/300`,
+        imageUrl: `https://picsum.photos/seed/${id}/600/400`,
         recipe: recipe,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -226,8 +223,13 @@ export default function MenuManagementPage() {
       const batch = writeBatch(firestore);
       INITIAL_MENU.forEach((item) => {
         const docRef = doc(firestore, 'menu_items', item.id);
+        const finalImageUrl = item.imageUrl.startsWith('/') 
+          ? `https://picsum.photos/seed/${item.id}/600/400`
+          : item.imageUrl;
+
         batch.set(docRef, {
           ...item,
+          imageUrl: finalImageUrl,
           unit: item.unit || (item.category === 'Bebidas' ? 'ml' : 'pza'),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -237,7 +239,7 @@ export default function MenuManagementPage() {
       toast({
         className: "uni-toast-success",
         title: "🔄 SINCRONIZADO",
-        description: "Menú base cargado correctamente.",
+        description: "Menú base cargado correctamente con imágenes actualizadas.",
       });
     } catch (error) {
       toast({
@@ -285,7 +287,7 @@ export default function MenuManagementPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-2xl font-black">¿Estás completamente seguro?</AlertDialogTitle>
                 <AlertDialogDescription className="font-bold">
-                  Esta acción eliminará TODOS los productos que tienes actualmente en el menú. Tendrás que volver a sincronizar o añadirlos manualmente.
+                  Esta acción eliminará TODOS los productos que tienes actualmente en el menú.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -303,26 +305,26 @@ export default function MenuManagementPage() {
             disabled={isInitializing}
           >
             {isInitializing ? <Loader2 className="animate-spin" /> : <RotateCcw size={20} />}
-            Sincronizar Menú Base
+            Sincronizar Base
           </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* FORMULARIO DE AÑADIR */}
-        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white h-fit">
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white lg:sticky lg:top-8">
           <CardHeader className="p-8">
             <CardTitle className="text-2xl font-black flex items-center gap-2">
               <Plus className="text-primary" /> Nuevo Producto
             </CardTitle>
-            <CardDescription className="font-bold">Define el producto y sus insumos.</CardDescription>
+            <CardDescription className="font-bold">Crea un nuevo artículo para la cafetería.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
             <form onSubmit={handleAddProduct} className="space-y-6">
               <div className="space-y-2">
-                <Label className="font-black text-xs uppercase tracking-widest">Nombre del Producto</Label>
+                <Label className="font-black text-xs uppercase tracking-widest">Nombre</Label>
                 <Input 
-                  placeholder="Ej. Torta de Jamón" 
+                  placeholder="Nombre del producto" 
                   value={newName} 
                   onChange={(e) => setNewName(e.target.value)}
                   className="rounded-xl border-2 h-12"
@@ -357,7 +359,7 @@ export default function MenuManagementPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="font-black text-xs uppercase tracking-widest">Unidad de Venta</Label>
+                <Label className="font-black text-xs uppercase tracking-widest">Unidad</Label>
                 <Select value={newUnit} onValueChange={setNewUnit}>
                   <SelectTrigger className="rounded-xl border-2 h-12">
                     <SelectValue />
@@ -368,33 +370,30 @@ export default function MenuManagementPage() {
                     <SelectItem value="kg">Kilogramo (kg)</SelectItem>
                     <SelectItem value="gr">Gramo (gr)</SelectItem>
                     <SelectItem value="ml">Mililitro (ml)</SelectItem>
-                    <SelectItem value="lt">Litro (lt)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* RECETA / INGREDIENTES */}
               <div className="space-y-4 border-2 p-4 rounded-2xl bg-muted/5">
                 <Label className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                  <ChefHat size={14} className="text-primary" /> Receta / Insumos
+                  <ChefHat size={14} className="text-primary" /> Receta de Insumos
                 </Label>
                 
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-40 overflow-y-auto">
                   {recipe.length === 0 ? (
-                    <p className="text-[10px] font-bold text-muted-foreground text-center py-2">Sin ingredientes asignados</p>
+                    <p className="text-[10px] font-bold text-muted-foreground text-center py-4 italic">Sin ingredientes asignados</p>
                   ) : (
                     recipe.map((item) => {
                       const ing = availableIngredients?.find(i => i.id === item.ingredientId);
                       return (
-                        <div key={item.ingredientId} className="flex items-center justify-between gap-2 bg-white p-2 rounded-xl border shadow-sm">
+                        <div key={item.ingredientId} className="flex items-center justify-between gap-2 bg-white p-2 rounded-xl border shadow-sm animate-in fade-in slide-in-from-right-2">
                           <span className="text-xs font-bold truncate flex-1">{ing?.name}</span>
                           <Input 
                             type="number" 
-                            className="w-16 h-8 text-center text-xs font-black p-1"
+                            className="w-14 h-8 text-center text-xs font-black p-1"
                             value={item.quantity}
                             onChange={(e) => updateRecipeQuantity(item.ingredientId, parseFloat(e.target.value) || 0)}
                           />
-                          <span className="text-[9px] font-bold text-muted-foreground w-8">{ing?.unitOfMeasure}</span>
                           <Button 
                             type="button" 
                             variant="ghost" 
@@ -411,13 +410,13 @@ export default function MenuManagementPage() {
                 </div>
 
                 <div className="pt-2 border-t">
-                  <p className="text-[9px] font-black text-muted-foreground uppercase mb-2">Añadir Insumo:</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase mb-2">Vincular Insumo:</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {availableIngredients?.map((ing) => (
                       <Badge 
                         key={ing.id} 
                         variant="secondary" 
-                        className="cursor-pointer hover:bg-primary hover:text-white transition-colors"
+                        className="cursor-pointer hover:bg-primary hover:text-white transition-colors text-[9px]"
                         onClick={() => addIngredientToRecipe(ing.id)}
                       >
                         + {ing.name}
@@ -428,7 +427,7 @@ export default function MenuManagementPage() {
               </div>
 
               <Button type="submit" className="w-full h-14 rounded-2xl font-black mcd-gradient shadow-lg" disabled={isAdding}>
-                {isAdding ? <Loader2 className="animate-spin" /> : 'AÑADIR AL MENÚ'}
+                {isAdding ? <Loader2 className="animate-spin" /> : 'PUBLICAR EN MENÚ'}
               </Button>
             </form>
           </CardContent>
@@ -436,59 +435,77 @@ export default function MenuManagementPage() {
 
         {/* LISTA DE PRODUCTOS */}
         <Card className="lg:col-span-2 border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
-          <CardHeader className="p-8 border-b-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-2xl font-black flex items-center gap-3">
-                <ClipboardList className="text-secondary" /> Menú Actual
-              </CardTitle>
-              <CardDescription className="font-bold">Productos visibles para los alumnos.</CardDescription>
-            </div>
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar en menú..." 
-                className="pl-9 h-10 rounded-xl border-2" 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+          <CardHeader className="p-8 border-b-2 bg-muted/5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <CardTitle className="text-2xl md:text-3xl font-black flex items-center gap-3">
+                  <Utensils className="text-secondary" /> Menú Disponible
+                </CardTitle>
+                <CardDescription className="font-bold">Visualiza y edita los productos activos.</CardDescription>
+              </div>
+              <div className="relative w-full md:w-72">
+                <Search className="absolute left-4 top-3 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar platillo..." 
+                  className="pl-12 h-11 rounded-xl border-2 bg-white" 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="divide-y-2">
+              <div className="p-6 space-y-4">
                 {filteredItems.length === 0 ? (
-                  <div className="p-20 text-center opacity-20">
-                    <Box size={80} className="mx-auto mb-4" />
-                    <p className="text-2xl font-black">MENÚ VACÍO</p>
+                  <div className="py-24 text-center">
+                    <Box size={80} className="mx-auto mb-4 text-muted-foreground opacity-20" />
+                    <p className="text-xl font-black text-muted-foreground opacity-40 uppercase tracking-tighter">No hay productos que mostrar</p>
                   </div>
                 ) : (
                   filteredItems.map((item) => (
-                    <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-muted/5 transition-colors group">
-                      <div className="w-20 h-20 relative rounded-2xl overflow-hidden shadow-md shrink-0">
-                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                    <div key={item.id} className="flex flex-col md:flex-row md:items-center gap-6 p-6 rounded-[2rem] border-2 border-muted hover:border-primary/20 transition-all bg-white shadow-sm group">
+                      <div className="w-full md:w-32 h-32 relative rounded-2xl overflow-hidden shadow-inner shrink-0 bg-muted/30">
+                        <Image 
+                          src={item.imageUrl} 
+                          alt={item.name} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                          data-ai-hint="food meal"
+                          unoptimized={item.imageUrl.startsWith('/images/')}
+                        />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-black leading-tight">{item.name}</h3>
-                          <Badge variant="outline" className="text-[9px] uppercase font-black">{item.category}</Badge>
+                      
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-black leading-tight tracking-tight uppercase">{item.name}</h3>
+                          <Badge className="rounded-full font-black text-[9px] uppercase tracking-widest bg-primary/10 text-primary border-none">
+                            {item.category}
+                          </Badge>
                         </div>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {item.recipe?.map((r: any, idx: number) => {
-                            const ing = availableIngredients?.find(i => i.id === r.ingredientId);
-                            return (
-                              <Badge key={idx} variant="secondary" className="text-[8px] h-4 bg-muted/50">
-                                {ing?.name} ({r.quantity}{ing?.unitOfMeasure})
-                              </Badge>
-                            );
-                          })}
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.recipe?.length > 0 ? (
+                            item.recipe.map((r: any, idx: number) => {
+                              const ing = availableIngredients?.find(i => i.id === r.ingredientId);
+                              return (
+                                <Badge key={idx} variant="outline" className="text-[9px] font-bold border-muted-foreground/10 bg-muted/20">
+                                  {ing?.name || 'Insumo'} ({r.quantity})
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <span className="text-[9px] font-bold text-muted-foreground italic">Sin receta definida</span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-4">
+
+                        <div className="flex items-center pt-2">
                           {editingId === item.id ? (
-                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                            <div className="flex items-center gap-2 animate-in zoom-in-95">
                               <DollarSign size={20} className="text-primary" />
                               <Input 
                                 type="number" 
-                                className="w-24 h-9 font-black text-lg rounded-xl border-2 border-primary" 
+                                className="w-28 h-10 font-black text-lg rounded-xl border-2 border-primary bg-primary/5 shadow-inner" 
                                 value={tempPrice}
                                 onChange={(e) => setTempPrice(e.target.value)}
                                 autoFocus
@@ -496,7 +513,7 @@ export default function MenuManagementPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-9 w-9 text-emerald-500 hover:bg-emerald-50"
+                                className="h-10 w-10 text-emerald-500 bg-emerald-50 rounded-xl"
                                 onClick={() => handleUpdatePrice(item.id)}
                               >
                                 <Check size={20} />
@@ -504,20 +521,20 @@ export default function MenuManagementPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-9 w-9 text-muted-foreground hover:bg-muted"
+                                className="h-10 w-10 text-muted-foreground bg-muted rounded-xl"
                                 onClick={cancelEditing}
                               >
                                 <Ban size={20} />
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex items-center text-primary font-black text-xl gap-2">
-                              <DollarSign size={16} /> {item.price.toFixed(2)}
-                              <span className="text-[10px] text-muted-foreground ml-1 uppercase">/ {item.unit}</span>
+                            <div className="flex items-center text-primary font-black text-2xl gap-2">
+                              <DollarSign size={18} /> {item.price.toFixed(2)}
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">/ {item.unit}</span>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-9 w-9 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity rounded-xl hover:bg-muted"
                                 onClick={() => startEditing(item.id, item.price)}
                               >
                                 <Pencil size={14} />
@@ -527,26 +544,26 @@ export default function MenuManagementPage() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-end">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="rounded-xl h-12 w-12 text-destructive hover:bg-destructive/10"
+                              className="rounded-2xl h-14 w-14 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors border-2 border-transparent hover:border-destructive/20"
                             >
                               <Trash2 size={24} />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="rounded-[2rem]">
+                          <AlertDialogContent className="rounded-[2.5rem]">
                             <AlertDialogHeader>
-                              <AlertDialogTitle className="font-black">¿Quitar "{item.name}"?</AlertDialogTitle>
+                              <AlertDialogTitle className="font-black text-2xl">¿Eliminar "{item.name}"?</AlertDialogTitle>
                               <AlertDialogDescription className="font-bold">
-                                El producto ya no será visible para los alumnos.
+                                Esta acción retirará el producto del menú visible para todos los alumnos.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="rounded-xl font-bold">No, mantener</AlertDialogCancel>
+                            <AlertDialogFooter className="gap-2">
+                              <AlertDialogCancel className="rounded-xl font-bold">CANCELAR</AlertDialogCancel>
                               <AlertDialogAction 
                                 onClick={() => handleDeleteProduct(item.id, item.name)}
                                 className="rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
@@ -568,3 +585,4 @@ export default function MenuManagementPage() {
     </div>
   );
 }
+
